@@ -1421,6 +1421,64 @@
   </div>
 </div>
 
+<!-- EDIT CAR MODAL -->
+<div class="detail-modal" id="edit-modal">
+  <div class="page-header" style="position:sticky;top:0;z-index:10">
+    <div class="page-title">編輯<span>車輛</span></div>
+    <div class="header-actions">
+      <div class="icon-btn" onclick="closeEditModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="upload-form">
+    <input type="hidden" id="edit-car-id">
+
+    <div class="photo-picker" id="edit-photo-picker" onclick="triggerEditPhoto()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+      <div class="photo-picker-text">點擊更換照片</div>
+    </div>
+    <input type="file" id="edit-photo-input" accept="image/*" style="display:none" onchange="handleEditPhotoSelect(event)">
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">編號</label>
+        <input class="form-input" type="text" id="e-number" placeholder="No.15" maxlength="10">
+      </div>
+      <div class="form-group">
+        <label class="form-label">年份 / 系列</label>
+        <input class="form-input" type="text" id="e-year" placeholder="1972 / 初代">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">車名 *</label>
+      <input class="form-input" type="text" id="e-name" placeholder="Toyota Corolla">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">購入價格（台幣）</label>
+      <input class="form-input" type="number" id="e-price" placeholder="150" min="0">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">備註</label>
+      <input class="form-input" type="text" id="e-note" placeholder="限定版、有盒、狀態...">
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-label">願望清單（尚未入手）</div>
+      <button class="toggle" id="toggle-edit-wishlist" onclick="this.classList.toggle('on')"></button>
+    </div>
+
+    <button class="btn-submit" id="btn-save-edit" onclick="saveEdit()">
+      <svg style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      儲存
+    </button>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -1457,6 +1515,8 @@ let cars = [];
 let currentFilter = 'all';
 window.currentCarId = null;
 let croppedDataUrl = null;
+let editCroppedDataUrl = null;
+let editCropMode = false;
 let cropImgNaturalW = 0, cropImgNaturalH = 0;
 let cropX = 0, cropY = 0, cropScale = 1;
 let cropDragging = false, cropLastX = 0, cropLastY = 0;
@@ -1683,9 +1743,103 @@ window.deleteCar = async (id) => {
 };
 
 window.editCar = (id) => {
+  const car = cars.find(c => c.id === id);
+  if (!car) return;
   closeDetail();
-  // simple: go to upload screen with data pre-filled (future enhancement)
-  showToast('編輯功能即將推出');
+  setTimeout(() => openEditModal(car), 380);
+};
+
+function openEditModal(car) {
+  document.getElementById('edit-car-id').value = car.id;
+  document.getElementById('e-number').value = car.number || '';
+  document.getElementById('e-name').value = car.name || '';
+  document.getElementById('e-year').value = car.year || '';
+  document.getElementById('e-price').value = car.price || '';
+  document.getElementById('e-note').value = car.note || '';
+  const tw = document.getElementById('toggle-edit-wishlist');
+  car.status === 'wishlist' ? tw.classList.add('on') : tw.classList.remove('on');
+
+  // show existing photo
+  const picker = document.getElementById('edit-photo-picker');
+  if (car.photoUrl) {
+    picker.innerHTML = `<img src="${car.photoUrl}" alt="目前照片">`;
+  } else {
+    picker.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg><div class="photo-picker-text">點擊更換照片</div>`;
+  }
+  editCroppedDataUrl = null;
+
+  const modal = document.getElementById('edit-modal');
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('open'));
+}
+
+window.closeEditModal = () => {
+  const modal = document.getElementById('edit-modal');
+  modal.classList.remove('open');
+  setTimeout(() => { modal.style.display = 'none'; }, 350);
+};
+
+window.triggerEditPhoto = () => document.getElementById('edit-photo-input').click();
+
+window.handleEditPhotoSelect = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    editCropMode = true;
+    openCropModal(ev.target.result);
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+};
+
+window.saveEdit = async () => {
+  const id = document.getElementById('edit-car-id').value;
+  const name = document.getElementById('e-name').value.trim();
+  if (!name) { showToast('請輸入車名'); return; }
+
+  const btn = document.getElementById('btn-save-edit');
+  btn.disabled = true;
+  btn.textContent = '儲存中...';
+
+  const car = cars.find(c => c.id === id);
+
+  try {
+    let photoUrl = car.photoUrl || null;
+    let photoPath = car.photoPath || null;
+
+    if (editCroppedDataUrl) {
+      // delete old photo
+      if (car.photoPath) {
+        try { await deleteObject(ref(storage, car.photoPath)); } catch(e) {}
+      }
+      const blob = await (await fetch(editCroppedDataUrl)).blob();
+      const path = `users/${currentUser.uid}/cars/${Date.now()}.webp`;
+      photoPath = path;
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, blob, { contentType: 'image/webp' });
+      photoUrl = await getDownloadURL(storageRef);
+    }
+
+    await updateDoc(doc(db, 'users', currentUser.uid, 'cars', id), {
+      number: document.getElementById('e-number').value.trim(),
+      name,
+      year: document.getElementById('e-year').value.trim(),
+      price: parseInt(document.getElementById('e-price').value) || 0,
+      note: document.getElementById('e-note').value.trim(),
+      status: document.getElementById('toggle-edit-wishlist').classList.contains('on') ? 'wishlist' : 'owned',
+      photoUrl,
+      photoPath,
+    });
+
+    closeEditModal();
+    showToast('✅ 已儲存');
+  } catch(e) {
+    showToast('儲存失敗：' + e.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '儲存';
 };
 
 // ── PHOTO / CROP ──
@@ -1800,17 +1954,23 @@ window.confirmCrop = () => {
   canvas.height = ratio >= 1 ? maxSize / ratio : maxSize;
   const ctx = canvas.getContext('2d');
   const img = document.getElementById('crop-img');
-  const scaleX = cropImgNaturalW / (aW / (1/cropScale * cropScale)); // simplified
   ctx.drawImage(img,
     -cropX / cropScale, -cropY / cropScale,
     aW / cropScale, aH / cropScale,
     0, 0, canvas.width, canvas.height
   );
-  croppedDataUrl = canvas.toDataURL('image/webp', 0.82);
+  const dataUrl = canvas.toDataURL('image/webp', 0.82);
 
-  // show preview
-  const picker = document.getElementById('photo-picker');
-  picker.innerHTML = `<img src="${croppedDataUrl}" alt="preview">`;
+  if (editCropMode) {
+    editCroppedDataUrl = dataUrl;
+    const picker = document.getElementById('edit-photo-picker');
+    picker.innerHTML = `<img src="${dataUrl}" alt="preview">`;
+    editCropMode = false;
+  } else {
+    croppedDataUrl = dataUrl;
+    const picker = document.getElementById('photo-picker');
+    picker.innerHTML = `<img src="${dataUrl}" alt="preview">`;
+  }
 
   document.getElementById('crop-modal').classList.remove('open');
   showToast('✅ 照片裁切完成');
