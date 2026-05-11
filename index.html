@@ -2202,23 +2202,76 @@ window.submitCar = async () => {
   btn.innerHTML = `<svg style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>儲存到車庫`;
 };
 
-// ── NEWS (static for now) ──
-function renderNews() {
-  const items = [
-    { tag: '新品', title: '2025 年春季新款 Tomica 發售情報', date: '2025.03.15', icon: '🚗' },
-    { tag: '限定', title: 'Tomica Premium 週年紀念限定套組', date: '2025.02.28', icon: '🏆' },
-    { tag: '活動', title: 'Tomica World 台灣巡迴展覽', date: '2025.01.20', icon: '🎪' },
-    { tag: '情報', title: '2024 年最受歡迎 Tomica Top 10', date: '2024.12.31', icon: '📊' },
-  ];
-  document.getElementById('news-list').innerHTML = items.map(n => `
-    <div class="news-card">
-      <div class="news-card-img">${n.icon}</div>
-      <div class="news-card-body">
-        <div class="news-tag">${n.tag}</div>
-        <div class="news-title">${n.title}</div>
-        <div class="news-date">${n.date}</div>
-      </div>
-    </div>`).join('');
+// ── NEWS (dynamic via API) ──
+async function renderNews() {
+  const list = document.getElementById('news-list');
+  list.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${[1,2,3].map(() => `
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+          <div style="height:120px;background:var(--bg3);animation:pulse 1.5s ease-in-out infinite"></div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
+            <div style="height:12px;width:60px;background:var(--bg3);border-radius:4px;animation:pulse 1.5s ease-in-out infinite"></div>
+            <div style="height:16px;width:90%;background:var(--bg3);border-radius:4px;animation:pulse 1.5s ease-in-out infinite"></div>
+            <div style="height:12px;width:40px;background:var(--bg3);border-radius:4px;animation:pulse 1.5s ease-in-out infinite"></div>
+          </div>
+        </div>`).join('')}
+    </div>
+    <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}</style>`;
+
+  try {
+    const res = await fetch('/api/news');
+    const data = await res.json();
+
+    if (!data.items || data.items.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📰</div>
+          <div class="empty-title">暫無最新資訊</div>
+          <div class="empty-sub">資料載入失敗，請稍後再試</div>
+        </div>`;
+      return;
+    }
+
+    const tagColors = {
+      '新品': 'var(--red)',
+      '限定': 'var(--gold)',
+      '聯名': '#a855f7',
+      '情報': '#3b82f6',
+    };
+
+    const tagIcons = {
+      '新品': '🚗',
+      '限定': '⭐',
+      '聯名': '🤝',
+      '情報': '📊',
+    };
+
+    const d = new Date(data.updatedAt);
+    const updatedStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')} 更新`;
+
+    list.innerHTML = `
+      <div style="font-size:11px;color:var(--text3);text-align:right;padding:0 4px 4px">🔄 ${updatedStr}</div>
+      ${data.items.map(n => `
+        <div class="news-card">
+          <div class="news-card-img" style="font-size:48px">${tagIcons[n.tag] || '🚗'}</div>
+          <div class="news-card-body">
+            <div class="news-tag" style="background:rgba(0,0,0,0.08);color:${tagColors[n.tag]||'var(--red)'};border-color:${tagColors[n.tag]||'var(--red)'}20">${n.tag}</div>
+            <div class="news-title">${n.title}</div>
+            ${n.desc ? `<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5">${n.desc}</div>` : ''}
+            <div class="news-date" style="margin-top:6px">${n.date}${n.series ? ` · ${n.series}` : ''}</div>
+          </div>
+        </div>`).join('')}`;
+
+  } catch (err) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <div class="empty-title">載入失敗</div>
+        <div class="empty-sub">請檢查網路連線後重試</div>
+        <button onclick="renderNews()" style="margin-top:16px;padding:10px 24px;background:var(--red);color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer">重新載入</button>
+      </div>`;
+  }
 }
 
 // ── NAVIGATION ──
