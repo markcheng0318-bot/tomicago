@@ -920,7 +920,7 @@
   .plan-card {
     background: linear-gradient(135deg, var(--red) 0%, #a00015 100%);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 16px 20px;
     margin: 0 16px 8px;
     position: relative;
     overflow: hidden;
@@ -931,14 +931,14 @@
     position: absolute;
     right: -10px;
     bottom: -10px;
-    font-size: 72px;
+    font-size: 60px;
     opacity: 0.15;
     transform: scaleX(-1);
   }
 
   .plan-name {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     letter-spacing: 3px;
     color: rgba(255,255,255,0.7);
     margin-bottom: 4px;
@@ -947,11 +947,11 @@
 
   .plan-limit {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 32px;
+    font-size: 26px;
     letter-spacing: 2px;
     color: white;
     line-height: 1;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .plan-progress-bar {
@@ -1744,9 +1744,10 @@ function updatePlanCard() {
   const owned = cars.filter(c => c.status === 'owned').length;
   const limit = PLAN_LIMITS.free;
   const pct = Math.min((owned / limit) * 100, 100);
+  document.getElementById('plan-name-label').textContent = '免費方案';
   document.getElementById('plan-limit-label').textContent = `${owned} / ${limit} 台`;
   document.getElementById('plan-progress').style.width = pct + '%';
-  document.getElementById('plan-progress-text').textContent = owned >= limit ? '已達上限，點擊升級' : `還可收藏 ${limit - owned} 台`;
+  document.getElementById('plan-progress-text').textContent = owned >= limit ? '已達上限，點此升級 →' : `還可收藏 ${limit - owned} 台`;
 
   // show upgrade banner
   document.getElementById('upgrade-banner').style.display = owned >= limit ? 'flex' : 'none';
