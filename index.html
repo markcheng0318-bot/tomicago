@@ -1105,6 +1105,38 @@
 
   .plan-note { font-size: 11px; color: var(--text3); text-align: center; margin-top: 12px; line-height: 1.5; }
 
+  /* ── SEARCHABLE DROPDOWN ── */
+  .dropdown-wrap { position: relative; }
+
+  .dropdown-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 50;
+    display: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .dropdown-list.open { display: block; }
+
+  .dropdown-item {
+    padding: 11px 14px;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dropdown-item:last-child { border-bottom: none; }
+  .dropdown-item:active, .dropdown-item.highlighted { background: var(--bg3); }
+  .dropdown-item mark { background: none; color: var(--red); font-weight: 600; }
+
   /* Scrollbar */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -1230,18 +1262,43 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">編號</label>
-            <input class="form-input" type="text" id="f-number" placeholder="No.15" maxlength="10">
+            <label class="form-label">廠牌</label>
+            <div class="dropdown-wrap">
+              <input class="form-input" type="text" id="f-brand" placeholder="Toyota" autocomplete="off" oninput="filterDropdown('f-brand','brand-list')" onfocus="openDropdown('brand-list')" onblur="closeDropdown('brand-list')">
+              <div class="dropdown-list" id="brand-list"></div>
+            </div>
           </div>
           <div class="form-group">
-            <label class="form-label">年份 / 系列</label>
-            <input class="form-input" type="text" id="f-year" placeholder="1972 / 初代">
+            <label class="form-label">車型</label>
+            <div class="dropdown-wrap">
+              <input class="form-input" type="text" id="f-cartype" placeholder="轎車" autocomplete="off" oninput="filterDropdown('f-cartype','cartype-list')" onfocus="openDropdown('cartype-list')" onblur="closeDropdown('cartype-list')">
+              <div class="dropdown-list" id="cartype-list"></div>
+            </div>
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label">車名 *</label>
-          <input class="form-input" type="text" id="f-name" placeholder="Toyota Corolla">
+          <input class="form-input" type="text" id="f-name" placeholder="Corolla">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">編號</label>
+            <input class="form-input" type="text" id="f-number" placeholder="No.1" maxlength="10">
+          </div>
+          <div class="form-group">
+            <label class="form-label">發行年月</label>
+            <input class="form-input" type="text" id="f-release" placeholder="2025.4" maxlength="10">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">系列</label>
+          <div class="dropdown-wrap">
+            <input class="form-input" type="text" id="f-series" placeholder="一般系列" autocomplete="off" oninput="filterDropdown('f-series','series-list')" onfocus="openDropdown('series-list')" onblur="closeDropdown('series-list')">
+            <div class="dropdown-list" id="series-list"></div>
+          </div>
         </div>
 
         <div class="form-group">
@@ -1443,18 +1500,43 @@
 
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">編號</label>
-        <input class="form-input" type="text" id="e-number" placeholder="No.15" maxlength="10">
+        <label class="form-label">廠牌</label>
+        <div class="dropdown-wrap">
+          <input class="form-input" type="text" id="e-brand" placeholder="Toyota" autocomplete="off" oninput="filterDropdown('e-brand','e-brand-list')" onfocus="openDropdown('e-brand-list')" onblur="closeDropdown('e-brand-list')">
+          <div class="dropdown-list" id="e-brand-list"></div>
+        </div>
       </div>
       <div class="form-group">
-        <label class="form-label">年份 / 系列</label>
-        <input class="form-input" type="text" id="e-year" placeholder="1972 / 初代">
+        <label class="form-label">車型</label>
+        <div class="dropdown-wrap">
+          <input class="form-input" type="text" id="e-cartype" placeholder="轎車" autocomplete="off" oninput="filterDropdown('e-cartype','e-cartype-list')" onfocus="openDropdown('e-cartype-list')" onblur="closeDropdown('e-cartype-list')">
+          <div class="dropdown-list" id="e-cartype-list"></div>
+        </div>
       </div>
     </div>
 
     <div class="form-group">
       <label class="form-label">車名 *</label>
-      <input class="form-input" type="text" id="e-name" placeholder="Toyota Corolla">
+      <input class="form-input" type="text" id="e-name" placeholder="Corolla">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">編號</label>
+        <input class="form-input" type="text" id="e-number" placeholder="No.1" maxlength="10">
+      </div>
+      <div class="form-group">
+        <label class="form-label">發行年月</label>
+        <input class="form-input" type="text" id="e-release" placeholder="2025.4" maxlength="10">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">系列</label>
+      <div class="dropdown-wrap">
+        <input class="form-input" type="text" id="e-series" placeholder="一般系列" autocomplete="off" oninput="filterDropdown('e-series','e-series-list')" onfocus="openDropdown('e-series-list')" onblur="closeDropdown('e-series-list')">
+        <div class="dropdown-list" id="e-series-list"></div>
+      </div>
     </div>
 
     <div class="form-group">
@@ -1695,6 +1777,10 @@ window.openDetail = (id) => {
   }
 
   const rows = [];
+  if (car.brand) rows.push(['廠牌', car.brand]);
+  if (car.cartype) rows.push(['車型', car.cartype]);
+  if (car.series) rows.push(['系列', car.series]);
+  if (car.release) rows.push(['發行年月', car.release]);
   if (car.price) rows.push(['購入價格', `¥${Number(car.price).toLocaleString()}`]);
   rows.push(['狀態', car.status === 'owned' ? '✅ 已收藏' : '⭐ 願望清單']);
   rows.push(['最愛', car.favorite ? '⭐ 是' : '否']);
@@ -1751,9 +1837,12 @@ window.editCar = (id) => {
 
 function openEditModal(car) {
   document.getElementById('edit-car-id').value = car.id;
+  document.getElementById('e-brand').value = car.brand || '';
+  document.getElementById('e-cartype').value = car.cartype || '';
   document.getElementById('e-number').value = car.number || '';
   document.getElementById('e-name').value = car.name || '';
-  document.getElementById('e-year').value = car.year || '';
+  document.getElementById('e-release').value = car.release || '';
+  document.getElementById('e-series').value = car.series || '';
   document.getElementById('e-price').value = car.price || '';
   document.getElementById('e-note').value = car.note || '';
   const tw = document.getElementById('toggle-edit-wishlist');
@@ -1822,9 +1911,12 @@ window.saveEdit = async () => {
     }
 
     await updateDoc(doc(db, 'users', currentUser.uid, 'cars', id), {
+      brand: document.getElementById('e-brand').value.trim(),
+      cartype: document.getElementById('e-cartype').value.trim(),
       number: document.getElementById('e-number').value.trim(),
       name,
-      year: document.getElementById('e-year').value.trim(),
+      release: document.getElementById('e-release').value.trim(),
+      series: document.getElementById('e-series').value.trim(),
       price: parseInt(document.getElementById('e-price').value) || 0,
       note: document.getElementById('e-note').value.trim(),
       status: document.getElementById('toggle-edit-wishlist').classList.contains('on') ? 'wishlist' : 'owned',
@@ -1976,6 +2068,76 @@ window.confirmCrop = () => {
   showToast('✅ 照片裁切完成');
 };
 
+// ── DROPDOWN DATA ──
+const BRANDS = [
+  // 日本汽車
+  'Toyota','Nissan','Honda','Mazda','Subaru','Mitsubishi','Suzuki','Daihatsu','Isuzu','Lexus','Infiniti','Acura',
+  // 歐洲汽車
+  'Ferrari','Lamborghini','Maserati','Alfa Romeo','Fiat','Lancia','Porsche','Mercedes-Benz','BMW','Audi','Volkswagen','Opel','Renault','Peugeot','Citroën','Bugatti','Bentley','Rolls-Royce','Jaguar','Land Rover','Aston Martin','McLaren','Mini','Volvo','Saab','SEAT','Škoda',
+  // 美國汽車
+  'Ford','Chevrolet','Cadillac','Buick','GMC','Dodge','Jeep','Chrysler','Lincoln','Tesla',
+  // 韓國／中國汽車
+  'Hyundai','Kia','Genesis','BYD','Geely','Great Wall',
+  // 卡車／商用車
+  'Hino（日野）','UD Trucks','Mitsubishi Fuso','Isuzu Trucks','Mercedes-Benz Trucks','MAN','Scania','Volvo Trucks','DAF','Iveco','Kenworth','Peterbilt','Freightliner','Mack',
+  // 機車
+  'Yamaha','Kawasaki','Suzuki Moto','Honda Moto','Ducati','Harley-Davidson','BMW Motorrad','KTM','Vespa','Royal Enfield',
+  // 新幹線／火車
+  'JR東日本','JR西日本','JR東海','JR九州','JR北海道','台灣高鐵','中國高鐵（CRH）','法國TGV','德國ICE','英國Eurostar',
+  // 飛機
+  'Boeing','Airbus','Lockheed','Concorde','ANA','JAL','三菱航空',
+  // 輪船
+  '今治造船','大島造船','川崎重工','三菱重工','IHI',
+  // 其他
+  '其他'
+];
+const CARTYPES = ['轎車','跑車','SUV','卡車','廂型車','消防車','警車','救護車','巴士','工程車','新幹線','摩托車','其他'];
+const SERIES = ['一般系列','Tomica Premium','Tomica Limited Vintage（TLV）','Tomica Limited Vintage Neo','Disney Tomica','Tomica Gift Set','Tomica 4D','其他'];
+
+const DROPDOWN_MAP = {
+  'brand-list': { inputId: 'f-brand', data: BRANDS },
+  'cartype-list': { inputId: 'f-cartype', data: CARTYPES },
+  'series-list': { inputId: 'f-series', data: SERIES },
+  'e-brand-list': { inputId: 'e-brand', data: BRANDS },
+  'e-cartype-list': { inputId: 'e-cartype', data: CARTYPES },
+  'e-series-list': { inputId: 'e-series', data: SERIES },
+};
+
+function renderDropdown(listId, query = '') {
+  const cfg = DROPDOWN_MAP[listId];
+  if (!cfg) return;
+  const list = document.getElementById(listId);
+  const q = query.toLowerCase();
+  const filtered = cfg.data.filter(i => i.toLowerCase().includes(q));
+  if (filtered.length === 0) { list.innerHTML = '<div class="dropdown-item" style="color:var(--text3)">找不到結果</div>'; return; }
+  list.innerHTML = filtered.map(item => {
+    const highlighted = q ? item.replace(new RegExp(`(${q})`, 'gi'), '<mark>$1</mark>') : item;
+    return `<div class="dropdown-item" onmousedown="selectDropdown('${cfg.inputId}','${listId}','${item}')">${highlighted}</div>`;
+  }).join('');
+}
+
+window.openDropdown = (listId) => {
+  const cfg = DROPDOWN_MAP[listId];
+  if (!cfg) return;
+  renderDropdown(listId, document.getElementById(cfg.inputId).value);
+  document.getElementById(listId).classList.add('open');
+};
+
+window.closeDropdown = (listId) => {
+  setTimeout(() => document.getElementById(listId)?.classList.remove('open'), 150);
+};
+
+window.filterDropdown = (inputId, listId) => {
+  const val = document.getElementById(inputId).value;
+  renderDropdown(listId, val);
+  document.getElementById(listId).classList.add('open');
+};
+
+window.selectDropdown = (inputId, listId, value) => {
+  document.getElementById(inputId).value = value;
+  document.getElementById(listId).classList.remove('open');
+};
+
 // ── SUBMIT CAR ──
 window.submitCar = async () => {
   const name = document.getElementById('f-name').value.trim();
@@ -2006,9 +2168,12 @@ window.submitCar = async () => {
     }
 
     await addDoc(collection(db, 'users', currentUser.uid, 'cars'), {
+      brand: document.getElementById('f-brand').value.trim(),
+      cartype: document.getElementById('f-cartype').value.trim(),
       number: document.getElementById('f-number').value.trim(),
       name,
-      year: document.getElementById('f-year').value.trim(),
+      release: document.getElementById('f-release').value.trim(),
+      series: document.getElementById('f-series').value.trim(),
       price: parseInt(document.getElementById('f-price').value) || 0,
       note: document.getElementById('f-note').value.trim(),
       status: isWishlist ? 'wishlist' : 'owned',
@@ -2019,7 +2184,7 @@ window.submitCar = async () => {
     });
 
     // reset form
-    ['f-number','f-name','f-year','f-price','f-note'].forEach(id => document.getElementById(id).value = '');
+    ['f-brand','f-cartype','f-number','f-name','f-release','f-series','f-price','f-note'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('toggle-wishlist').classList.remove('on');
     document.getElementById('photo-picker').innerHTML = `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
