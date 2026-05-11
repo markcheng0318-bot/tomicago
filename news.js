@@ -1,27 +1,15 @@
-export const config = { runtime: 'edge' };
-
-export default async function handler(req) {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      }
-    });
-  }
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // 計算當月和下個月的頁面網址
+    // 產生近兩個月的網址
     const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-
-    // 產生近三個月的網址
     const pages = [];
-    for (let i = 0; i < 3; i++) {
-      let y = year;
-      let m = month - i;
+    for (let i = 0; i < 2; i++) {
+      let y = now.getFullYear();
+      let m = now.getMonth() + 1 - i;
       if (m <= 0) { m += 12; y -= 1; }
       const yy = String(y).slice(2);
       const mm = String(m).padStart(2, '0');
@@ -31,34 +19,57 @@ export default async function handler(req) {
       });
     }
 
-    // 用 Claude 抓取並翻譯
-    const prompt = `請幫我從以下 Tomica 官方網站抓取新品資訊並翻譯成繁體中文。
+    // 抓取網頁內容
+    let rawContent = '';
+    for (const page of pages) {
+      try {
+        const r = await fetch(page.url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TomicaGoBot/1.0)' },
+          signal: AbortSignal.timeout(8000)
+        });
+        if (r.ok) {
+          const html = await r.text();
+          // 簡單清理 HTML，只留文字
+          const text = html
+            .replace(/<script[\s\S]*?<\/script>/gi, '')
+            .replace(/<style[\s\S]*?<\/style>/gi, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .slice(0, 8000);
+          rawContent += `\n=== ${page.label} (${page.url}) ===\n${text}\n`;
+        }
+      } catch (e) {
+        rawContent += `\n=== ${page.label} ：無法存取 ===\n`;
+      }
+    }
 
-網址列表：
-${pages.map(p => `- ${p.label}：${p.url}`).join('\n')}
+    // 送給 Claude 翻譯整理
+    const prompt = `以下是 Tomica 官方網站的日文新品資訊，請翻譯並整理成繁體中文 JSON。
 
-請直接去這些網址抓取內容，然後整理成 JSON 格式回傳，格式如下：
+${rawContent}
+
+請整理成以下 JSON 格式，只回傳 JSON 不要其他文字：
 {
   "items": [
     {
-      "tag": "新品/限定/聯名/情報",
-      "title": "繁體中文標題",
-      "desc": "繁體中文簡短描述（50字內）",
+      "tag": "新品或限定或聯名或情報",
+      "title": "繁體中文商品標題",
+      "desc": "繁體中文簡短描述50字以內",
       "date": "YYYY.MM",
-      "series": "系列名稱（如：一般系列/Tomica Premium/Dream Tomica等）"
+      "series": "系列名稱"
     }
   ]
 }
 
-注意：
-- 只回傳 JSON，不要有其他文字
-- 最多回傳 10 筆最新的商品
-- 如果網址無法存取，就略過
-- 聯名商品（Disney、動漫等）tag 用「聯名」
-- 限定商品 tag 用「限定」
-- 一般新品 tag 用「新品」`;
+規則：
+- 最多10筆，優先最新的
+- Disney/動漫/角色聯名 → tag用聯名
+- 限定/紀念版 → tag用限定
+- 一般新車 → tag用新品
+- 活動資訊 → tag用情報
+- 只回傳JSON`;
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -66,47 +77,27 @@ ${pages.map(p => `- ${p.label}：${p.url}`).join('\n')}
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 2000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages: [{ role: 'user', content: prompt }]
       })
     });
 
-    const data = await response.json();
+    const apiData = await apiRes.json();
+    const text = apiData.content?.find(b => b.type === 'text')?.text || '';
 
-    // 取出文字內容
-    const textContent = data.content
-      ?.filter(b => b.type === 'text')
-      ?.map(b => b.text)
-      ?.join('') || '';
-
-    // 解析 JSON
     let items = [];
     try {
-      const clean = textContent.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(clean);
-      items = parsed.items || [];
+      const clean = text.replace(/```json|```/g, '').trim();
+      items = JSON.parse(clean).items || [];
     } catch (e) {
-      // 如果解析失敗，回傳空陣列
       items = [];
     }
 
-    return new Response(JSON.stringify({ items, updatedAt: Date.now() }), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 's-maxage=3600', // 快取 1 小時
-      }
-    });
+    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
+    return res.status(200).json({ items, updatedAt: Date.now() });
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message, items: [] }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      }
-    });
+    return res.status(500).json({ error: err.message, items: [] });
   }
 }
