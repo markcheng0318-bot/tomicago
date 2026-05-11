@@ -1575,7 +1575,7 @@
 <!-- FIREBASE + APP JS -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut }
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut as fbSignOut }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, collection, doc, addDoc, getDocs, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDoc, setDoc }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
@@ -1618,7 +1618,7 @@ const PLAN_LIMITS = { free: 80, standard: 800, pro: 3000 };
 // ── AUTH ──
 window.signInWithGoogle = async () => {
   try {
-    await signInWithPopup(auth, provider);
+    await signInWithRedirect(auth, provider);
   } catch(e) {
     showToast('登入失敗，請再試一次');
   }
@@ -1628,6 +1628,13 @@ window.signOut = async () => {
   if (!confirm('確定要登出嗎？')) return;
   await fbSignOut(auth);
 };
+
+// 處理 redirect 登入結果
+getRedirectResult(auth).catch(e => {
+  if (e.code !== 'auth/no-current-user') {
+    showToast('登入失敗：' + e.message);
+  }
+});
 
 onAuthStateChanged(auth, async user => {
   document.getElementById('loading').style.display = 'none';
