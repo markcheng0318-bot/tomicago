@@ -1723,9 +1723,19 @@ window.copyUrl = () => {
 // ── AUTH ──
 window.signInWithGoogle = async () => {
   try {
-    await signInWithRedirect(auth, provider);
+    // 優先用 popup，失敗再用 redirect
+    await signInWithPopup(auth, provider);
   } catch(e) {
-    showToast('登入失敗，請再試一次');
+    if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user') {
+      // popup 被擋，改用 redirect
+      try {
+        await signInWithRedirect(auth, provider);
+      } catch(e2) {
+        showToast('登入失敗，請使用 Chrome 瀏覽器');
+      }
+    } else if (e.code !== 'auth/cancelled-popup-request') {
+      showToast('登入失敗：' + e.message);
+    }
   }
 };
 
@@ -1734,12 +1744,15 @@ window.signOut = async () => {
   await fbSignOut(auth);
 };
 
-// 處理 redirect 登入結果
-getRedirectResult(auth).catch(e => {
-  if (e.code !== 'auth/no-current-user') {
-    showToast('登入失敗：' + e.message);
-  }
-});
+// 處理 redirect 登入結果（只處理一次）
+if (!sessionStorage.getItem('redirect_handled')) {
+  sessionStorage.setItem('redirect_handled', '1');
+  getRedirectResult(auth).catch(e => {
+    if (e.code && e.code !== 'auth/no-current-user') {
+      console.log('redirect error:', e.code);
+    }
+  });
+}
 
 onAuthStateChanged(auth, async user => {
   document.getElementById('loading').style.display = 'none';
