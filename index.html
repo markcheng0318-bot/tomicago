@@ -1,0 +1,1952 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TomicaGo">
+<meta name="theme-color" content="#E8001D">
+<link rel="manifest" href="manifest.json">
+<title>TomicaGo</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* ── THEME VARIABLES ── */
+  :root {
+    --red: #E8001D;
+    --red-dim: rgba(232,0,29,0.12);
+    --gold: #D4A843;
+    --gold-dim: rgba(212,168,67,0.12);
+    --green: #22C55E;
+
+    --bg: #0D0D0D;
+    --bg2: #161616;
+    --bg3: #1E1E1E;
+    --card: #1A1A1A;
+    --border: #2A2A2A;
+    --border2: #333;
+    --text: #F0F0F0;
+    --text2: #A0A0A0;
+    --text3: #606060;
+
+    --nav-h: 64px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --radius: 12px;
+  }
+
+  [data-theme="light"] {
+    --bg: #F5F5F5;
+    --bg2: #EFEFEF;
+    --bg3: #E8E8E8;
+    --card: #FFFFFF;
+    --border: #E0E0E0;
+    --border2: #D0D0D0;
+    --text: #111111;
+    --text2: #555555;
+    --text3: #999999;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ── APP SHELL ── */
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    height: 100dvh;
+  }
+
+  /* ── SCREENS ── */
+  .screen {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px);
+  }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ── BOTTOM NAV ── */
+  #bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0; right: 0;
+    height: calc(var(--nav-h) + var(--safe-bottom));
+    padding-bottom: var(--safe-bottom);
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: stretch;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    color: var(--text3);
+    transition: color 0.2s;
+    border: none;
+    background: none;
+    padding: 8px 4px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .nav-item.active { color: var(--red); }
+  .nav-item svg { width: 22px; height: 22px; }
+  .nav-label { font-size: 10px; letter-spacing: 0.5px; }
+
+  .nav-center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-fab {
+    width: 48px; height: 48px;
+    background: var(--red);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 4px 16px rgba(232,0,29,0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .nav-fab:active { transform: scale(0.93); box-shadow: 0 2px 8px rgba(232,0,29,0.3); }
+  .nav-fab svg { width: 24px; height: 24px; color: white; }
+
+  /* ── LOGIN SCREEN ── */
+  #screen-login {
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    padding-bottom: 0;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .login-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 20% 50%, rgba(232,0,29,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(212,168,67,0.06) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .login-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 40px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .login-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    letter-spacing: 6px;
+    line-height: 1;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .login-logo span { color: var(--red); }
+
+  .login-tagline {
+    font-size: 13px;
+    color: var(--text2);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 56px;
+  }
+
+  .login-car-icon {
+    font-size: 72px;
+    margin-bottom: 40px;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .btn-google {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 14px 28px;
+    border-radius: var(--radius);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+  }
+
+  .btn-google:hover { border-color: var(--red); }
+  .btn-google:active { transform: scale(0.97); }
+
+  .google-icon { width: 20px; height: 20px; }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    padding: 20px 20px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 3px;
+    color: var(--text);
+  }
+
+  .page-title span { color: var(--red); }
+
+  .header-actions { display: flex; gap: 8px; }
+
+  .icon-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text2);
+    transition: all 0.2s;
+  }
+
+  .icon-btn:active { transform: scale(0.92); }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  /* ── GARAGE SCREEN ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 16px 16px 8px;
+  }
+
+  .stat-chip {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 10px;
+    text-align: center;
+  }
+
+  .stat-chip-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 1px;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .stat-chip-label {
+    font-size: 10px;
+    color: var(--text2);
+    margin-top: 3px;
+    letter-spacing: 0.5px;
+  }
+
+  .search-bar {
+    margin: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+  }
+
+  .search-bar svg { width: 16px; height: 16px; color: var(--text3); flex-shrink: 0; }
+
+  .search-input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 14px;
+    outline: none;
+  }
+
+  .search-input::placeholder { color: var(--text3); }
+
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    padding: 8px 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .filter-row::-webkit-scrollbar { display: none; }
+
+  .filter-chip {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .filter-chip.active {
+    background: var(--red-dim);
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  /* ── CAR GRID ── */
+  .car-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 8px 16px;
+  }
+
+  .car-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+    position: relative;
+    animation: fadeInUp 0.3s ease both;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .car-card:active { transform: scale(0.97); }
+
+  .car-card-img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .car-card-img img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+
+  .car-fav-btn {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 28px; height: 28px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    backdrop-filter: blur(4px);
+    z-index: 2;
+  }
+
+  .car-num-badge {
+    position: absolute;
+    bottom: 6px; left: 6px;
+    background: var(--red);
+    color: white;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+  }
+
+  .car-card-info {
+    padding: 10px 10px 8px;
+  }
+
+  .car-card-name {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.3;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+
+  .car-card-meta {
+    font-size: 11px;
+    color: var(--text2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .car-price { color: var(--gold); font-weight: 500; }
+
+  /* ── WISHLIST BADGE ── */
+  .wishlist-badge {
+    position: absolute;
+    top: 6px; left: 6px;
+    background: var(--gold);
+    color: #000;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 40px;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .empty-icon { font-size: 52px; opacity: 0.3; }
+  .empty-title { font-size: 16px; font-weight: 500; color: var(--text2); }
+  .empty-sub { font-size: 13px; color: var(--text3); line-height: 1.5; }
+
+  /* ── UPLOAD SCREEN ── */
+  .upload-form {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .photo-picker {
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: var(--bg3);
+    border: 2px dashed var(--border2);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .photo-picker:active { border-color: var(--red); }
+  .photo-picker svg { width: 32px; height: 32px; color: var(--text3); }
+  .photo-picker-text { font-size: 13px; color: var(--text3); }
+  .photo-picker img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+  .form-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text2);
+  }
+
+  .form-input {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  .form-input:focus { border-color: var(--red); }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+
+  .toggle-label { font-size: 14px; color: var(--text); }
+
+  .toggle {
+    width: 44px; height: 24px;
+    background: var(--border2);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: none;
+    flex-shrink: 0;
+  }
+
+  .toggle.on { background: var(--red); }
+
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+
+  .toggle.on::after { transform: translateX(20px); }
+
+  .btn-submit {
+    background: var(--red);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 15px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-submit:active { transform: scale(0.98); opacity: 0.9; }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── CROP MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 200;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .crop-modal {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    gap: 16px;
+  }
+
+  .crop-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: white;
+  }
+
+  .crop-area {
+    width: 100%;
+    aspect-ratio: 4/3;
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius);
+    background: #000;
+    touch-action: none;
+  }
+
+  #crop-img {
+    position: absolute;
+    transform-origin: 0 0;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  #crop-img.grabbing { cursor: grabbing; }
+
+  .crop-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border: 2px solid rgba(255,255,255,0.5);
+    border-radius: 4px;
+  }
+
+  .crop-grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
+    background-size: 33.33% 33.33%;
+  }
+
+  .crop-hint { font-size: 12px; color: rgba(255,255,255,0.5); text-align: center; }
+
+  .crop-actions { display: flex; gap: 10px; width: 100%; }
+
+  .btn-crop-cancel {
+    flex: 1;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    cursor: pointer;
+  }
+
+  .btn-crop-confirm {
+    flex: 2;
+    background: var(--red);
+    border: none;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    cursor: pointer;
+  }
+
+  /* ── CAR DETAIL MODAL ── */
+  .detail-modal {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 150;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .detail-modal.open {
+    display: flex;
+    transform: translateY(0);
+  }
+
+  .detail-img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 72px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .detail-img img { width: 100%; height: 100%; object-fit: cover; }
+
+  .detail-back {
+    position: absolute;
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    left: 16px;
+    width: 36px; height: 36px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border: none;
+    backdrop-filter: blur(8px);
+  }
+
+  .detail-back svg { width: 18px; height: 18px; color: white; }
+
+  .detail-content { padding: 20px; flex: 1; }
+
+  .detail-header { margin-bottom: 16px; }
+
+  .detail-number {
+    display: inline-block;
+    background: var(--red);
+    color: white;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .detail-name {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+
+  .detail-year { font-size: 14px; color: var(--text2); }
+
+  .detail-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-row-label { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+  .detail-row-val { font-size: 14px; font-weight: 500; color: var(--text); }
+
+  .detail-note {
+    background: var(--bg3);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.5;
+    margin-top: 16px;
+  }
+
+  .detail-actions {
+    display: flex;
+    gap: 10px;
+    padding: 16px 20px;
+    padding-bottom: calc(16px + var(--safe-bottom));
+    border-top: 1px solid var(--border);
+  }
+
+  .btn-detail {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    transition: all 0.2s;
+  }
+
+  .btn-detail.danger { color: #ff4444; border-color: rgba(255,68,68,0.3); }
+  .btn-detail.primary { background: var(--red); color: white; border-color: var(--red); }
+
+  /* ── NEWS SCREEN ── */
+  .news-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  .news-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .news-card:active { transform: scale(0.98); }
+
+  .news-card-img {
+    width: 100%;
+    height: 160px;
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+  }
+
+  .news-card-body { padding: 14px; }
+
+  .news-tag {
+    display: inline-block;
+    background: var(--red-dim);
+    color: var(--red);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    border: 1px solid rgba(232,0,29,0.2);
+  }
+
+  .news-title { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 6px; }
+  .news-date { font-size: 11px; color: var(--text3); }
+
+  /* ── ENCYCLOPEDIA SCREEN ── */
+  .coming-soon {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .coming-icon { font-size: 64px; }
+
+  .coming-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 4px;
+    color: var(--text);
+  }
+
+  .coming-sub { font-size: 14px; color: var(--text2); line-height: 1.6; }
+
+  .coming-badge {
+    background: var(--gold-dim);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* ── SETTINGS SCREEN ── */
+  .settings-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+
+  .settings-section-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text3);
+    padding: 8px 4px 4px;
+    margin-top: 8px;
+  }
+
+  .settings-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .settings-item:active { background: var(--bg3); }
+
+  .settings-icon {
+    width: 36px; height: 36px;
+    background: var(--bg3);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .settings-text { flex: 1; }
+  .settings-label { font-size: 14px; font-weight: 500; color: var(--text); }
+  .settings-desc { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .settings-arrow { color: var(--text3); }
+  .settings-arrow svg { width: 16px; height: 16px; }
+
+  /* PLAN CARD */
+  .plan-card {
+    background: linear-gradient(135deg, var(--red) 0%, #a00015 100%);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin: 0 16px 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .plan-card::after {
+    content: '🏎';
+    position: absolute;
+    right: -10px;
+    bottom: -10px;
+    font-size: 72px;
+    opacity: 0.15;
+    transform: scaleX(-1);
+  }
+
+  .plan-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+
+  .plan-limit {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 2px;
+    color: white;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+
+  .plan-progress-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+
+  .plan-progress-fill {
+    height: 100%;
+    background: white;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .plan-progress-text { font-size: 12px; color: rgba(255,255,255,0.7); }
+
+  /* USER AVATAR */
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin: 12px 16px 4px;
+  }
+
+  .user-avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--bg3);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+  .user-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .user-email { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: calc(var(--nav-h) + var(--safe-bottom) + 12px);
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    z-index: 300;
+    opacity: 0;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── LOADING ── */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    gap: 16px;
+  }
+
+  .loading-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    letter-spacing: 6px;
+    color: var(--text);
+  }
+
+  .loading-logo span { color: var(--red); }
+
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border2);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── UPGRADE BANNER ── */
+  .upgrade-banner {
+    margin: 8px 16px;
+    background: var(--gold-dim);
+    border: 1px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+
+  .upgrade-banner-text { flex: 1; font-size: 13px; color: var(--gold); line-height: 1.4; }
+  .upgrade-banner-arrow svg { width: 16px; height: 16px; color: var(--gold); }
+
+  /* ── PLAN MODAL ── */
+  .plan-modal {
+    background: var(--bg2);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    padding: 24px 20px;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .plan-modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 3px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .plan-option {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .plan-option:active { border-color: var(--red); }
+
+  .plan-option-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .plan-option-name { font-weight: 700; font-size: 15px; color: var(--text); }
+  .plan-option-price { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--red); letter-spacing: 1px; }
+  .plan-option-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
+
+  .plan-note { font-size: 11px; color: var(--text3); text-align: center; margin-top: 12px; line-height: 1.5; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading">
+  <div class="loading-logo">TOMICA<span>GO</span></div>
+  <div class="spinner"></div>
+</div>
+
+<div id="app" style="display:none">
+
+  <!-- LOGIN SCREEN -->
+  <div class="screen active" id="screen-login" style="overflow:hidden">
+    <div class="login-bg"></div>
+    <div class="login-content">
+      <div class="login-car-icon">🏎️</div>
+      <div class="login-logo">TOMICA<span>GO</span></div>
+      <div class="login-tagline">你的 Tomica 收藏管家</div>
+      <button class="btn-google" onclick="signInWithGoogle()">
+        <svg class="google-icon" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        用 Google 帳號登入
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN APP (hidden until login) -->
+  <div id="main-app" style="display:none; flex:1; overflow:hidden; display:none; flex-direction:column">
+
+    <!-- NEWS SCREEN -->
+    <div class="screen" id="screen-news">
+      <div class="page-header">
+        <div class="page-title">最新<span>資訊</span></div>
+      </div>
+      <div class="news-list" id="news-list">
+        <!-- populated by JS -->
+      </div>
+    </div>
+
+    <!-- ENCYCLOPEDIA SCREEN -->
+    <div class="screen" id="screen-wiki">
+      <div class="page-header">
+        <div class="page-title">百科<span>全書</span></div>
+      </div>
+      <div class="coming-soon">
+        <div class="coming-icon">📖</div>
+        <div class="coming-title">即將推出</div>
+        <div class="coming-sub">Tomica 歷代百科資料庫正在建置中，包含每個編號的歷代車型、原廠照片與出廠價格。</div>
+        <div class="coming-badge">Coming Soon</div>
+      </div>
+    </div>
+
+    <!-- GARAGE SCREEN (HOME) -->
+    <div class="screen active" id="screen-garage">
+      <div class="page-header">
+        <div class="page-title">我的<span>車庫</span></div>
+        <div class="header-actions">
+          <div class="icon-btn" onclick="toggleTheme()" title="切換主題">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-chip">
+          <div class="stat-chip-val" id="stat-total">0</div>
+          <div class="stat-chip-label">收藏台數</div>
+        </div>
+        <div class="stat-chip">
+          <div class="stat-chip-val" id="stat-wish" style="color:var(--gold)">0</div>
+          <div class="stat-chip-label">願望清單</div>
+        </div>
+        <div class="stat-chip">
+          <div class="stat-chip-val" id="stat-value" style="font-size:16px">¥0</div>
+          <div class="stat-chip-label">總價值</div>
+        </div>
+      </div>
+
+      <div id="upgrade-banner" class="upgrade-banner" style="display:none" onclick="showPlanModal()">
+        <span style="font-size:20px">⭐</span>
+        <div class="upgrade-banner-text">已達免費上限，升級方案繼續收藏</div>
+        <div class="upgrade-banner-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>
+
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="search-input" type="text" placeholder="搜尋車名或編號..." id="garage-search" oninput="renderGarage()">
+      </div>
+
+      <div class="filter-row">
+        <div class="filter-chip active" data-filter="all" onclick="setFilter(this,'all')">全部</div>
+        <div class="filter-chip" data-filter="owned" onclick="setFilter(this,'owned')">已收藏</div>
+        <div class="filter-chip" data-filter="wishlist" onclick="setFilter(this,'wishlist')">願望清單</div>
+        <div class="filter-chip" data-filter="fav" onclick="setFilter(this,'fav')">⭐ 最愛</div>
+      </div>
+
+      <div class="car-grid" id="car-grid"></div>
+    </div>
+
+    <!-- UPLOAD SCREEN -->
+    <div class="screen" id="screen-upload">
+      <div class="page-header">
+        <div class="page-title">新增<span>車輛</span></div>
+      </div>
+      <div class="upload-form">
+        <div class="photo-picker" id="photo-picker" onclick="triggerPhotoInput()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          <div class="photo-picker-text">點擊上傳照片</div>
+        </div>
+        <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoSelect(event)">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">編號</label>
+            <input class="form-input" type="text" id="f-number" placeholder="No.15" maxlength="10">
+          </div>
+          <div class="form-group">
+            <label class="form-label">年份 / 系列</label>
+            <input class="form-input" type="text" id="f-year" placeholder="1972 / 初代">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">車名 *</label>
+          <input class="form-input" type="text" id="f-name" placeholder="Toyota Corolla">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">購入價格（台幣）</label>
+          <input class="form-input" type="number" id="f-price" placeholder="150" min="0">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">備註</label>
+          <input class="form-input" type="text" id="f-note" placeholder="限定版、有盒、狀態...">
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">加入願望清單（尚未入手）</div>
+          <button class="toggle" id="toggle-wishlist" onclick="this.classList.toggle('on')"></button>
+        </div>
+
+        <button class="btn-submit" id="btn-submit" onclick="submitCar()">
+          <svg style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+          儲存到車庫
+        </button>
+      </div>
+    </div>
+
+    <!-- SETTINGS SCREEN -->
+    <div class="screen" id="screen-settings">
+      <div class="page-header">
+        <div class="page-title">設<span>定</span></div>
+      </div>
+
+      <div class="user-info" id="user-info-card">
+        <div class="user-avatar" id="user-avatar-wrap">
+          <img id="user-avatar-img" src="" alt="" style="display:none">
+          <div id="user-avatar-fallback" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px">👤</div>
+        </div>
+        <div>
+          <div class="user-name" id="settings-user-name">載入中...</div>
+          <div class="user-email" id="settings-user-email"></div>
+        </div>
+      </div>
+
+      <div class="plan-card" id="plan-card" onclick="showPlanModal()">
+        <div class="plan-name" id="plan-name-label">免費方案</div>
+        <div class="plan-limit" id="plan-limit-label">0 / 80 台</div>
+        <div class="plan-progress-bar">
+          <div class="plan-progress-fill" id="plan-progress" style="width:0%"></div>
+        </div>
+        <div class="plan-progress-text" id="plan-progress-text">點擊查看升級方案</div>
+      </div>
+
+      <div class="settings-list">
+        <div class="settings-section-label">外觀</div>
+        <div class="settings-item" onclick="toggleTheme()">
+          <div class="settings-icon">🌙</div>
+          <div class="settings-text">
+            <div class="settings-label">深色 / 淺色模式</div>
+            <div class="settings-desc" id="theme-desc">目前：深色模式</div>
+          </div>
+          <div class="settings-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+        </div>
+
+        <div class="settings-section-label">帳號</div>
+        <div class="settings-item" onclick="signOut()">
+          <div class="settings-icon">🚪</div>
+          <div class="settings-text">
+            <div class="settings-label">登出</div>
+            <div class="settings-desc">登出目前帳號</div>
+          </div>
+          <div class="settings-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+        </div>
+
+        <div class="settings-section-label">關於</div>
+        <div class="settings-item">
+          <div class="settings-icon">🏎️</div>
+          <div class="settings-text">
+            <div class="settings-label">TomicaGo</div>
+            <div class="settings-desc">版本 1.0.0 · tomicago.com</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <nav id="bottom-nav">
+      <button class="nav-item" id="nav-news" onclick="goTo('news')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8V6Z"/></svg>
+        <span class="nav-label">資訊</span>
+      </button>
+      <button class="nav-item" id="nav-wiki" onclick="goTo('wiki')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span class="nav-label">百科</span>
+      </button>
+      <div class="nav-center">
+        <button class="nav-fab" id="nav-garage" onclick="goTo('garage')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </button>
+      </div>
+      <button class="nav-item" id="nav-upload" onclick="goTo('upload')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12l4-4 4 4"/></svg>
+        <span class="nav-label">新增</span>
+      </button>
+      <button class="nav-item" id="nav-settings" onclick="goTo('settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span class="nav-label">設定</span>
+      </button>
+    </nav>
+
+  </div><!-- /main-app -->
+</div><!-- /app -->
+
+<!-- CROP MODAL -->
+<div class="modal-overlay" id="crop-modal">
+  <div class="crop-modal">
+    <div class="crop-title">裁切照片</div>
+    <div class="crop-area" id="crop-area">
+      <img id="crop-img" src="" alt="" draggable="false">
+      <div class="crop-overlay"></div>
+      <div class="crop-grid"></div>
+    </div>
+    <div class="crop-hint">拖曳移動・雙指縮放</div>
+    <div class="crop-actions">
+      <button class="btn-crop-cancel" onclick="closeCropModal()">取消</button>
+      <button class="btn-crop-confirm" onclick="confirmCrop()">確認裁切</button>
+    </div>
+  </div>
+</div>
+
+<!-- CAR DETAIL MODAL -->
+<div class="detail-modal" id="detail-modal">
+  <div class="detail-img" id="detail-img-area">
+    <span id="detail-img-placeholder" style="font-size:72px">🚗</span>
+    <img id="detail-img" src="" alt="" style="display:none">
+    <button class="detail-back" onclick="closeDetail()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </button>
+  </div>
+  <div class="detail-content">
+    <div class="detail-header">
+      <div id="detail-number-badge" class="detail-number" style="display:none"></div>
+      <div class="detail-name" id="detail-name"></div>
+      <div class="detail-year" id="detail-year"></div>
+    </div>
+    <div id="detail-rows"></div>
+    <div id="detail-note-wrap" style="display:none">
+      <div class="detail-note" id="detail-note"></div>
+    </div>
+  </div>
+  <div class="detail-actions">
+    <button class="btn-detail" onclick="toggleFav(currentCarId)">⭐ 最愛</button>
+    <button class="btn-detail" onclick="editCar(currentCarId)">✏️ 編輯</button>
+    <button class="btn-detail danger" onclick="deleteCar(currentCarId)">🗑️ 刪除</button>
+  </div>
+</div>
+
+<!-- PLAN MODAL -->
+<div class="modal-overlay" id="plan-modal" onclick="if(event.target===this)closePlanModal()">
+  <div style="width:100%;max-width:480px;padding:0 0 var(--safe-bottom,0) 0;position:absolute;bottom:0">
+    <div class="plan-modal">
+      <div class="plan-modal-title">升級方案</div>
+      <div class="plan-option" onclick="initiateUpgrade('standard')">
+        <div class="plan-option-header">
+          <div class="plan-option-name">🥈 標準版</div>
+          <div class="plan-option-price">NT$300 / 年</div>
+        </div>
+        <div class="plan-option-desc">收藏上限 800 台 · 照片上傳 · 雲端同步備份</div>
+      </div>
+      <div class="plan-option" onclick="initiateUpgrade('pro')">
+        <div class="plan-option-header">
+          <div class="plan-option-name">🥇 進階版</div>
+          <div class="plan-option-price">NT$500 / 年</div>
+        </div>
+        <div class="plan-option-desc">收藏上限 3,000 台 · 照片上傳 · 雲端同步備份 · 優先取得新功能</div>
+      </div>
+      <div class="plan-note">付款功能即將開通，敬請期待<br>目前所有用戶享有免費 80 台體驗</div>
+      <button class="btn-submit" style="margin-top:12px" onclick="closePlanModal()">暫時不用</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE + APP JS -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, doc, addDoc, getDocs, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDoc, setDoc }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+
+// ── FIREBASE CONFIG ──
+const firebaseConfig = {
+  apiKey: "AIzaSyCuumH2zglw5Oxqz4bGOx9hOYOmyOopibE",
+  authDomain: "tomicago-8e407.firebaseapp.com",
+  projectId: "tomicago-8e407",
+  storageBucket: "tomicago-8e407.firebasestorage.app",
+  messagingSenderId: "728603126879",
+  appId: "1:728603126879:web:5c3e171a4e68b5bdffbfea",
+  measurementId: "G-2P6DD2PR0J"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+const storage = getStorage(fbApp);
+const provider = new GoogleAuthProvider();
+
+// ── STATE ──
+let currentUser = null;
+let cars = [];
+let currentFilter = 'all';
+window.currentCarId = null;
+let croppedDataUrl = null;
+let cropImgNaturalW = 0, cropImgNaturalH = 0;
+let cropX = 0, cropY = 0, cropScale = 1;
+let cropDragging = false, cropLastX = 0, cropLastY = 0;
+let cropPinchDist = 0;
+
+// Plan limits
+const PLAN_LIMITS = { free: 80, standard: 800, pro: 3000 };
+
+// ── AUTH ──
+window.signInWithGoogle = async () => {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    showToast('登入失敗，請再試一次');
+  }
+};
+
+window.signOut = async () => {
+  if (!confirm('確定要登出嗎？')) return;
+  await fbSignOut(auth);
+};
+
+onAuthStateChanged(auth, async user => {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+
+  if (user) {
+    currentUser = user;
+    document.getElementById('screen-login').style.display = 'none';
+    const ma = document.getElementById('main-app');
+    ma.style.display = 'flex';
+    ma.style.flexDirection = 'column';
+    ma.style.flex = '1';
+    ma.style.overflow = 'hidden';
+
+    // user info in settings
+    document.getElementById('settings-user-name').textContent = user.displayName || '使用者';
+    document.getElementById('settings-user-email').textContent = user.email || '';
+    if (user.photoURL) {
+      const img = document.getElementById('user-avatar-img');
+      img.src = user.photoURL;
+      img.style.display = 'block';
+      document.getElementById('user-avatar-fallback').style.display = 'none';
+    }
+
+    // ensure user doc
+    const userRef = doc(db, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      await setDoc(userRef, { plan: 'free', planExpiry: null, createdAt: Date.now() });
+    }
+
+    loadCars();
+    renderNews();
+  } else {
+    currentUser = null;
+    document.getElementById('screen-login').style.display = 'flex';
+    document.getElementById('main-app').style.display = 'none';
+  }
+});
+
+// ── LOAD CARS ──
+function loadCars() {
+  const q = query(collection(db, 'users', currentUser.uid, 'cars'), orderBy('addedAt', 'desc'));
+  onSnapshot(q, snap => {
+    cars = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderGarage();
+    updateStats();
+    updatePlanCard();
+  });
+}
+
+// ── RENDER GARAGE ──
+window.renderGarage = () => {
+  const search = document.getElementById('garage-search').value.toLowerCase();
+  let list = [...cars];
+
+  if (currentFilter === 'owned') list = list.filter(c => c.status === 'owned');
+  else if (currentFilter === 'wishlist') list = list.filter(c => c.status === 'wishlist');
+  else if (currentFilter === 'fav') list = list.filter(c => c.favorite);
+
+  if (search) list = list.filter(c =>
+    c.name?.toLowerCase().includes(search) ||
+    c.number?.toLowerCase().includes(search)
+  );
+
+  // favorites first
+  list.sort((a,b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
+
+  const grid = document.getElementById('car-grid');
+
+  if (list.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-icon">🚗</div>
+        <div class="empty-title">${search ? '找不到符合的車' : currentFilter === 'fav' ? '還沒有最愛' : '車庫是空的'}</div>
+        <div class="empty-sub">${search ? '' : '點下方＋按鈕新增第一台車'}</div>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map((car, i) => `
+    <div class="car-card" style="animation-delay:${i * 0.04}s" onclick="openDetail('${car.id}')">
+      <div class="car-card-img">
+        ${car.photoUrl
+          ? `<img src="${car.photoUrl}" alt="${car.name}" loading="lazy">`
+          : `<span>🚗</span>`}
+        ${car.status === 'wishlist' ? '<div class="wishlist-badge">願望</div>' : ''}
+        ${car.number ? `<div class="car-num-badge">${car.number}</div>` : ''}
+        <button class="car-fav-btn" onclick="event.stopPropagation();toggleFav('${car.id}')">${car.favorite ? '⭐' : '☆'}</button>
+      </div>
+      <div class="car-card-info">
+        <div class="car-card-name">${car.name}</div>
+        <div class="car-card-meta">
+          <span>${car.year || ''}</span>
+          ${car.price ? `<span class="car-price">¥${Number(car.price).toLocaleString()}</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+};
+
+window.setFilter = (el, filter) => {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderGarage();
+};
+
+// ── STATS ──
+function updateStats() {
+  const owned = cars.filter(c => c.status === 'owned');
+  const wish = cars.filter(c => c.status === 'wishlist');
+  const val = owned.reduce((s, c) => s + (Number(c.price) || 0), 0);
+  document.getElementById('stat-total').textContent = owned.length;
+  document.getElementById('stat-wish').textContent = wish.length;
+  document.getElementById('stat-value').textContent = val >= 10000
+    ? '¥' + (val/1000).toFixed(0) + 'K'
+    : '¥' + val.toLocaleString();
+}
+
+function updatePlanCard() {
+  const owned = cars.filter(c => c.status === 'owned').length;
+  const limit = PLAN_LIMITS.free;
+  const pct = Math.min((owned / limit) * 100, 100);
+  document.getElementById('plan-limit-label').textContent = `${owned} / ${limit} 台`;
+  document.getElementById('plan-progress').style.width = pct + '%';
+  document.getElementById('plan-progress-text').textContent = owned >= limit ? '已達上限，點擊升級' : `還可收藏 ${limit - owned} 台`;
+
+  // show upgrade banner
+  document.getElementById('upgrade-banner').style.display = owned >= limit ? 'flex' : 'none';
+}
+
+// ── CAR DETAIL ──
+window.openDetail = (id) => {
+  const car = cars.find(c => c.id === id);
+  if (!car) return;
+  window.currentCarId = id;
+
+  document.getElementById('detail-name').textContent = car.name;
+  document.getElementById('detail-year').textContent = car.year || '';
+
+  const numBadge = document.getElementById('detail-number-badge');
+  if (car.number) { numBadge.textContent = car.number; numBadge.style.display = 'inline-block'; }
+  else numBadge.style.display = 'none';
+
+  const detailImg = document.getElementById('detail-img');
+  const placeholder = document.getElementById('detail-img-placeholder');
+  if (car.photoUrl) {
+    detailImg.src = car.photoUrl;
+    detailImg.style.display = 'block';
+    placeholder.style.display = 'none';
+  } else {
+    detailImg.style.display = 'none';
+    placeholder.style.display = 'block';
+  }
+
+  const rows = [];
+  if (car.price) rows.push(['購入價格', `¥${Number(car.price).toLocaleString()}`]);
+  rows.push(['狀態', car.status === 'owned' ? '✅ 已收藏' : '⭐ 願望清單']);
+  rows.push(['最愛', car.favorite ? '⭐ 是' : '否']);
+  const d = new Date(car.addedAt);
+  rows.push(['加入日期', `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`]);
+
+  document.getElementById('detail-rows').innerHTML = rows.map(([l,v]) => `
+    <div class="detail-row">
+      <span class="detail-row-label">${l}</span>
+      <span class="detail-row-val">${v}</span>
+    </div>`).join('');
+
+  const noteWrap = document.getElementById('detail-note-wrap');
+  if (car.note) {
+    document.getElementById('detail-note').textContent = car.note;
+    noteWrap.style.display = 'block';
+  } else noteWrap.style.display = 'none';
+
+  const modal = document.getElementById('detail-modal');
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('open'));
+};
+
+window.closeDetail = () => {
+  const modal = document.getElementById('detail-modal');
+  modal.classList.remove('open');
+  setTimeout(() => { modal.style.display = 'none'; }, 350);
+};
+
+window.toggleFav = async (id) => {
+  const car = cars.find(c => c.id === id);
+  if (!car) return;
+  await updateDoc(doc(db, 'users', currentUser.uid, 'cars', id), { favorite: !car.favorite });
+  showToast(car.favorite ? '已取消最愛' : '⭐ 已加入最愛');
+};
+
+window.deleteCar = async (id) => {
+  if (!confirm('確定要刪除這台車嗎？')) return;
+  const car = cars.find(c => c.id === id);
+  if (car?.photoPath) {
+    try { await deleteObject(ref(storage, car.photoPath)); } catch(e) {}
+  }
+  await deleteDoc(doc(db, 'users', currentUser.uid, 'cars', id));
+  closeDetail();
+  showToast('已刪除');
+};
+
+window.editCar = (id) => {
+  closeDetail();
+  // simple: go to upload screen with data pre-filled (future enhancement)
+  showToast('編輯功能即將推出');
+};
+
+// ── PHOTO / CROP ──
+window.triggerPhotoInput = () => document.getElementById('photo-input').click();
+
+window.handlePhotoSelect = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => openCropModal(ev.target.result);
+  reader.readAsDataURL(file);
+  e.target.value = '';
+};
+
+function openCropModal(src) {
+  const img = document.getElementById('crop-img');
+  img.onload = () => {
+    cropImgNaturalW = img.naturalWidth;
+    cropImgNaturalH = img.naturalHeight;
+    const area = document.getElementById('crop-area');
+    const aW = area.clientWidth, aH = area.clientHeight;
+    const scaleW = aW / cropImgNaturalW, scaleH = aH / cropImgNaturalH;
+    cropScale = Math.max(scaleW, scaleH);
+    cropX = (aW - cropImgNaturalW * cropScale) / 2;
+    cropY = (aH - cropImgNaturalH * cropScale) / 2;
+    applyCropTransform();
+  };
+  img.src = src;
+  document.getElementById('crop-modal').classList.add('open');
+  setupCropEvents();
+}
+
+function applyCropTransform() {
+  const img = document.getElementById('crop-img');
+  img.style.transform = `translate(${cropX}px, ${cropY}px) scale(${cropScale})`;
+  img.style.width = cropImgNaturalW + 'px';
+  img.style.height = cropImgNaturalH + 'px';
+}
+
+function setupCropEvents() {
+  const area = document.getElementById('crop-area');
+  const img = document.getElementById('crop-img');
+
+  area.onpointerdown = e => {
+    if (e.pointerType === 'touch') return;
+    cropDragging = true;
+    cropLastX = e.clientX; cropLastY = e.clientY;
+    img.classList.add('grabbing');
+    area.setPointerCapture(e.pointerId);
+  };
+  area.onpointermove = e => {
+    if (!cropDragging || e.pointerType === 'touch') return;
+    cropX += e.clientX - cropLastX;
+    cropY += e.clientY - cropLastY;
+    cropLastX = e.clientX; cropLastY = e.clientY;
+    applyCropTransform();
+  };
+  area.onpointerup = () => { cropDragging = false; img.classList.remove('grabbing'); };
+
+  area.ontouchstart = e => {
+    if (e.touches.length === 2) {
+      cropPinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    } else if (e.touches.length === 1) {
+      cropDragging = true;
+      cropLastX = e.touches[0].clientX;
+      cropLastY = e.touches[0].clientY;
+    }
+  };
+  area.ontouchmove = e => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const delta = dist / cropPinchDist;
+      cropScale = Math.max(0.3, Math.min(cropScale * delta, 8));
+      cropPinchDist = dist;
+      applyCropTransform();
+    } else if (e.touches.length === 1 && cropDragging) {
+      cropX += e.touches[0].clientX - cropLastX;
+      cropY += e.touches[0].clientY - cropLastY;
+      cropLastX = e.touches[0].clientX;
+      cropLastY = e.touches[0].clientY;
+      applyCropTransform();
+    }
+  };
+  area.ontouchend = () => { cropDragging = false; };
+
+  area.onwheel = e => {
+    e.preventDefault();
+    cropScale = Math.max(0.3, Math.min(cropScale * (e.deltaY < 0 ? 1.1 : 0.9), 8));
+    applyCropTransform();
+  };
+}
+
+window.closeCropModal = () => {
+  document.getElementById('crop-modal').classList.remove('open');
+  croppedDataUrl = null;
+};
+
+window.confirmCrop = () => {
+  const area = document.getElementById('crop-area');
+  const aW = area.clientWidth, aH = area.clientHeight;
+  const canvas = document.createElement('canvas');
+  const maxSize = 800;
+  const ratio = aW / aH;
+  canvas.width = ratio >= 1 ? maxSize : maxSize * ratio;
+  canvas.height = ratio >= 1 ? maxSize / ratio : maxSize;
+  const ctx = canvas.getContext('2d');
+  const img = document.getElementById('crop-img');
+  const scaleX = cropImgNaturalW / (aW / (1/cropScale * cropScale)); // simplified
+  ctx.drawImage(img,
+    -cropX / cropScale, -cropY / cropScale,
+    aW / cropScale, aH / cropScale,
+    0, 0, canvas.width, canvas.height
+  );
+  croppedDataUrl = canvas.toDataURL('image/webp', 0.82);
+
+  // show preview
+  const picker = document.getElementById('photo-picker');
+  picker.innerHTML = `<img src="${croppedDataUrl}" alt="preview">`;
+
+  document.getElementById('crop-modal').classList.remove('open');
+  showToast('✅ 照片裁切完成');
+};
+
+// ── SUBMIT CAR ──
+window.submitCar = async () => {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { showToast('請輸入車名'); return; }
+
+  const owned = cars.filter(c => c.status === 'owned').length;
+  const isWishlist = document.getElementById('toggle-wishlist').classList.contains('on');
+  if (!isWishlist && owned >= PLAN_LIMITS.free) {
+    showToast('已達免費上限，請升級方案');
+    showPlanModal();
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.textContent = '儲存中...';
+
+  let photoUrl = null, photoPath = null;
+
+  try {
+    if (croppedDataUrl) {
+      const blob = await (await fetch(croppedDataUrl)).blob();
+      const path = `users/${currentUser.uid}/cars/${Date.now()}.webp`;
+      photoPath = path;
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, blob, { contentType: 'image/webp' });
+      photoUrl = await getDownloadURL(storageRef);
+    }
+
+    await addDoc(collection(db, 'users', currentUser.uid, 'cars'), {
+      number: document.getElementById('f-number').value.trim(),
+      name,
+      year: document.getElementById('f-year').value.trim(),
+      price: parseInt(document.getElementById('f-price').value) || 0,
+      note: document.getElementById('f-note').value.trim(),
+      status: isWishlist ? 'wishlist' : 'owned',
+      favorite: false,
+      photoUrl,
+      photoPath,
+      addedAt: Date.now()
+    });
+
+    // reset form
+    ['f-number','f-name','f-year','f-price','f-note'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('toggle-wishlist').classList.remove('on');
+    document.getElementById('photo-picker').innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+      <div class="photo-picker-text">點擊上傳照片</div>`;
+    croppedDataUrl = null;
+
+    showToast(isWishlist ? '⭐ 已加入願望清單' : '🚗 已加入車庫！');
+    goTo('garage');
+
+  } catch(e) {
+    showToast('儲存失敗：' + e.message);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `<svg style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>儲存到車庫`;
+};
+
+// ── NEWS (static for now) ──
+function renderNews() {
+  const items = [
+    { tag: '新品', title: '2025 年春季新款 Tomica 發售情報', date: '2025.03.15', icon: '🚗' },
+    { tag: '限定', title: 'Tomica Premium 週年紀念限定套組', date: '2025.02.28', icon: '🏆' },
+    { tag: '活動', title: 'Tomica World 台灣巡迴展覽', date: '2025.01.20', icon: '🎪' },
+    { tag: '情報', title: '2024 年最受歡迎 Tomica Top 10', date: '2024.12.31', icon: '📊' },
+  ];
+  document.getElementById('news-list').innerHTML = items.map(n => `
+    <div class="news-card">
+      <div class="news-card-img">${n.icon}</div>
+      <div class="news-card-body">
+        <div class="news-tag">${n.tag}</div>
+        <div class="news-title">${n.title}</div>
+        <div class="news-date">${n.date}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── NAVIGATION ──
+window.goTo = (screen) => {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + screen).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + screen);
+  if (navEl) navEl.classList.add('active');
+  if (screen === 'settings') updatePlanCard();
+};
+
+// ── THEME ──
+const savedTheme = localStorage.getItem('tg-theme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedTheme);
+updateThemeDesc();
+
+window.toggleTheme = () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('tg-theme', next);
+  updateThemeDesc();
+};
+
+function updateThemeDesc() {
+  const t = document.documentElement.getAttribute('data-theme');
+  const el = document.getElementById('theme-desc');
+  if (el) el.textContent = `目前：${t === 'dark' ? '深色' : '淺色'}模式`;
+}
+
+// ── PLAN MODAL ──
+window.showPlanModal = () => document.getElementById('plan-modal').classList.add('open');
+window.closePlanModal = () => document.getElementById('plan-modal').classList.remove('open');
+window.initiateUpgrade = (plan) => {
+  closePlanModal();
+  showToast('付款功能即將開通，敬請期待！');
+};
+
+// ── TOAST ──
+window.showToast = (msg) => {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+};
+
+// hide loading after fonts
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loading').style.display = 'none';
+  }, 800);
+});
+</script>
+</body>
+</html>
