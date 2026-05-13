@@ -1253,9 +1253,30 @@
       <div class="page-header">
         <div class="page-title">最新<span>資訊</span></div>
       </div>
-      <div class="news-list" id="news-list">
-        <!-- populated by JS -->
+      <!-- 搜尋列 -->
+      <div class="search-bar" style="margin:8px 16px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="search-input" type="text" id="news-search" placeholder="搜尋商品名稱..." oninput="filterNews()">
       </div>
+      <!-- 月份篩選 -->
+      <div class="filter-row" id="news-month-filters">
+        <div class="filter-chip active" data-month="all" onclick="setNewsMonth(this,'all')">全部</div>
+        <div class="filter-chip" data-month="2026.07" onclick="setNewsMonth(this,'2026.07')">7月</div>
+        <div class="filter-chip" data-month="2026.06" onclick="setNewsMonth(this,'2026.06')">6月</div>
+        <div class="filter-chip" data-month="2026.05" onclick="setNewsMonth(this,'2026.05')">5月</div>
+        <div class="filter-chip" data-month="2026.04" onclick="setNewsMonth(this,'2026.04')">4月</div>
+        <div class="filter-chip" data-month="2026.03" onclick="setNewsMonth(this,'2026.03')">3月</div>
+        <div class="filter-chip" data-month="2026.02" onclick="setNewsMonth(this,'2026.02')">2月</div>
+        <div class="filter-chip" data-month="2026.01" onclick="setNewsMonth(this,'2026.01')">1月</div>
+      </div>
+      <!-- 標籤篩選 -->
+      <div class="filter-row">
+        <div class="filter-chip active" data-ntag="all" onclick="setNewsTag(this,'all')">全部類型</div>
+        <div class="filter-chip" data-ntag="新品" onclick="setNewsTag(this,'新品')">🚗 新品</div>
+        <div class="filter-chip" data-ntag="聯名" onclick="setNewsTag(this,'聯名')">🤝 聯名</div>
+        <div class="filter-chip" data-ntag="限定" onclick="setNewsTag(this,'限定')">⭐ 限定</div>
+      </div>
+      <div class="news-list" id="news-list"></div>
     </div>
 
     <!-- SHOWROOM SCREEN -->
@@ -2390,77 +2411,82 @@ window.submitCar = async () => {
   btn.innerHTML = `<svg style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>儲存到車庫`;
 };
 
-// ── NEWS (dynamic via API) ──
+// ── NEWS ──
+let allNewsItems = [];
+let newsMonthFilter = 'all';
+let newsTagFilter = 'all';
+
+window.setNewsMonth = (el, month) => {
+  newsMonthFilter = month;
+  document.querySelectorAll('[data-month]').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  filterNews();
+};
+
+window.setNewsTag = (el, tag) => {
+  newsTagFilter = tag;
+  document.querySelectorAll('[data-ntag]').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  filterNews();
+};
+
+window.filterNews = () => {
+  const search = document.getElementById('news-search')?.value?.toLowerCase() || '';
+  let list = [...allNewsItems];
+  if (newsMonthFilter !== 'all') list = list.filter(n => n.date.startsWith(newsMonthFilter));
+  if (newsTagFilter !== 'all') list = list.filter(n => n.tag === newsTagFilter);
+  if (search) list = list.filter(n => n.title.toLowerCase().includes(search) || (n.desc||'').toLowerCase().includes(search));
+  renderNewsList(list);
+};
+
+function renderNewsList(items) {
+  const list = document.getElementById('news-list');
+  if (!items || items.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📰</div><div class="empty-title">找不到相關資訊</div></div>`;
+    return;
+  }
+
+  const tagColors = { '新品':'var(--red)', '限定':'var(--gold)', '聯名':'#a855f7', '情報':'#3b82f6' };
+  const tagIcons = { '新品':'🚗', '限定':'⭐', '聯名':'🤝', '情報':'📊' };
+
+  const d = new Date();
+  const updatedStr = `${d.getMonth()+1}/${d.getDate()} 更新`;
+
+  list.innerHTML = `
+    <div style="font-size:11px;color:var(--text3);text-align:right;padding:4px 20px 0">🔄 ${updatedStr} · 共${items.length}筆</div>
+    ${items.map(n => `
+      <div class="news-card">
+        <div class="news-card-img" style="${n.image ? '' : 'font-size:48px'}">
+          ${n.image
+            ? `<img src="${n.image}" alt="${n.title}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='${tagIcons[n.tag]||'🚗'}';this.parentElement.style.fontSize='48px'">`
+            : (tagIcons[n.tag] || '🚗')}
+        </div>
+        <div class="news-card-body">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+            <div class="news-tag" style="background:rgba(0,0,0,0.06);color:${tagColors[n.tag]||'var(--red)'};border-color:${tagColors[n.tag]||'var(--red)'}30;margin-bottom:0">${n.tag}</div>
+            <div style="font-size:10px;color:var(--text3)">${n.date}</div>
+          </div>
+          <div class="news-title">${n.title}</div>
+          ${n.desc ? `<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5">${n.desc}</div>` : ''}
+          ${n.series ? `<div style="font-size:11px;color:var(--text3);margin-top:6px">📦 ${n.series}</div>` : ''}
+        </div>
+      </div>`).join('')}`;
+}
+
 async function renderNews() {
   const list = document.getElementById('news-list');
-  list.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:12px">
-      ${[1,2,3].map(() => `
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-          <div style="height:120px;background:var(--bg3);animation:pulse 1.5s ease-in-out infinite"></div>
-          <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
-            <div style="height:12px;width:60px;background:var(--bg3);border-radius:4px;animation:pulse 1.5s ease-in-out infinite"></div>
-            <div style="height:16px;width:90%;background:var(--bg3);border-radius:4px;animation:pulse 1.5s ease-in-out infinite"></div>
-            <div style="height:12px;width:40px;background:var(--bg3);border-radius:4px;animation:pulse 1.5s ease-in-out infinite"></div>
-          </div>
-        </div>`).join('')}
-    </div>
-    <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}</style>`;
+  list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)"><div class="spinner" style="margin:0 auto 12px"></div>載入中...</div>`;
 
   try {
     const res = await fetch('/api/news');
     const data = await res.json();
-
-    if (!data.items || data.items.length === 0) {
-      list.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-icon">📰</div>
-          <div class="empty-title">暫無最新資訊</div>
-          <div class="empty-sub">資料載入失敗，請稍後再試</div>
-        </div>`;
-      return;
-    }
-
-    const tagColors = {
-      '新品': 'var(--red)',
-      '限定': 'var(--gold)',
-      '聯名': '#a855f7',
-      '情報': '#3b82f6',
-    };
-
-    const tagIcons = {
-      '新品': '🚗',
-      '限定': '⭐',
-      '聯名': '🤝',
-      '情報': '📊',
-    };
-
-    const d = new Date(data.updatedAt);
-    const updatedStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')} 更新`;
-
-    list.innerHTML = `
-      <div style="font-size:11px;color:var(--text3);text-align:right;padding:0 4px 4px">🔄 ${updatedStr}</div>
-      ${data.items.map(n => `
-        <div class="news-card">
-          <div class="news-card-img" style="${n.image ? '' : 'font-size:48px'}">
-            ${n.image
-              ? `<img src="${n.image}" alt="${n.title}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='🚗';this.parentElement.style.fontSize='48px'">`
-              : (tagIcons[n.tag] || '🚗')}
-          </div>
-          <div class="news-card-body">
-            <div class="news-tag" style="background:rgba(0,0,0,0.08);color:${tagColors[n.tag]||'var(--red)'};border-color:${tagColors[n.tag]||'var(--red)'}20">${n.tag}</div>
-            <div class="news-title">${n.title}</div>
-            ${n.desc ? `<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5">${n.desc}</div>` : ''}
-            <div class="news-date" style="margin-top:6px">${n.date}${n.series ? ` · ${n.series}` : ''}</div>
-          </div>
-        </div>`).join('')}`;
-
-  } catch (err) {
+    allNewsItems = data.items || [];
+    filterNews();
+  } catch(err) {
     list.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">⚠️</div>
         <div class="empty-title">載入失敗</div>
-        <div class="empty-sub">請檢查網路連線後重試</div>
         <button onclick="renderNews()" style="margin-top:16px;padding:10px 24px;background:var(--red);color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer">重新載入</button>
       </div>`;
   }
