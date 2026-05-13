@@ -36,15 +36,15 @@
   }
 
   [data-theme="light"] {
-    --bg: #F5F5F5;
-    --bg2: #EFEFEF;
-    --bg3: #E8E8E8;
-    --card: #FFFFFF;
-    --border: #E0E0E0;
-    --border2: #D0D0D0;
-    --text: #111111;
-    --text2: #555555;
-    --text3: #999999;
+    --bg: #FDF8EE;
+    --bg2: #F7F0DC;
+    --bg3: #F0E8CC;
+    --card: #FFFDF5;
+    --border: #E8DDB8;
+    --border2: #DDD0A0;
+    --text: #2A2218;
+    --text2: #6B5E3E;
+    --text3: #A89870;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -2253,6 +2253,10 @@ const BRANDS = [
   'Hyundai','Kia','Genesis','BYD','Geely','Great Wall',
   // 卡車／商用車
   'Hino（日野）','UD Trucks','Mitsubishi Fuso','Isuzu Trucks','Mercedes-Benz Trucks','MAN','Scania','Volvo Trucks','DAF','Iveco','Kenworth','Peterbilt','Freightliner','Mack',
+  // 重工業／工程機械（日本）
+  '日立建機（Hitachi）','小松（Komatsu）','神戶製鋼（Kobelco）','住友建機','多田野（Tadano）','加藤（KATO）','竹內','洋馬（Yanmar）','石川島播磨（IHI）','三菱重工','川崎重工','古河機械金屬',
+  // 重工業／工程機械（歐美）
+  '卡特彼勒（Caterpillar）','約翰迪爾（John Deere）','沃爾沃建機（Volvo CE）','利勃海爾（Liebherr）','JCB','特雷克斯（Terex）','馬尼托瓦克（Manitowoc）',
   // 機車
   'Yamaha','Kawasaki','Suzuki Moto','Honda Moto','Ducati','Harley-Davidson','BMW Motorrad','KTM','Vespa','Royal Enfield',
   // 新幹線／火車
@@ -2260,11 +2264,20 @@ const BRANDS = [
   // 飛機
   'Boeing','Airbus','Lockheed','Concorde','ANA','JAL','三菱航空',
   // 輪船
-  '今治造船','大島造船','川崎重工','三菱重工','IHI',
+  '今治造船','大島造船','川崎重工（船舶）','三菱重工（船舶）','IHI',
   // 其他
   '其他'
 ];
-const CARTYPES = ['轎車','跑車','SUV','卡車','廂型車','消防車','警車','救護車','巴士','工程車','新幹線','摩托車','其他'];
+const CARTYPES = [
+  // 一般車輛
+  '轎車','跑車','SUV','廂型車','旅行車','敞篷車','皮卡',
+  // 商用車
+  '卡車','砂石車','連結車','拖板車','貨櫃車','平板拖車','油罐車','垃圾車','消防車','警車','救護車','巴士','小巴',
+  // 重機具
+  '挖土機','推土機','起重機','塔式起重機','堆高機','壓路機','混凝土攪拌車','混凝土泵車','鑽掘機','吊車','鏟裝機','平地機','拖拉機','農用機械',
+  // 其他交通
+  '新幹線','火車','飛機','輪船','摩托車','其他'
+];
 const SERIES = ['一般系列','Tomica Premium','Tomica Limited Vintage（TLV）','Tomica Limited Vintage Neo','Disney Tomica','Tomica Gift Set','Tomica 4D','其他'];
 
 const DROPDOWN_MAP = {
