@@ -1,0 +1,61 @@
+name: 每月自動更新 Tomica 新品資訊
+
+on:
+  # 每月1日凌晨3點（台灣時間，UTC+8）自動執行
+  schedule:
+    - cron: '0 19 1 * *'
+
+  # 也可以手動觸發
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: '手動執行原因'
+        required: false
+        default: '手動更新'
+
+jobs:
+  update-news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 取出程式碼
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      - name: 設定 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 執行新聞抓取腳本
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/fetch-news.js
+
+      - name: 檢查是否有變更
+        id: check-changes
+        run: |
+          if git diff --quiet api/news.js; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "📭 沒有新資料需要更新"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "📬 有新資料，準備提交"
+          fi
+
+      - name: 提交更新
+        if: steps.check-changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "TomicaGo Bot"
+          git add api/news.js
+          git commit -m "🚗 自動更新 Tomica 新品資訊 $(date +'%Y年%m月')"
+          git push
+          echo "✅ 已提交並推送更新"
+
+      - name: 完成通知
+        run: |
+          echo "🎉 TomicaGo 新聞更新完成！"
+          echo "執行時間: $(date +'%Y-%m-%d %H:%M:%S')"
