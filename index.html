@@ -2474,17 +2474,27 @@ async function loadShowroom() {
   grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3)"><div class="spinner" style="margin:0 auto 12px"></div>載入中...</div>`;
 
   try {
-    const { collection, query, where, orderBy, getDocs, collectionGroup }
-      = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    // 先抓取所有用戶
+    const usersSnap = await getDocs(collection(db, 'users'));
+    let publicCars = [];
 
-    // 抓取所有用戶的公開車輛
-    const q = query(collectionGroup(db, 'cars'),
-      where('isPublic', '==', true),
-      orderBy('addedAt', 'desc')
-    );
-    const snap = await getDocs(q);
-    const publicCars = snap.docs.map(d => ({ id: d.id, ...d.data(), ownerId: d.ref.parent.parent.id }));
+    for (const userDoc of usersSnap.docs) {
+      const uid = userDoc.id;
+      try {
+        const carsSnap = await getDocs(
+          query(collection(db, 'users', uid, 'cars'), orderBy('addedAt', 'desc'))
+        );
+        const userCars = carsSnap.docs
+          .map(d => ({ id: d.id, ...d.data(), ownerId: uid }))
+          .filter(c => c.isPublic === true);
+        publicCars = publicCars.concat(userCars);
+      } catch(e) {}
+    }
+
+    // 依時間排序
+    publicCars.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
     renderShowroomGrid(publicCars);
+
   } catch(e) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏛️</div><div class="empty-title">載入失敗</div><div class="empty-sub">${e.message}</div></div>`;
   }
