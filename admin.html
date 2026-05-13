@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TomicaGo 後台</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #E8001D;
+    --gold: #D4A843;
+    --bg: #0D0D0D;
+    --bg2: #161616;
+    --bg3: #1E1E1E;
+    --card: #1A1A1A;
+    --border: #2A2A2A;
+    --border2: #333;
+    --text: #F0F0F0;
+    --text2: #A0A0A0;
+    --text3: #606060;
+    --green: #22C55E;
+    --radius: 10px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; min-height: 100vh; }
+
+  /* LOGIN */
+  #login-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    flex-direction: column;
+    gap: 16px;
+    padding: 40px;
+  }
+
+  .admin-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 4px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .admin-logo span { color: var(--red); }
+
+  .admin-badge {
+    background: var(--red);
+    color: white;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  .btn-google {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 14px 28px;
+    border-radius: var(--radius);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 15px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+  }
+
+  .btn-google:hover { border-color: var(--red); }
+
+  /* ADMIN LAYOUT */
+  #admin-screen { display: none; }
+
+  header {
+    background: var(--bg2);
+    border-bottom: 2px solid var(--red);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .header-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+  }
+
+  .header-logo span { color: var(--red); }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text2);
+  }
+
+  .btn-logout {
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+
+  .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+  /* STATS CARDS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    border-top: 3px solid var(--red);
+  }
+
+  .stat-card.gold { border-top-color: var(--gold); }
+  .stat-card.green { border-top-color: var(--green); }
+  .stat-card.blue { border-top-color: #3b82f6; }
+
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text3); margin-bottom: 8px; }
+  .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 2px; color: var(--text); line-height: 1; }
+  .stat-unit { font-size: 14px; color: var(--text2); margin-left: 4px; }
+
+  /* SECTION */
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    margin-bottom: 14px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title .count {
+    font-size: 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 3px 10px;
+    border-radius: 20px;
+    color: var(--text2);
+    letter-spacing: 0;
+  }
+
+  /* TABLE */
+  .table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+
+  .table-search {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .table-search input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 13px;
+    outline: none;
+  }
+
+  .table-search input:focus { border-color: var(--red); }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    background: var(--bg2);
+  }
+
+  td {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .user-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .user-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--bg3);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+  .user-name { font-weight: 500; font-size: 13px; }
+  .user-email { font-size: 11px; color: var(--text3); }
+
+  /* BADGES */
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-free { background: rgba(96,96,96,0.2); color: var(--text3); border: 1px solid var(--border2); }
+  .badge-standard { background: rgba(212,168,67,0.15); color: var(--gold); border: 1px solid rgba(212,168,67,0.3); }
+  .badge-pro { background: rgba(232,0,29,0.12); color: var(--red); border: 1px solid rgba(232,0,29,0.3); }
+  .badge-active { background: rgba(34,197,94,0.12); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+  .badge-suspended { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+
+  /* ACTION BUTTONS */
+  .action-btn {
+    padding: 5px 12px;
+    border-radius: 5px;
+    font-size: 11px;
+    cursor: pointer;
+    border: 1px solid var(--border2);
+    background: var(--bg3);
+    color: var(--text2);
+    font-family: 'Noto Sans TC', sans-serif;
+    margin-right: 4px;
+    transition: all 0.15s;
+  }
+
+  .action-btn:hover { border-color: var(--red); color: var(--red); }
+  .action-btn.gold:hover { border-color: var(--gold); color: var(--gold); }
+  .action-btn.green:hover { border-color: var(--green); color: var(--green); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border2);
+    border-top: 3px solid var(--red);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 90%;
+    max-width: 420px;
+  }
+
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+  }
+
+  .modal-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); margin-bottom: 6px; }
+
+  .modal-select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 14px;
+    outline: none;
+    margin-bottom: 16px;
+  }
+
+  .modal-select:focus { border-color: var(--red); }
+  .modal-select option { background: var(--bg2); }
+
+  .modal-actions { display: flex; gap: 10px; }
+
+  .btn-cancel {
+    flex: 1;
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 2px;
+  }
+
+  .btn-save {
+    flex: 2;
+    background: var(--red);
+    border: none;
+    color: white;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 2px;
+  }
+
+  /* LOADING */
+  .loading { text-align: center; padding: 40px; color: var(--text3); font-size: 14px; }
+  .spinner { width: 28px; height: 28px; border: 3px solid var(--border2); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ACCESS DENIED */
+  #access-denied {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 16px;
+    text-align: center;
+    padding: 40px;
+  }
+
+  .denied-icon { font-size: 48px; }
+  .denied-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 3px; color: var(--red); }
+  .denied-sub { font-size: 14px; color: var(--text2); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="admin-logo">TOMICA<span>GO</span></div>
+  <div class="admin-badge">管理員後台</div>
+  <button class="btn-google" onclick="adminLogin()">
+    <svg width="20" height="20" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    </svg>
+    用 Google 帳號登入
+  </button>
+</div>
+
+<!-- ACCESS DENIED -->
+<div id="access-denied">
+  <div class="denied-icon">🚫</div>
+  <div class="denied-title">無存取權限</div>
+  <div class="denied-sub">此帳號沒有管理員權限</div>
+  <button class="btn-logout" onclick="adminLogout()" style="margin-top:16px">登出</button>
+</div>
+
+<!-- ADMIN DASHBOARD -->
+<div id="admin-screen">
+  <header>
+    <div class="header-logo">TOMICA<span>GO</span> <span style="font-size:12px;color:var(--text3);letter-spacing:1px">ADMIN</span></div>
+    <div class="header-right">
+      <span id="admin-user-name"></span>
+      <button class="btn-logout" onclick="adminLogout()">登出</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- STATS -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">總會員數</div>
+        <div class="stat-value" id="s-users">-<span class="stat-unit">人</span></div>
+      </div>
+      <div class="stat-card gold">
+        <div class="stat-label">總收藏台數</div>
+        <div class="stat-value" id="s-cars">-<span class="stat-unit">台</span></div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">公開展示</div>
+        <div class="stat-value" id="s-public">-<span class="stat-unit">台</span></div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">付費會員</div>
+        <div class="stat-value" id="s-paid">-<span class="stat-unit">人</span></div>
+      </div>
+    </div>
+
+    <!-- MEMBERS TABLE -->
+    <div class="section-title">
+      會員列表
+      <span class="count" id="member-count">載入中...</span>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-search">
+        <input type="text" id="member-search" placeholder="搜尋會員名稱或 Email..." oninput="filterMembers()">
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>會員</th>
+              <th>方案</th>
+              <th>狀態</th>
+              <th>收藏台數</th>
+              <th>公開展示</th>
+              <th>註冊日期</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="members-tbody">
+            <tr><td colspan="7" class="loading"><div class="spinner"></div>載入中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PLAN MODAL -->
+<div class="modal-overlay" id="plan-modal" onclick="if(event.target===this)closePlanModal()">
+  <div class="modal">
+    <div class="modal-title">調整方案</div>
+    <input type="hidden" id="modal-uid">
+    <div class="modal-label">選擇方案</div>
+    <select class="modal-select" id="modal-plan">
+      <option value="free">免費（80台）</option>
+      <option value="standard">標準版（800台）</option>
+      <option value="pro">進階版（3,000台）</option>
+    </select>
+    <div class="modal-label">帳號狀態</div>
+    <select class="modal-select" id="modal-status">
+      <option value="active">正常</option>
+      <option value="suspended">停用</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closePlanModal()">取消</button>
+      <button class="btn-save" onclick="saveMemberPlan()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, doc, getDocs, getDoc, updateDoc, query, orderBy, collectionGroup }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCuumH2zglw5Oxqz4bGOx9hOYOmyOopibE",
+  authDomain: "tomicago-8e407.firebaseapp.com",
+  projectId: "tomicago-8e407",
+  storageBucket: "tomicago-8e407.firebasestorage.app",
+  messagingSenderId: "728603126879",
+  appId: "1:728603126879:web:5c3e171a4e68b5bdffbfea"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+const provider = new GoogleAuthProvider();
+
+// !! 把你的 Firebase UID 填在這裡 !!
+const ADMIN_UIDS = ['REPLACE_WITH_YOUR_UID'];
+
+let allMembers = [];
+
+window.adminLogin = async () => {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    alert('登入失敗：' + e.message);
+  }
+};
+
+window.adminLogout = async () => {
+  await fbSignOut(auth);
+  location.reload();
+};
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('admin-screen').style.display = 'none';
+    document.getElementById('access-denied').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('login-screen').style.display = 'none';
+
+  if (!ADMIN_UIDS.includes(user.uid)) {
+    document.getElementById('access-denied').style.display = 'flex';
+    return;
+  }
+
+  document.getElementById('admin-screen').style.display = 'block';
+  document.getElementById('admin-user-name').textContent = user.displayName;
+  loadDashboard();
+});
+
+async function loadDashboard() {
+  try {
+    // 抓取所有用戶
+    const usersSnap = await getDocs(collection(db, 'users'));
+    const users = [];
+
+    for (const userDoc of usersSnap.docs) {
+      const uid = userDoc.id;
+      const userData = userDoc.data();
+
+      // 抓取每個用戶的車輛
+      const carsSnap = await getDocs(collection(db, 'users', uid, 'cars'));
+      const cars = carsSnap.docs.map(d => d.data());
+      const carCount = cars.length;
+      const publicCount = cars.filter(c => c.isPublic).length;
+
+      // 嘗試從 Firebase Auth 取得用戶資料
+      users.push({
+        uid,
+        name: userData.displayName || '未知',
+        email: userData.email || '-',
+        photoURL: userData.photoURL || '',
+        plan: userData.plan || 'free',
+        status: userData.status || 'active',
+        carCount,
+        publicCount,
+        createdAt: userData.createdAt || 0,
+      });
+    }
+
+    allMembers = users;
+    renderStats(users);
+    renderMembers(users);
+
+  } catch(e) {
+    document.getElementById('members-tbody').innerHTML =
+      `<tr><td colspan="7" style="text-align:center;padding:24px;color:#ef4444">載入失敗：${e.message}</td></tr>`;
+  }
+}
+
+function renderStats(users) {
+  document.getElementById('s-users').innerHTML = `${users.length}<span class="stat-unit">人</span>`;
+  const totalCars = users.reduce((s, u) => s + u.carCount, 0);
+  const totalPublic = users.reduce((s, u) => s + u.publicCount, 0);
+  const paid = users.filter(u => u.plan !== 'free').length;
+  document.getElementById('s-cars').innerHTML = `${totalCars}<span class="stat-unit">台</span>`;
+  document.getElementById('s-public').innerHTML = `${totalPublic}<span class="stat-unit">台</span>`;
+  document.getElementById('s-paid').innerHTML = `${paid}<span class="stat-unit">人</span>`;
+}
+
+function renderMembers(users) {
+  document.getElementById('member-count').textContent = `${users.length} 人`;
+  if (users.length === 0) {
+    document.getElementById('members-tbody').innerHTML =
+      `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3)">尚無會員</td></tr>`;
+    return;
+  }
+
+  document.getElementById('members-tbody').innerHTML = users.map(u => {
+    const planBadge = {
+      free: '<span class="badge badge-free">免費</span>',
+      standard: '<span class="badge badge-standard">標準版</span>',
+      pro: '<span class="badge badge-pro">進階版</span>',
+    }[u.plan] || '<span class="badge badge-free">免費</span>';
+
+    const statusBadge = u.status === 'suspended'
+      ? '<span class="badge badge-suspended">已停用</span>'
+      : '<span class="badge badge-active">正常</span>';
+
+    const date = u.createdAt ? new Date(u.createdAt) : null;
+    const dateStr = date ? `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()}` : '-';
+
+    return `<tr>
+      <td>
+        <div class="user-cell">
+          <div class="user-avatar">${u.photoURL ? `<img src="${u.photoURL}" alt="">` : '👤'}</div>
+          <div>
+            <div class="user-name">${u.name}</div>
+            <div class="user-email">${u.email}</div>
+          </div>
+        </div>
+      </td>
+      <td>${planBadge}</td>
+      <td>${statusBadge}</td>
+      <td style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px">${u.carCount}</td>
+      <td style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--green)">${u.publicCount}</td>
+      <td style="color:var(--text3)">${dateStr}</td>
+      <td>
+        <button class="action-btn gold" onclick="openPlanModal('${u.uid}','${u.plan}','${u.status}')">調整方案</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+window.filterMembers = () => {
+  const q = document.getElementById('member-search').value.toLowerCase();
+  const filtered = allMembers.filter(u =>
+    u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+  );
+  renderMembers(filtered);
+};
+
+window.openPlanModal = (uid, plan, status) => {
+  document.getElementById('modal-uid').value = uid;
+  document.getElementById('modal-plan').value = plan || 'free';
+  document.getElementById('modal-status').value = status || 'active';
+  document.getElementById('plan-modal').classList.add('open');
+};
+
+window.closePlanModal = () => {
+  document.getElementById('plan-modal').classList.remove('open');
+};
+
+window.saveMemberPlan = async () => {
+  const uid = document.getElementById('modal-uid').value;
+  const plan = document.getElementById('modal-plan').value;
+  const status = document.getElementById('modal-status').value;
+
+  try {
+    await updateDoc(doc(db, 'users', uid), { plan, status });
+    closePlanModal();
+
+    // 更新本地資料
+    const member = allMembers.find(m => m.uid === uid);
+    if (member) { member.plan = plan; member.status = status; }
+    renderMembers(allMembers);
+    alert('✅ 已更新');
+  } catch(e) {
+    alert('更新失敗：' + e.message);
+  }
+};
+</script>
+</body>
+</html>
