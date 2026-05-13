@@ -2462,7 +2462,7 @@ function renderNewsList(items) {
       <div class="news-card">
         <div class="news-card-img" style="${n.image ? '' : 'font-size:48px'}">
           ${n.image
-            ? `<img src="${n.image}" alt="${n.title}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='${tagIcons[n.tag]||'🚗'}';this.parentElement.style.fontSize='48px'">`
+            ? `<img src="/api/img?url=${encodeURIComponent(n.image)}" alt="${n.title}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`
             : (tagIcons[n.tag] || '🚗')}
         </div>
         <div class="news-card-body">
