@@ -1,4 +1,4 @@
-const CACHE = 'tomicago-v12';
+const CACHE = 'tomicago-v13';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -15,6 +15,8 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  // API 請求不快取，永遠從網路取最新
+  if (e.request.url.includes('/api/')) return;
   if (e.request.url.includes('firestore') || e.request.url.includes('googleapis')) return;
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
