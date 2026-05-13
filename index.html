@@ -1258,17 +1258,22 @@
       </div>
     </div>
 
-    <!-- ENCYCLOPEDIA SCREEN -->
+    <!-- SHOWROOM SCREEN -->
     <div class="screen" id="screen-wiki">
       <div class="page-header">
-        <div class="page-title">百科<span>全書</span></div>
+        <div class="page-title">展示<span>廳</span></div>
+        <div class="header-actions">
+          <div class="icon-btn" id="showroom-filter-btn" onclick="toggleShowroomFilter()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          </div>
+        </div>
       </div>
-      <div class="coming-soon">
-        <div class="coming-icon">📖</div>
-        <div class="coming-title">即將推出</div>
-        <div class="coming-sub">Tomica 歷代百科資料庫正在建置中，包含每個編號的歷代車型、原廠照片與出廠價格。</div>
-        <div class="coming-badge">Coming Soon</div>
+      <div class="filter-row" id="showroom-filters" style="display:none">
+        <div class="filter-chip active" data-sf="all" onclick="setShowroomFilter(this,'all')">全部</div>
+        <div class="filter-chip" data-sf="owned" onclick="setShowroomFilter(this,'owned')">已收藏</div>
+        <div class="filter-chip" data-sf="wishlist" onclick="setShowroomFilter(this,'wishlist')">願望清單</div>
       </div>
+      <div class="car-grid" id="showroom-grid" style="padding-top:8px"></div>
     </div>
 
     <!-- GARAGE SCREEN (HOME) -->
@@ -1389,6 +1394,14 @@
           <button class="toggle" id="toggle-wishlist" onclick="this.classList.toggle('on')"></button>
         </div>
 
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">公開展示</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">開啟後會出現在展示廳</div>
+          </div>
+          <button class="toggle" id="toggle-public" onclick="this.classList.toggle('on')"></button>
+        </div>
+
         <button class="btn-submit" id="btn-submit" onclick="submitCar()">
           <svg style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
           儲存到車庫
@@ -1448,7 +1461,7 @@
           <div class="settings-icon">🏎️</div>
           <div class="settings-text">
             <div class="settings-label">TomicaGo</div>
-            <div class="settings-desc">版本 1.0.0 · tomicago.com</div>
+            <div class="settings-desc">版本 V2.0.0 · tomicago.com</div>
           </div>
         </div>
       </div>
@@ -1461,8 +1474,8 @@
         <span class="nav-label">資訊</span>
       </button>
       <button class="nav-item" id="nav-wiki" onclick="goTo('wiki')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        <span class="nav-label">百科</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><rect x="9" y="12" width="6" height="10"/><circle cx="12" cy="7" r="1"/></svg>
+        <span class="nav-label">展示廳</span>
       </button>
       <div class="nav-center">
         <button class="nav-fab" id="nav-garage" onclick="goTo('garage')">
@@ -1625,6 +1638,14 @@
     <div class="toggle-row">
       <div class="toggle-label">願望清單（尚未入手）</div>
       <button class="toggle" id="toggle-edit-wishlist" onclick="this.classList.toggle('on')"></button>
+    </div>
+
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">公開展示</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">開啟後會出現在展示廳</div>
+      </div>
+      <button class="toggle" id="toggle-edit-public" onclick="this.classList.toggle('on')"></button>
     </div>
 
     <button class="btn-submit" id="btn-save-edit" onclick="saveEdit()">
@@ -1981,6 +2002,8 @@ function openEditModal(car) {
   document.getElementById('e-note').value = car.note || '';
   const tw = document.getElementById('toggle-edit-wishlist');
   car.status === 'wishlist' ? tw.classList.add('on') : tw.classList.remove('on');
+  const tp = document.getElementById('toggle-edit-public');
+  car.isPublic ? tp.classList.add('on') : tp.classList.remove('on');
 
   // show existing photo
   const picker = document.getElementById('edit-photo-picker');
@@ -2054,6 +2077,7 @@ window.saveEdit = async () => {
       price: parseInt(document.getElementById('e-price').value) || 0,
       note: document.getElementById('e-note').value.trim(),
       status: document.getElementById('toggle-edit-wishlist').classList.contains('on') ? 'wishlist' : 'owned',
+      isPublic: document.getElementById('toggle-edit-public').classList.contains('on'),
       photoUrl,
       photoPath,
     });
@@ -2312,6 +2336,8 @@ window.submitCar = async () => {
       note: document.getElementById('f-note').value.trim(),
       status: isWishlist ? 'wishlist' : 'owned',
       favorite: false,
+      isPublic: document.getElementById('toggle-public').classList.contains('on'),
+      likes: 0,
       photoUrl,
       photoPath,
       addedAt: Date.now()
@@ -2412,7 +2438,88 @@ async function renderNews() {
   }
 }
 
-// ── NAVIGATION ──
+// ── SHOWROOM ──
+let showroomFilter = 'all';
+let showroomUnsubscribe = null;
+
+window.toggleShowroomFilter = () => {
+  const f = document.getElementById('showroom-filters');
+  f.style.display = f.style.display === 'none' ? 'flex' : 'none';
+};
+
+window.setShowroomFilter = (el, filter) => {
+  showroomFilter = filter;
+  document.querySelectorAll('[data-sf]').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderShowroom();
+};
+
+async function loadShowroom() {
+  const grid = document.getElementById('showroom-grid');
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3)"><div class="spinner" style="margin:0 auto 12px"></div>載入中...</div>`;
+
+  try {
+    const { collection, query, where, orderBy, getDocs, collectionGroup }
+      = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+
+    // 抓取所有用戶的公開車輛
+    const q = query(collectionGroup(db, 'cars'),
+      where('isPublic', '==', true),
+      orderBy('addedAt', 'desc')
+    );
+    const snap = await getDocs(q);
+    const publicCars = snap.docs.map(d => ({ id: d.id, ...d.data(), ownerId: d.ref.parent.parent.id }));
+    renderShowroomGrid(publicCars);
+  } catch(e) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏛️</div><div class="empty-title">載入失敗</div><div class="empty-sub">${e.message}</div></div>`;
+  }
+}
+
+function renderShowroomGrid(allCars) {
+  const grid = document.getElementById('showroom-grid');
+  let list = [...allCars];
+  if (showroomFilter === 'owned') list = list.filter(c => c.status === 'owned');
+  else if (showroomFilter === 'wishlist') list = list.filter(c => c.status === 'wishlist');
+
+  if (list.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏛️</div><div class="empty-title">展示廳是空的</div><div class="empty-sub">成為第一個公開分享收藏的人！</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map((car, i) => `
+    <div class="car-card ${car.status}" style="animation-delay:${i*0.04}s">
+      <div class="car-card-img">
+        ${car.photoUrl ? `<img src="${car.photoUrl}" alt="${car.name}" loading="lazy">` : '<span>🚗</span>'}
+        ${car.number ? `<div class="car-num-badge">${car.number}</div>` : ''}
+        ${car.status === 'wishlist' ? '<div class="wishlist-badge">願望</div>' : ''}
+      </div>
+      <div class="car-card-info">
+        <div class="car-card-name">${car.name}</div>
+        <div class="car-card-meta">
+          <span style="font-size:10px">${car.brand || ''}</span>
+          ${car.price ? `<span class="car-price">¥${Number(car.price).toLocaleString()}</span>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+          <span style="font-size:10px;color:var(--text3)">${car.series || ''}</span>
+          <button onclick="likeShowroomCar('${car.id}','${car.ownerId}',this)" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:3px">
+            ❤️ ${car.likes || 0}
+          </button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+window.likeShowroomCar = async (carId, ownerId, btn) => {
+  try {
+    const { doc, updateDoc, increment } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await updateDoc(doc(db, 'users', ownerId, 'cars', carId), { likes: increment(1) });
+    const current = parseInt(btn.textContent.replace('❤️','').trim()) || 0;
+    btn.innerHTML = `❤️ ${current + 1}`;
+    btn.style.color = 'var(--red)';
+  } catch(e) {
+    showToast('按讚失敗');
+  }
+};
 window.goTo = (screen) => {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + screen).classList.add('active');
@@ -2420,6 +2527,7 @@ window.goTo = (screen) => {
   const navEl = document.getElementById('nav-' + screen);
   if (navEl) navEl.classList.add('active');
   if (screen === 'settings') updatePlanCard();
+  if (screen === 'wiki') loadShowroom();
 };
 
 // ── THEME ──
