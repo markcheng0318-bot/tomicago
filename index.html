@@ -1254,12 +1254,13 @@
         <div class="page-title">最新<span>資訊</span></div>
       </div>
       <!-- 搜尋列 -->
-      <div class="search-bar" style="margin:8px 16px">
+      <div class="search-bar" style="margin:8px 16px 4px">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <input class="search-input" type="text" id="news-search" placeholder="搜尋商品名稱..." oninput="filterNews()">
       </div>
       <!-- 月份篩選 -->
-      <div class="filter-row" id="news-month-filters">
+      <div style="padding:4px 16px 2px;font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase">月份</div>
+      <div class="filter-row" id="news-month-filters" style="padding:4px 16px 4px">
         <div class="filter-chip active" data-month="all" onclick="setNewsMonth(this,'all')">全部</div>
         <div class="filter-chip" data-month="2026.07" onclick="setNewsMonth(this,'2026.07')">7月</div>
         <div class="filter-chip" data-month="2026.06" onclick="setNewsMonth(this,'2026.06')">6月</div>
@@ -1269,9 +1270,10 @@
         <div class="filter-chip" data-month="2026.02" onclick="setNewsMonth(this,'2026.02')">2月</div>
         <div class="filter-chip" data-month="2026.01" onclick="setNewsMonth(this,'2026.01')">1月</div>
       </div>
-      <!-- 標籤篩選 -->
-      <div class="filter-row">
-        <div class="filter-chip active" data-ntag="all" onclick="setNewsTag(this,'all')">全部類型</div>
+      <!-- 類型篩選 -->
+      <div style="padding:2px 16px 2px;font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase">類型</div>
+      <div class="filter-row" style="padding:4px 16px 8px">
+        <div class="filter-chip active" data-ntag="all" onclick="setNewsTag(this,'all')">全部</div>
         <div class="filter-chip" data-ntag="新品" onclick="setNewsTag(this,'新品')">🚗 新品</div>
         <div class="filter-chip" data-ntag="聯名" onclick="setNewsTag(this,'聯名')">🤝 聯名</div>
         <div class="filter-chip" data-ntag="限定" onclick="setNewsTag(this,'限定')">⭐ 限定</div>
