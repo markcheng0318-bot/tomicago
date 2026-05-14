@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TomicaGo 後台</title>
+<title>TomicaGo 後台管理</title>
+<link rel="icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -407,6 +408,7 @@
     <div class="header-logo">TOMICA<span>GO</span> <span style="font-size:12px;color:var(--text3);letter-spacing:1px">ADMIN</span></div>
     <div class="header-right">
       <span id="admin-user-name"></span>
+      <button class="btn-logout" onclick="openAddAdminModal()" style="border-color:var(--gold);color:var(--gold)">＋ 新增管理員</button>
       <button class="btn-logout" onclick="adminLogout()">登出</button>
     </div>
   </header>
@@ -467,8 +469,10 @@
 <!-- PLAN MODAL -->
 <div class="modal-overlay" id="plan-modal" onclick="if(event.target===this)closePlanModal()">
   <div class="modal">
-    <div class="modal-title">調整方案</div>
+    <div class="modal-title">調整會員</div>
     <input type="hidden" id="modal-uid">
+    <div class="modal-label">顯示名稱</div>
+    <input type="text" class="modal-select" id="modal-name" placeholder="留空則不修改" style="margin-bottom:12px">
     <div class="modal-label">選擇方案</div>
     <select class="modal-select" id="modal-plan">
       <option value="free">免費（80台）</option>
@@ -483,6 +487,22 @@
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closePlanModal()">取消</button>
       <button class="btn-save" onclick="saveMemberPlan()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD ADMIN MODAL -->
+<div class="modal-overlay" id="add-admin-modal" onclick="if(event.target===this)closeAddAdminModal()">
+  <div class="modal">
+    <div class="modal-title">新增管理員</div>
+    <div class="modal-label">用戶 Firebase UID</div>
+    <input type="text" class="modal-select" id="add-admin-uid" placeholder="貼上 Firebase UID" style="margin-bottom:16px;font-size:12px;font-family:monospace">
+    <div style="font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.5">
+      ⚠️ 設定後需要在程式碼中手動將此 UID 加入 ADMIN_UIDS 陣列，才能讓該用戶登入後台。
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAddAdminModal()">取消</button>
+      <button class="btn-save" onclick="saveNewAdmin()">確認</button>
     </div>
   </div>
 </div>
@@ -634,7 +654,7 @@ function renderMembers(users) {
       <td style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--green)">${u.publicCount}</td>
       <td style="color:var(--text3)">${dateStr}</td>
       <td>
-        <button class="action-btn gold" onclick="openPlanModal('${u.uid}','${u.plan}','${u.status}')">調整方案</button>
+        <button class="action-btn gold" onclick="openPlanModal('${u.uid}','${u.plan}','${u.status}','${u.name.replace(/'/g, "\\'")}')">調整</button>
       </td>
     </tr>`;
   }).join('');
@@ -648,10 +668,12 @@ window.filterMembers = () => {
   renderMembers(filtered);
 };
 
-window.openPlanModal = (uid, plan, status) => {
+window.openPlanModal = (uid, plan, status, name) => {
   document.getElementById('modal-uid').value = uid;
   document.getElementById('modal-plan').value = plan || 'free';
   document.getElementById('modal-status').value = status || 'active';
+  document.getElementById('modal-name').value = '';
+  document.getElementById('modal-name').placeholder = name || '留空則不修改';
   document.getElementById('plan-modal').classList.add('open');
 };
 
@@ -663,19 +685,58 @@ window.saveMemberPlan = async () => {
   const uid = document.getElementById('modal-uid').value;
   const plan = document.getElementById('modal-plan').value;
   const status = document.getElementById('modal-status').value;
+  const customName = document.getElementById('modal-name').value.trim();
 
   try {
-    await updateDoc(doc(db, 'users', uid), { plan, status });
+    const updateData = { plan, status };
+    if (customName) updateData.displayName = customName;
+
+    await updateDoc(doc(db, 'users', uid), updateData);
     closePlanModal();
 
     // 更新本地資料
     const member = allMembers.find(m => m.uid === uid);
-    if (member) { member.plan = plan; member.status = status; }
+    if (member) {
+      member.plan = plan;
+      member.status = status;
+      if (customName) member.name = customName;
+    }
     renderMembers(allMembers);
-    alert('✅ 已更新');
+    renderStats(allMembers);
+    showToast('✅ 已更新');
   } catch(e) {
     alert('更新失敗：' + e.message);
   }
+};
+
+// ── 新增管理員 ──
+window.openAddAdminModal = () => {
+  document.getElementById('add-admin-modal').classList.add('open');
+};
+
+window.closeAddAdminModal = () => {
+  document.getElementById('add-admin-modal').classList.remove('open');
+  document.getElementById('add-admin-uid').value = '';
+};
+
+window.saveNewAdmin = async () => {
+  const uid = document.getElementById('add-admin-uid').value.trim();
+  if (!uid) { showToast('請輸入 UID'); return; }
+  try {
+    await updateDoc(doc(db, 'users', uid), { role: 'admin' });
+    closeAddAdminModal();
+    showToast('✅ 已設為管理員，需重新部署才能登入後台');
+  } catch(e) {
+    alert('失敗：' + e.message);
+  }
+};
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;border:1px solid #333;color:#F0F0F0;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,0.4)';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
 };
 </script>
 </body>
