@@ -2509,11 +2509,10 @@ function renderNewsList(items) {
     <div style="font-size:11px;color:var(--text3);text-align:right;padding:4px 20px 0">🔄 ${updatedStr} · 共${items.length}筆</div>
     ${items.map(n => `
       <div class="news-card" onclick="openNewsLink('${n.date}')" style="cursor:pointer">
-        <div class="news-card-img" id="img-${i}" style="${n.image ? '' : 'font-size:48px'}">
+        <div class="news-card-img" style="${n.image ? '' : 'font-size:48px'}">
           ${n.image
             ? `<img src="/api/img?url=${encodeURIComponent(n.image)}" alt="${n.title}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span style=font-size:48px>${tagIcons[n.tag]||'🚗'}</span>';this.parentElement.style.background='var(--bg3)'">`
             : `<span style="font-size:48px">${tagIcons[n.tag] || '🚗'}</span>`}
-            : (tagIcons[n.tag] || '🚗')}
         </div>
         <div class="news-card-body">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">

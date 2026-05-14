@@ -1,4 +1,4 @@
-const CACHE = 'tomicago-v20';
+const CACHE = 'tomicago-v21';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
