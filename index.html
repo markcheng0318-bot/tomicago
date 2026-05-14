@@ -2532,7 +2532,8 @@ async function renderNews() {
   list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)"><div class="spinner" style="margin:0 auto 12px"></div>載入中...</div>`;
 
   try {
-    const res = await fetch('/api/news');
+    const res = await fetch('/api/news', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     allNewsItems = data.items || [];
     filterNews();
@@ -2541,6 +2542,7 @@ async function renderNews() {
       <div class="empty-state">
         <div class="empty-icon">⚠️</div>
         <div class="empty-title">載入失敗</div>
+        <div class="empty-sub">${err.message}</div>
         <button onclick="renderNews()" style="margin-top:16px;padding:10px 24px;background:var(--red);color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer">重新載入</button>
       </div>`;
   }
