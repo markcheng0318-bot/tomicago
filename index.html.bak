@@ -1288,37 +1288,17 @@
       <div class="page-header">
         <div class="page-title">展示<span>廳</span></div>
         <div class="header-actions">
-          <div class="icon-btn" onclick="toggleShowroomView()" id="showroom-view-btn" title="排行榜">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          </div>
-          <div class="icon-btn" onclick="toggleShowroomFilter()">
+          <div class="icon-btn" id="showroom-filter-btn" onclick="toggleShowroomFilter()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
           </div>
         </div>
       </div>
-
-      <!-- 展示廳篩選 -->
-      <div id="showroom-filter-wrap" style="display:none">
-        <div class="filter-row">
-          <div class="filter-chip active" data-sf="all" onclick="setShowroomFilter(this,'all')">全部</div>
-          <div class="filter-chip" data-sf="owned" onclick="setShowroomFilter(this,'owned')">已收藏</div>
-          <div class="filter-chip" data-sf="wishlist" onclick="setShowroomFilter(this,'wishlist')">願望清單</div>
-        </div>
-        <div style="padding:0 16px 8px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <select id="showroom-brand-filter" class="form-input" style="padding:8px;font-size:13px" onchange="renderShowroom()">
-            <option value="">全部廠牌</option>
-          </select>
-          <select id="showroom-series-filter" class="form-input" style="padding:8px;font-size:13px" onchange="renderShowroom()">
-            <option value="">全部系列</option>
-          </select>
-        </div>
+      <div class="filter-row" id="showroom-filters" style="display:none">
+        <div class="filter-chip active" data-sf="all" onclick="setShowroomFilter(this,'all')">全部</div>
+        <div class="filter-chip" data-sf="owned" onclick="setShowroomFilter(this,'owned')">已收藏</div>
+        <div class="filter-chip" data-sf="wishlist" onclick="setShowroomFilter(this,'wishlist')">願望清單</div>
       </div>
-
-      <!-- 展示廳內容 / 排行榜 -->
-      <div id="showroom-main">
-        <div class="car-grid" id="showroom-grid" style="padding-top:8px"></div>
-      </div>
-      <div id="leaderboard-panel" style="display:none;padding:12px 16px"></div>
+      <div class="car-grid" id="showroom-grid" style="padding-top:8px"></div>
     </div>
 
     <!-- GARAGE SCREEN (HOME) -->
@@ -1326,12 +1306,6 @@
       <div class="page-header">
         <div class="page-title">我的<span>車庫</span></div>
         <div class="header-actions">
-          <div class="icon-btn" onclick="toggleMultiSelect()" title="多選">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          </div>
-          <div class="icon-btn" onclick="toggleAdvFilter()" title="進階篩選">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-          </div>
           <div class="icon-btn" onclick="toggleTheme()" title="切換主題">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="5"/>
@@ -1339,53 +1313,6 @@
             </svg>
           </div>
         </div>
-      </div>
-
-      <!-- 多選工具列 -->
-      <div id="multiselect-bar" style="display:none;background:var(--red);padding:10px 16px;align-items:center;justify-content:space-between">
-        <span id="selected-count" style="color:white;font-size:13px;font-weight:500">已選 0 台</span>
-        <div style="display:flex;gap:8px">
-          <button onclick="multiSelectAll()" style="background:rgba(255,255,255,0.2);border:none;color:white;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">全選</button>
-          <button onclick="multiBatchWishlist()" style="background:rgba(255,255,255,0.2);border:none;color:white;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">移願望清單</button>
-          <button onclick="multiBatchDelete()" style="background:rgba(0,0,0,0.3);border:none;color:white;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">刪除</button>
-        </div>
-      </div>
-
-      <!-- 進階篩選面板 -->
-      <div id="adv-filter-panel" style="display:none;padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border)">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div>
-            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">廠牌</div>
-            <select id="filter-brand" class="form-input" style="padding:8px;font-size:13px" onchange="renderGarage()">
-              <option value="">全部廠牌</option>
-            </select>
-          </div>
-          <div>
-            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">車型</div>
-            <select id="filter-cartype" class="form-input" style="padding:8px;font-size:13px" onchange="renderGarage()">
-              <option value="">全部車型</option>
-            </select>
-          </div>
-          <div>
-            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">系列</div>
-            <select id="filter-series" class="form-input" style="padding:8px;font-size:13px" onchange="renderGarage()">
-              <option value="">全部系列</option>
-            </select>
-          </div>
-          <div>
-            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">排序</div>
-            <select id="sort-garage" class="form-input" style="padding:8px;font-size:13px" onchange="renderGarage()">
-              <option value="newest">最新加入</option>
-              <option value="oldest">最早加入</option>
-              <option value="brand">廠牌 A→Z</option>
-              <option value="price-high">價格高→低</option>
-              <option value="price-low">價格低→高</option>
-              <option value="release">發行日期</option>
-              <option value="number">編號</option>
-            </select>
-          </div>
-        </div>
-        <button onclick="clearAdvFilter()" style="background:none;border:1px solid var(--border);color:var(--text3);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;margin-top:10px;font-family:'Noto Sans TC',sans-serif">清除篩選</button>
       </div>
 
       <div class="stats-row">
@@ -1534,26 +1461,6 @@
       </div>
 
       <div class="settings-list">
-        <div class="settings-section-label">收藏統計</div>
-        <div class="settings-item" onclick="toggleStatsPanel()">
-          <div class="settings-icon">📊</div>
-          <div class="settings-text">
-            <div class="settings-label">詳細統計分析</div>
-            <div class="settings-desc">圓餅圖、排行、趨勢</div>
-          </div>
-          <div class="settings-arrow" id="stats-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
-        </div>
-        <div id="stats-panel" style="display:none;padding:0 16px 8px"></div>
-
-        <div class="settings-item" onclick="exportToPDF()">
-          <div class="settings-icon">📄</div>
-          <div class="settings-text">
-            <div class="settings-label">匯出收藏清單 PDF</div>
-            <div class="settings-desc">下載完整收藏資料</div>
-          </div>
-          <div class="settings-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
-        </div>
-
         <div class="settings-section-label">外觀</div>
         <div class="settings-item" onclick="toggleTheme()">
           <div class="settings-icon">🌙</div>
@@ -1601,7 +1508,7 @@
           <div class="settings-icon">🏎️</div>
           <div class="settings-text">
             <div class="settings-label">TomicaGo</div>
-            <div class="settings-desc">版本 V3.0.0 · tomicago.com</div>
+            <div class="settings-desc">版本 V2.1.0 · tomicago.com</div>
           </div>
         </div>
       </div>
@@ -2017,46 +1924,52 @@ function loadCars() {
 
 // ── RENDER GARAGE ──
 window.renderGarage = () => {
-  const list = getFilteredCars();
+  const search = document.getElementById('garage-search').value.toLowerCase();
+  let list = [...cars];
+
+  if (currentFilter === 'owned') list = list.filter(c => c.status === 'owned');
+  else if (currentFilter === 'wishlist') list = list.filter(c => c.status === 'wishlist');
+  else if (currentFilter === 'fav') list = list.filter(c => c.favorite);
+
+  if (search) list = list.filter(c =>
+    c.name?.toLowerCase().includes(search) ||
+    c.number?.toLowerCase().includes(search)
+  );
+
+  // favorites first
+  list.sort((a,b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
+
   const grid = document.getElementById('car-grid');
 
   if (list.length === 0) {
     grid.innerHTML = `
       <div class="empty-state" style="grid-column:1/-1">
         <div class="empty-icon">🚗</div>
-        <div class="empty-title">${document.getElementById('garage-search')?.value ? '找不到符合的車' : currentFilter === 'fav' ? '還沒有最愛' : '車庫是空的'}</div>
-        <div class="empty-sub">${document.getElementById('garage-search')?.value ? '' : '點下方＋按鈕新增第一台車'}</div>
+        <div class="empty-title">${search ? '找不到符合的車' : currentFilter === 'fav' ? '還沒有最愛' : '車庫是空的'}</div>
+        <div class="empty-sub">${search ? '' : '點下方＋按鈕新增第一台車'}</div>
       </div>`;
     return;
   }
 
-  grid.innerHTML = list.map((car, i) => {
-    const isSelected = selectedCars.has(car.id);
-    return `
-    <div class="car-card ${car.status}" style="animation-delay:${i * 0.04}s${isSelected?';border-color:var(--red);background:var(--red-dim)':''}" onclick="${multiSelectMode ? `toggleCarSelect('${car.id}')` : `openDetail('${car.id}')`}">
-      ${multiSelectMode ? `<div style="position:absolute;top:8px;left:8px;width:22px;height:22px;border-radius:50%;background:${isSelected?'var(--red)':'rgba(0,0,0,0.5)'};border:2px solid ${isSelected?'var(--red)':'rgba(255,255,255,0.7)'};display:flex;align-items:center;justify-content:center;z-index:3">${isSelected?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>` : ''}
+  grid.innerHTML = list.map((car, i) => `
+    <div class="car-card" style="animation-delay:${i * 0.04}s" onclick="openDetail('${car.id}')">
       <div class="car-card-img">
-        ${car.photoUrl ? `<img src="${car.photoUrl}" alt="${car.name}" loading="lazy">` : `<span>🚗</span>`}
+        ${car.photoUrl
+          ? `<img src="${car.photoUrl}" alt="${car.name}" loading="lazy">`
+          : `<span>🚗</span>`}
         ${car.status === 'wishlist' ? '<div class="wishlist-badge">願望</div>' : ''}
         ${car.number ? `<div class="car-num-badge">${car.number}</div>` : ''}
-        ${!multiSelectMode ? `<button class="car-fav-btn" onclick="event.stopPropagation();toggleFav('${car.id}')">${car.favorite ? '⭐' : '☆'}</button>` : ''}
+        <button class="car-fav-btn" onclick="event.stopPropagation();toggleFav('${car.id}')">${car.favorite ? '⭐' : '☆'}</button>
       </div>
       <div class="car-card-info">
         <div class="car-card-name">${car.name}</div>
         <div class="car-card-meta">
-          <span>${car.brand || car.year || ''}</span>
+          <span>${car.year || ''}</span>
           ${car.price ? `<span class="car-price">¥${Number(car.price).toLocaleString()}</span>` : ''}
         </div>
       </div>
-    </div>`;
-  }).join('');
-};
-
-window.toggleCarSelect = (id) => {
-  if (selectedCars.has(id)) selectedCars.delete(id);
-  else selectedCars.add(id);
-  updateSelectedCount();
-  renderGarage();
+    </div>
+  `).join('');
 };
 
 window.setFilter = (el, filter) => {
@@ -2651,379 +2564,7 @@ async function renderNews() {
   }
 }
 
-// ── 多選功能 ──
-let multiSelectMode = false;
-let selectedCars = new Set();
-
-window.toggleMultiSelect = () => {
-  multiSelectMode = !multiSelectMode;
-  selectedCars.clear();
-  const bar = document.getElementById('multiselect-bar');
-  bar.style.display = multiSelectMode ? 'flex' : 'none';
-  renderGarage();
-};
-
-window.multiSelectAll = () => {
-  const visible = getFilteredCars();
-  visible.forEach(c => selectedCars.add(c.id));
-  updateSelectedCount();
-  renderGarage();
-};
-
-function updateSelectedCount() {
-  document.getElementById('selected-count').textContent = `已選 ${selectedCars.size} 台`;
-}
-
-window.multiBatchDelete = async () => {
-  if (selectedCars.size === 0) { showToast('請先選擇車輛'); return; }
-  if (!confirm(`確定要刪除選取的 ${selectedCars.size} 台車嗎？`)) return;
-  for (const id of selectedCars) {
-    const car = cars.find(c => c.id === id);
-    if (car?.photoPath) {
-      try { await deleteObject(ref(storage, car.photoPath)); } catch(e) {}
-    }
-    await deleteDoc(doc(db, 'users', currentUser.uid, 'cars', id));
-  }
-  selectedCars.clear();
-  toggleMultiSelect();
-  showToast(`✅ 已刪除`);
-};
-
-window.multiBatchWishlist = async () => {
-  if (selectedCars.size === 0) { showToast('請先選擇車輛'); return; }
-  for (const id of selectedCars) {
-    await updateDoc(doc(db, 'users', currentUser.uid, 'cars', id), { status: 'wishlist' });
-  }
-  selectedCars.clear();
-  toggleMultiSelect();
-  showToast(`✅ 已移至願望清單`);
-};
-
-// ── 進階篩選 ──
-let advFilterOpen = false;
-
-window.toggleAdvFilter = () => {
-  advFilterOpen = !advFilterOpen;
-  const panel = document.getElementById('adv-filter-panel');
-  panel.style.display = advFilterOpen ? 'block' : 'none';
-  if (advFilterOpen) populateFilterOptions();
-};
-
-function populateFilterOptions() {
-  const brands = [...new Set(cars.map(c => c.brand).filter(Boolean))].sort();
-  const cartypes = [...new Set(cars.map(c => c.cartype).filter(Boolean))].sort();
-  const series = [...new Set(cars.map(c => c.series).filter(Boolean))].sort();
-
-  const brandSel = document.getElementById('filter-brand');
-  const current = brandSel.value;
-  brandSel.innerHTML = '<option value="">全部廠牌</option>' + brands.map(b => `<option value="${b}" ${b===current?'selected':''}>${b}</option>`).join('');
-
-  const cartypeSel = document.getElementById('filter-cartype');
-  const currentCT = cartypeSel.value;
-  cartypeSel.innerHTML = '<option value="">全部車型</option>' + cartypes.map(b => `<option value="${b}" ${b===currentCT?'selected':''}>${b}</option>`).join('');
-
-  const seriesSel = document.getElementById('filter-series');
-  const currentS = seriesSel.value;
-  seriesSel.innerHTML = '<option value="">全部系列</option>' + series.map(b => `<option value="${b}" ${b===currentS?'selected':''}>${b}</option>`).join('');
-}
-
-window.clearAdvFilter = () => {
-  document.getElementById('filter-brand').value = '';
-  document.getElementById('filter-cartype').value = '';
-  document.getElementById('filter-series').value = '';
-  document.getElementById('sort-garage').value = 'newest';
-  renderGarage();
-};
-
-function getFilteredCars() {
-  const search = document.getElementById('garage-search')?.value?.toLowerCase() || '';
-  const brandF = document.getElementById('filter-brand')?.value || '';
-  const cartypeF = document.getElementById('filter-cartype')?.value || '';
-  const seriesF = document.getElementById('filter-series')?.value || '';
-  const sort = document.getElementById('sort-garage')?.value || 'newest';
-
-  let list = [...cars];
-  if (currentFilter === 'owned') list = list.filter(c => c.status === 'owned');
-  else if (currentFilter === 'wishlist') list = list.filter(c => c.status === 'wishlist');
-  else if (currentFilter === 'fav') list = list.filter(c => c.favorite);
-  if (search) list = list.filter(c => c.name?.toLowerCase().includes(search) || c.number?.toLowerCase().includes(search) || c.brand?.toLowerCase().includes(search));
-  if (brandF) list = list.filter(c => c.brand === brandF);
-  if (cartypeF) list = list.filter(c => c.cartype === cartypeF);
-  if (seriesF) list = list.filter(c => c.series === seriesF);
-
-  // 排序
-  if (sort === 'oldest') list.sort((a,b) => (a.addedAt||0) - (b.addedAt||0));
-  else if (sort === 'brand') list.sort((a,b) => (a.brand||'').localeCompare(b.brand||''));
-  else if (sort === 'price-high') list.sort((a,b) => (b.price||0) - (a.price||0));
-  else if (sort === 'price-low') list.sort((a,b) => (a.price||0) - (b.price||0));
-  else if (sort === 'release') list.sort((a,b) => (b.release||'').localeCompare(a.release||''));
-  else if (sort === 'number') list.sort((a,b) => (a.number||'').localeCompare(b.number||''));
-  else list.sort((a,b) => (b.favorite?1:0) - (a.favorite?1:0) || (b.addedAt||0) - (a.addedAt||0));
-
-  return list;
-}
-
-// ── 統計面板 ──
-let statsPanelOpen = false;
-
-window.toggleStatsPanel = () => {
-  statsPanelOpen = !statsPanelOpen;
-  const panel = document.getElementById('stats-panel');
-  panel.style.display = statsPanelOpen ? 'block' : 'none';
-  const arrow = document.getElementById('stats-arrow');
-  arrow.style.transform = statsPanelOpen ? 'rotate(90deg)' : '';
-  if (statsPanelOpen) renderStatsPanel();
-};
-
-function renderStatsPanel() {
-  const owned = cars.filter(c => c.status === 'owned');
-  const totalValue = owned.reduce((s,c) => s + (Number(c.price)||0), 0);
-  const avg = owned.length ? Math.round(totalValue / owned.length) : 0;
-
-  // 廠牌分佈
-  const brandCount = {};
-  owned.forEach(c => { if(c.brand) brandCount[c.brand] = (brandCount[c.brand]||0) + 1; });
-  const topBrands = Object.entries(brandCount).sort((a,b) => b[1]-a[1]).slice(0, 5);
-
-  // 系列分佈
-  const seriesCount = {};
-  owned.forEach(c => { if(c.series) seriesCount[c.series] = (seriesCount[c.series]||0) + 1; });
-  const topSeries = Object.entries(seriesCount).sort((a,b) => b[1]-a[1]).slice(0, 5);
-
-  // 最貴前5台
-  const top5 = [...owned].sort((a,b) => (b.price||0) - (a.price||0)).slice(0, 5);
-
-  // 每月新增
-  const monthCount = {};
-  owned.forEach(c => {
-    if (c.addedAt) {
-      const d = new Date(c.addedAt);
-      const key = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}`;
-      monthCount[key] = (monthCount[key]||0) + 1;
-    }
-  });
-  const recentMonths = Object.entries(monthCount).sort().slice(-6);
-
-  const colors = ['#E8001D','#D4A843','#3b82f6','#22C55E','#a855f7'];
-
-  document.getElementById('stats-panel').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <div style="background:var(--bg3);border-radius:10px;padding:14px;text-align:center">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--red)">${owned.length}</div>
-        <div style="font-size:11px;color:var(--text3)">收藏總台數</div>
-      </div>
-      <div style="background:var(--bg3);border-radius:10px;padding:14px;text-align:center">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold)">¥${totalValue.toLocaleString()}</div>
-        <div style="font-size:11px;color:var(--text3)">收藏總價值</div>
-      </div>
-      <div style="background:var(--bg3);border-radius:10px;padding:14px;text-align:center">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#3b82f6">¥${avg.toLocaleString()}</div>
-        <div style="font-size:11px;color:var(--text3)">平均單價</div>
-      </div>
-      <div style="background:var(--bg3);border-radius:10px;padding:14px;text-align:center">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#22C55E">${Object.keys(brandCount).length}</div>
-        <div style="font-size:11px;color:var(--text3)">收藏廠牌數</div>
-      </div>
-    </div>
-
-    ${topBrands.length ? `
-    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:10px">
-      <div style="font-size:12px;font-weight:600;margin-bottom:10px;color:var(--text)">🏭 廠牌分佈 TOP5</div>
-      ${topBrands.map(([brand, count], i) => `
-        <div style="margin-bottom:6px">
-          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-            <span style="color:var(--text)">${brand}</span>
-            <span style="color:var(--text2)">${count} 台</span>
-          </div>
-          <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
-            <div style="height:100%;width:${Math.round(count/owned.length*100)}%;background:${colors[i]};border-radius:3px"></div>
-          </div>
-        </div>`).join('')}
-    </div>` : ''}
-
-    ${topSeries.length ? `
-    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:10px">
-      <div style="font-size:12px;font-weight:600;margin-bottom:10px;color:var(--text)">📦 系列分佈 TOP5</div>
-      ${topSeries.map(([series, count], i) => `
-        <div style="margin-bottom:6px">
-          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-            <span style="color:var(--text)">${series}</span>
-            <span style="color:var(--text2)">${count} 台</span>
-          </div>
-          <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
-            <div style="height:100%;width:${Math.round(count/owned.length*100)}%;background:${colors[i]};border-radius:3px"></div>
-          </div>
-        </div>`).join('')}
-    </div>` : ''}
-
-    ${top5.length ? `
-    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:10px">
-      <div style="font-size:12px;font-weight:600;margin-bottom:10px;color:var(--text)">💰 最貴收藏 TOP5</div>
-      ${top5.map((car, i) => `
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);${i===top5.length-1?'border:none':''}">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:${colors[i]};min-width:20px">${i+1}</div>
-          <div style="flex:1;font-size:13px;color:var(--text)">${car.name}</div>
-          <div style="font-size:13px;color:var(--gold);font-weight:600">¥${Number(car.price).toLocaleString()}</div>
-        </div>`).join('')}
-    </div>` : ''}
-
-    ${recentMonths.length ? `
-    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:10px">
-      <div style="font-size:12px;font-weight:600;margin-bottom:12px;color:var(--text)">📈 近6個月新增</div>
-      <div style="display:flex;align-items:flex-end;gap:6px;height:80px">
-        ${(() => {
-          const max = Math.max(...recentMonths.map(([,v]) => v), 1);
-          return recentMonths.map(([month, count]) => `
-            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-              <div style="font-size:10px;color:var(--text2)">${count}</div>
-              <div style="width:100%;background:var(--red);border-radius:3px 3px 0 0;height:${Math.round(count/max*56)+4}px"></div>
-              <div style="font-size:9px;color:var(--text3);writing-mode:vertical-lr;transform:rotate(180deg)">${month.slice(5)}</div>
-            </div>`).join('');
-        })()}
-      </div>
-    </div>` : ''}
-  `;
-}
-
-// ── PDF 匯出 ──
-window.exportToPDF = () => {
-  const owned = cars.filter(c => c.status === 'owned');
-  const wish = cars.filter(c => c.status === 'wishlist');
-
-  const rows = (list, title) => list.length === 0 ? '' : `
-    <h2 style="color:#E8001D;border-bottom:2px solid #E8001D;padding-bottom:6px;margin-top:24px">${title}（${list.length}台）</h2>
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead>
-        <tr style="background:#f5f5f5">
-          <th style="border:1px solid #ddd;padding:6px 8px;text-align:left">編號</th>
-          <th style="border:1px solid #ddd;padding:6px 8px;text-align:left">車名</th>
-          <th style="border:1px solid #ddd;padding:6px 8px;text-align:left">廠牌</th>
-          <th style="border:1px solid #ddd;padding:6px 8px;text-align:left">系列</th>
-          <th style="border:1px solid #ddd;padding:6px 8px;text-align:left">發行年月</th>
-          <th style="border:1px solid #ddd;padding:6px 8px;text-align:right">價格</th>
-          <th style="border:1px solid #ddd;padding:6px 8px;text-align:left">備註</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${list.map((c,i) => `
-          <tr style="background:${i%2===0?'white':'#fafafa'}">
-            <td style="border:1px solid #ddd;padding:6px 8px">${c.number||'-'}</td>
-            <td style="border:1px solid #ddd;padding:6px 8px;font-weight:500">${c.name}</td>
-            <td style="border:1px solid #ddd;padding:6px 8px">${c.brand||'-'}</td>
-            <td style="border:1px solid #ddd;padding:6px 8px">${c.series||'-'}</td>
-            <td style="border:1px solid #ddd;padding:6px 8px">${c.release||'-'}</td>
-            <td style="border:1px solid #ddd;padding:6px 8px;text-align:right">${c.price?'¥'+Number(c.price).toLocaleString():'-'}</td>
-            <td style="border:1px solid #ddd;padding:6px 8px">${c.note||''}</td>
-          </tr>`).join('')}
-      </tbody>
-    </table>`;
-
-  const totalValue = owned.reduce((s,c) => s + (Number(c.price)||0), 0);
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
-
-  const html = `<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-<meta charset="UTF-8">
-<title>TomicaGo 收藏清單</title>
-<style>
-  body { font-family: 'Noto Sans TC', sans-serif; margin: 24px; color: #111; }
-  @media print { body { margin: 0; } }
-</style>
-</head>
-<body>
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-    <h1 style="font-size:28px;letter-spacing:4px;margin:0">TOMICA<span style="color:#E8001D">GO</span></h1>
-    <div style="text-align:right;font-size:12px;color:#666">
-      <div>${currentUser?.displayName || '我的收藏'}</div>
-      <div>匯出日期：${dateStr}</div>
-    </div>
-  </div>
-  <div style="display:flex;gap:16px;margin-bottom:16px;font-size:13px">
-    <span style="background:#E8001D;color:white;padding:4px 12px;border-radius:4px">收藏 ${owned.length} 台</span>
-    <span style="background:#D4A843;color:white;padding:4px 12px;border-radius:4px">願望清單 ${wish.length} 台</span>
-    <span style="background:#333;color:white;padding:4px 12px;border-radius:4px">總價值 ¥${totalValue.toLocaleString()}</span>
-  </div>
-  ${rows(owned, '✅ 已收藏')}
-  ${rows(wish, '⭐ 願望清單')}
-</body>
-</html>`;
-
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `TomicaGo_${dateStr.replace(/\//g,'-')}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('✅ 已下載！用瀏覽器開啟後列印成 PDF');
-};
-
-// ── 展示廳排行榜 ──
-let showroomViewMode = 'gallery'; // 'gallery' | 'leaderboard'
-
-window.toggleShowroomView = () => {
-  showroomViewMode = showroomViewMode === 'gallery' ? 'leaderboard' : 'gallery';
-  document.getElementById('showroom-main').style.display = showroomViewMode === 'gallery' ? 'block' : 'none';
-  document.getElementById('leaderboard-panel').style.display = showroomViewMode === 'leaderboard' ? 'block' : 'none';
-  if (showroomViewMode === 'leaderboard') loadLeaderboard();
-};
-
-async function loadLeaderboard() {
-  const panel = document.getElementById('leaderboard-panel');
-  panel.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)"><div class="spinner" style="margin:0 auto 12px"></div>載入中...</div>`;
-
-  try {
-    const usersSnap = await getDocs(collection(db, 'users'));
-    const leaders = [];
-    for (const userDoc of usersSnap.docs) {
-      const uid = userDoc.id;
-      const userData = userDoc.data();
-      const carsSnap = await getDocs(collection(db, 'users', uid, 'cars'));
-      const total = carsSnap.docs.filter(d => d.data().status === 'owned').length;
-      if (total > 0) {
-        leaders.push({
-          name: userData.displayName || '匿名收藏家',
-          photoURL: userData.photoURL || '',
-          total,
-          uid
-        });
-      }
-    }
-    leaders.sort((a,b) => b.total - a.total);
-
-    const medals = ['🥇','🥈','🥉'];
-    panel.innerHTML = `
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;margin-bottom:16px">收藏排行榜</div>
-      ${leaders.slice(0,20).map((u, i) => `
-        <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px${i<3?';border-left:3px solid var(--gold)':''}">
-          <div style="font-size:${i<3?'24px':'16px'};min-width:32px;text-align:center">${medals[i]||`#${i+1}`}</div>
-          <div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);overflow:hidden;flex-shrink:0">
-            ${u.photoURL ? `<img src="${u.photoURL}" style="width:100%;height:100%;object-fit:cover">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:16px">👤</div>'}
-          </div>
-          <div style="flex:1">
-            <div style="font-size:14px;font-weight:600;color:var(--text)">${u.name}</div>
-          </div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--red)">${u.total}<span style="font-size:12px;color:var(--text3);margin-left:2px">台</span></div>
-        </div>`).join('')}
-    `;
-  } catch(e) {
-    panel.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)">載入失敗</div>`;
-  }
-}
-
-// 更新展示廳 filter toggle
-window.toggleShowroomFilter = () => {
-  const f = document.getElementById('showroom-filter-wrap');
-  f.style.display = f.style.display === 'none' ? 'block' : 'none';
-  if (f.style.display === 'block') {
-    // 填充廠牌和系列選項
-    const sbFilter = document.getElementById('showroom-brand-filter');
-    const ssFilter = document.getElementById('showroom-series-filter');
-    // 動態選項待展示廳載入後更新
-  }
-};
+// ── SHOWROOM ──
 let showroomFilter = 'all';
 let showroomUnsubscribe = null;
 
@@ -3121,9 +2662,8 @@ window.goTo = (screen) => {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const navEl = document.getElementById('nav-' + screen);
   if (navEl) navEl.classList.add('active');
-  if (screen === 'settings') { updatePlanCard(); if (statsPanelOpen) renderStatsPanel(); }
+  if (screen === 'settings') updatePlanCard();
   if (screen === 'wiki') loadShowroom();
-  if (screen === 'garage' && advFilterOpen) populateFilterOptions();
 };
 
 // ── THEME ──
