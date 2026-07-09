@@ -1215,40 +1215,40 @@
 
 <div id="app" style="display:none">
 
-  <!-- LOGIN SCREEN -->
-  <div class="screen active" id="screen-login" style="overflow:hidden">
-    <div class="login-bg"></div>
-    <div class="login-content">
-      <div class="login-car-icon">🏎️</div>
-      <div class="login-logo">TOMICA<span>GO</span></div>
-      <div class="login-tagline">你的 Tomica 收藏管家</div>
+  <!-- LOGIN MODAL（訪客模式，不擋主畫面）-->
+  <div class="modal-overlay" id="login-modal" onclick="if(event.target===this)closeLoginModal()">
+    <div style="width:100%;max-width:380px;padding:0 20px">
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-top:3px solid var(--red);border-radius:var(--radius);padding:32px 24px;text-align:center">
+        <div class="login-bg" style="position:absolute;inset:0;pointer-events:none;border-radius:var(--radius)"></div>
+        <div style="font-size:40px;margin-bottom:8px">🏎️</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:4px;margin-bottom:4px">TOMICA<span style="color:var(--red)">GO</span></div>
+        <div style="font-size:12px;color:var(--text2);letter-spacing:2px;margin-bottom:24px">登入以使用完整功能</div>
 
-      <div class="browser-warning" id="browser-warning">
-        <div class="browser-warning-title">⚠️ 請使用 Chrome 瀏覽器</div>
-        <div class="browser-warning-desc">
-          你目前使用的瀏覽器不支援 Google 登入<br>
-          請用 Chrome 開啟 TomicaGo
+        <div class="browser-warning" id="browser-warning" style="margin-bottom:16px">
+          <div class="browser-warning-title">⚠️ 請使用 Chrome 瀏覽器</div>
+          <div class="browser-warning-desc">你目前使用的瀏覽器不支援 Google 登入<br>請用 Chrome 開啟 TomicaGo</div>
+          <div style="margin-top:8px">
+            <button class="btn-copy-url" onclick="copyUrl()">📋 複製網址</button>
+            <a class="btn-open-chrome" href="googlechrome://tomicago.com" id="btn-chrome">🌐 在 Chrome 開啟</a>
+          </div>
         </div>
-        <div>
-          <button class="btn-copy-url" onclick="copyUrl()">📋 複製網址</button>
-          <a class="btn-open-chrome" href="googlechrome://tomicago.com" id="btn-chrome">🌐 在 Chrome 開啟</a>
-        </div>
+
+        <button class="btn-google" id="btn-google-login" onclick="signInWithGoogle()" style="width:100%;max-width:none;justify-content:center">
+          <svg class="google-icon" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          用 Google 帳號登入
+        </button>
+        <button onclick="closeLoginModal()" style="background:none;border:none;color:var(--text3);font-size:13px;margin-top:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">以訪客身份繼續瀏覽</button>
       </div>
-
-      <button class="btn-google" id="btn-google-login" onclick="signInWithGoogle()">
-        <svg class="google-icon" viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-        </svg>
-        用 Google 帳號登入
-      </button>
     </div>
   </div>
 
-  <!-- MAIN APP (hidden until login) -->
-  <div id="main-app" style="display:none; flex:1; overflow:hidden; display:none; flex-direction:column">
+  <!-- MAIN APP（所有人都能看到）-->
+  <div id="main-app" style="display:flex;flex:1;overflow:hidden;flex-direction:column">
 
     <!-- NEWS SCREEN -->
     <div class="screen" id="screen-news">
@@ -1601,7 +1601,7 @@
           <div class="settings-icon">🏎️</div>
           <div class="settings-text">
             <div class="settings-label">TomicaGo</div>
-            <div class="settings-desc">版本 V3.0.0 · tomicago.com</div>
+            <div class="settings-desc">版本 V3.1.0 · tomicago.com</div>
           </div>
         </div>
       </div>
@@ -1618,17 +1618,17 @@
         <span class="nav-label">展示廳</span>
       </button>
       <div class="nav-center">
-        <button class="nav-fab" id="nav-garage" onclick="goTo('garage')">
+        <button class="nav-fab" id="nav-garage" onclick="requireLogin('garage')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         </button>
       </div>
-      <button class="nav-item" id="nav-upload" onclick="goTo('upload')">
+      <button class="nav-item" id="nav-upload" onclick="requireLogin('upload')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12l4-4 4 4"/></svg>
         <span class="nav-label">新增</span>
       </button>
-      <button class="nav-item" id="nav-settings" onclick="goTo('settings')">
+      <button class="nav-item" id="nav-settings" onclick="requireLogin('settings')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-        <span class="nav-label">設定</span>
+        <span class="nav-label" id="nav-settings-label">設定</span>
       </button>
     </nav>
 
@@ -1901,19 +1901,32 @@ window.copyUrl = () => {
 // ── AUTH ──
 window.signInWithGoogle = async () => {
   try {
-    // 優先用 popup，失敗再用 redirect
     await signInWithPopup(auth, provider);
+    closeLoginModal();
   } catch(e) {
     if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user') {
-      // popup 被擋，改用 redirect
-      try {
-        await signInWithRedirect(auth, provider);
-      } catch(e2) {
+      try { await signInWithRedirect(auth, provider); } catch(e2) {
         showToast('登入失敗，請使用 Chrome 瀏覽器');
       }
     } else if (e.code !== 'auth/cancelled-popup-request') {
       showToast('登入失敗：' + e.message);
     }
+  }
+};
+
+window.openLoginModal = () => {
+  document.getElementById('login-modal').classList.add('open');
+};
+
+window.closeLoginModal = () => {
+  document.getElementById('login-modal').classList.remove('open');
+};
+
+window.requireLogin = (screen) => {
+  if (currentUser) {
+    goTo(screen);
+  } else {
+    openLoginModal();
   }
 };
 
@@ -1936,14 +1949,19 @@ onAuthStateChanged(auth, async user => {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
 
+  // 主畫面永遠顯示
+  const ma = document.getElementById('main-app');
+  ma.style.display = 'flex';
+  ma.style.flexDirection = 'column';
+  ma.style.flex = '1';
+  ma.style.overflow = 'hidden';
+
   if (user) {
     currentUser = user;
-    document.getElementById('screen-login').style.display = 'none';
-    const ma = document.getElementById('main-app');
-    ma.style.display = 'flex';
-    ma.style.flexDirection = 'column';
-    ma.style.flex = '1';
-    ma.style.overflow = 'hidden';
+    closeLoginModal();
+
+    // 更新導覽設定按鈕
+    document.getElementById('nav-settings-label').textContent = '設定';
 
     // user info in settings
     document.getElementById('settings-user-name').textContent = user.displayName || '使用者';
@@ -1961,16 +1979,13 @@ onAuthStateChanged(auth, async user => {
     const userSnap = await getDoc(userRef);
     if (!userSnap.exists()) {
       await setDoc(userRef, {
-        plan: 'free',
-        planExpiry: null,
-        status: 'active',
+        plan: 'free', planExpiry: null, status: 'active',
         displayName: user.displayName || '',
         email: user.email || '',
         photoURL: user.photoURL || '',
         createdAt: Date.now()
       });
     } else {
-      // 更新最新的名稱和照片
       await updateDoc(userRef, {
         displayName: user.displayName || '',
         email: user.email || '',
@@ -1980,12 +1995,16 @@ onAuthStateChanged(auth, async user => {
 
     loadCars();
     loadUserPlan();
-    renderNews();
+
   } else {
     currentUser = null;
-    document.getElementById('screen-login').style.display = 'flex';
-    document.getElementById('main-app').style.display = 'none';
+    // 訪客模式：導覽設定按鈕改為登入
+    document.getElementById('nav-settings-label').textContent = '登入';
   }
+
+  // 資訊頁所有人都載入
+  renderNews();
+  detectBrowser();
 });
 
 // ── USER PLAN（即時監聽）──
@@ -3116,6 +3135,12 @@ window.likeShowroomCar = async (carId, ownerId, btn) => {
   }
 };
 window.goTo = (screen) => {
+  // 需要登入的頁面
+  const protectedScreens = ['garage', 'upload', 'settings'];
+  if (protectedScreens.includes(screen) && !currentUser) {
+    openLoginModal();
+    return;
+  }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + screen).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
