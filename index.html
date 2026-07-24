@@ -1810,7 +1810,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut as fbSignOut }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, doc, addDoc, getDocs, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDoc, setDoc }
+import { getFirestore, collection, collectionGroup, doc, addDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, getDoc, setDoc }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
@@ -2271,6 +2271,8 @@ window.saveEdit = async () => {
       note: document.getElementById('e-note').value.trim(),
       status: document.getElementById('toggle-edit-wishlist').classList.contains('on') ? 'wishlist' : 'owned',
       isPublic: document.getElementById('toggle-edit-public').classList.contains('on'),
+      ownerName: currentUser.displayName || '匿名收藏家',
+      ownerPhoto: currentUser.photoURL || '',
       photoUrl,
       photoPath,
     });
@@ -2543,6 +2545,8 @@ window.submitCar = async () => {
       status: isWishlist ? 'wishlist' : 'owned',
       favorite: false,
       isPublic: document.getElementById('toggle-public').classList.contains('on'),
+      ownerName: currentUser.displayName || '匿名收藏家',
+      ownerPhoto: currentUser.photoURL || '',
       likes: 0,
       photoUrl,
       photoPath,
@@ -2984,27 +2988,23 @@ async function loadLeaderboard() {
   panel.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3)"><div class="spinner" style="margin:0 auto 12px"></div>載入中...</div>`;
 
   try {
-    const usersSnap = await getDocs(collection(db, 'users'));
-    const leaders = [];
-    for (const userDoc of usersSnap.docs) {
-      const uid = userDoc.id;
-      const userData = userDoc.data();
-      const carsSnap = await getDocs(collection(db, 'users', uid, 'cars'));
-      const total = carsSnap.docs.filter(d => d.data().status === 'owned').length;
-      if (total > 0) {
-        leaders.push({
-          name: userData.displayName || '匿名收藏家',
-          photoURL: userData.photoURL || '',
-          total,
-          uid
-        });
-      }
-    }
-    leaders.sort((a,b) => b.total - a.total);
+    // 排行榜只統計「公開展示」的收藏（隱私考量，無法讀取他人未公開的收藏數）
+    const q = query(collectionGroup(db, 'cars'), where('isPublic', '==', true));
+    const snap = await getDocs(q);
+    const totals = {};
+    snap.docs.forEach(d => {
+      const c = d.data();
+      if (c.status !== 'owned') return;
+      const uid = d.ref.parent.parent.id;
+      if (!totals[uid]) totals[uid] = { name: c.ownerName || '匿名收藏家', photoURL: c.ownerPhoto || '', total: 0, uid };
+      totals[uid].total++;
+    });
+    const leaders = Object.values(totals).sort((a,b) => b.total - a.total);
 
     const medals = ['🥇','🥈','🥉'];
     panel.innerHTML = `
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;margin-bottom:16px">收藏排行榜</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;margin-bottom:4px">收藏排行榜</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:16px">依「公開展示」的收藏數排名</div>
       ${leaders.slice(0,20).map((u, i) => `
         <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px${i<3?';border-left:3px solid var(--gold)':''}">
           <div style="font-size:${i<3?'24px':'16px'};min-width:32px;text-align:center">${medals[i]||`#${i+1}`}</div>
@@ -3022,23 +3022,13 @@ async function loadLeaderboard() {
   }
 }
 
-// 更新展示廳 filter toggle
+// 展示廳篩選
+let showroomFilter = 'all';
+let showroomCars = [];
+
 window.toggleShowroomFilter = () => {
   const f = document.getElementById('showroom-filter-wrap');
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
-  if (f.style.display === 'block') {
-    // 填充廠牌和系列選項
-    const sbFilter = document.getElementById('showroom-brand-filter');
-    const ssFilter = document.getElementById('showroom-series-filter');
-    // 動態選項待展示廳載入後更新
-  }
-};
-let showroomFilter = 'all';
-let showroomUnsubscribe = null;
-
-window.toggleShowroomFilter = () => {
-  const f = document.getElementById('showroom-filters');
-  f.style.display = f.style.display === 'none' ? 'flex' : 'none';
 };
 
 window.setShowroomFilter = (el, filter) => {
@@ -3048,42 +3038,53 @@ window.setShowroomFilter = (el, filter) => {
   renderShowroom();
 };
 
+function populateShowroomFilterOptions() {
+  const brands = [...new Set(showroomCars.map(c => c.brand).filter(Boolean))].sort();
+  const series = [...new Set(showroomCars.map(c => c.series).filter(Boolean))].sort();
+
+  const brandSel = document.getElementById('showroom-brand-filter');
+  const curBrand = brandSel.value;
+  brandSel.innerHTML = '<option value="">全部廠牌</option>' + brands.map(b => `<option value="${b}" ${b===curBrand?'selected':''}>${b}</option>`).join('');
+
+  const seriesSel = document.getElementById('showroom-series-filter');
+  const curSeries = seriesSel.value;
+  seriesSel.innerHTML = '<option value="">全部系列</option>' + series.map(s => `<option value="${s}" ${s===curSeries?'selected':''}>${s}</option>`).join('');
+}
+
 async function loadShowroom() {
   const grid = document.getElementById('showroom-grid');
   grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3)"><div class="spinner" style="margin:0 auto 12px"></div>載入中...</div>`;
 
   try {
-    // 先抓取所有用戶
-    const usersSnap = await getDocs(collection(db, 'users'));
-    let publicCars = [];
+    // 只查詢已公開展示的收藏，不需要列出所有使用者資料（安全性考量）
+    const q = query(
+      collectionGroup(db, 'cars'),
+      where('isPublic', '==', true),
+      orderBy('addedAt', 'desc')
+    );
+    const snap = await getDocs(q);
+    showroomCars = snap.docs.map(d => ({ id: d.id, ...d.data(), ownerId: d.ref.parent.parent.id }));
 
-    for (const userDoc of usersSnap.docs) {
-      const uid = userDoc.id;
-      try {
-        const carsSnap = await getDocs(
-          query(collection(db, 'users', uid, 'cars'), orderBy('addedAt', 'desc'))
-        );
-        const userCars = carsSnap.docs
-          .map(d => ({ id: d.id, ...d.data(), ownerId: uid }))
-          .filter(c => c.isPublic === true);
-        publicCars = publicCars.concat(userCars);
-      } catch(e) {}
-    }
-
-    // 依時間排序
-    publicCars.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
-    renderShowroomGrid(publicCars);
+    populateShowroomFilterOptions();
+    renderShowroom();
 
   } catch(e) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏛️</div><div class="empty-title">載入失敗</div><div class="empty-sub">${e.message}</div></div>`;
   }
 }
 
+window.renderShowroom = () => renderShowroomGrid(showroomCars);
+
 function renderShowroomGrid(allCars) {
   const grid = document.getElementById('showroom-grid');
+  const brandF = document.getElementById('showroom-brand-filter')?.value || '';
+  const seriesF = document.getElementById('showroom-series-filter')?.value || '';
+
   let list = [...allCars];
   if (showroomFilter === 'owned') list = list.filter(c => c.status === 'owned');
   else if (showroomFilter === 'wishlist') list = list.filter(c => c.status === 'wishlist');
+  if (brandF) list = list.filter(c => c.brand === brandF);
+  if (seriesF) list = list.filter(c => c.series === seriesF);
 
   if (list.length === 0) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏛️</div><div class="empty-title">展示廳是空的</div><div class="empty-sub">成為第一個公開分享收藏的人！</div></div>`;
