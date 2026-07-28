@@ -14,7 +14,7 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 function callClaudeWithSearch(prompt) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-5',
       max_tokens: 4000,
       tools: [{ type: 'web_search_20250305', name: 'web_search' }],
       messages: [{ role: 'user', content: prompt }]
@@ -36,16 +36,25 @@ function callClaudeWithSearch(prompt) {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
+        let parsed;
         try {
-          const parsed = JSON.parse(data);
-          const text = (parsed.content || [])
-            .filter(b => b.type === 'text')
-            .map(b => b.text)
-            .join('');
-          resolve(text);
+          parsed = JSON.parse(data);
         } catch(e) {
-          reject(e);
+          reject(new Error(`Claude API 回傳非 JSON（HTTP ${res.statusCode}）：${data.slice(0, 300)}`));
+          return;
         }
+
+        if (res.statusCode < 200 || res.statusCode >= 300 || parsed.type === 'error') {
+          const msg = parsed.error?.message || JSON.stringify(parsed).slice(0, 300);
+          reject(new Error(`Claude API 錯誤（HTTP ${res.statusCode}）：${msg}`));
+          return;
+        }
+
+        const text = (parsed.content || [])
+          .filter(b => b.type === 'text')
+          .map(b => b.text)
+          .join('');
+        resolve(text);
       });
     });
 
