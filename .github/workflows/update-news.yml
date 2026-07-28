@@ -30,8 +30,6 @@ jobs:
           node-version: '20'
 
       - name: 執行新聞抓取腳本
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: node scripts/fetch-news.js
 
       - name: 檢查是否有變更
