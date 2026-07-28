@@ -2989,7 +2989,9 @@ async function loadLeaderboard() {
 
   try {
     // 排行榜只統計「公開展示」的收藏（隱私考量，無法讀取他人未公開的收藏數）
-    const q = query(collectionGroup(db, 'cars'), where('isPublic', '==', true));
+    // 沿用展示廳已經建立好的複合索引（isPublic + addedAt），避免另外需要一個
+    // collection group 單一欄位索引
+    const q = query(collectionGroup(db, 'cars'), where('isPublic', '==', true), orderBy('addedAt', 'desc'));
     const snap = await getDocs(q);
     const totals = {};
     snap.docs.forEach(d => {
