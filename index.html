@@ -1254,13 +1254,6 @@
       <div style="padding:4px 16px 2px;font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase">月份</div>
       <div class="filter-row" id="news-month-filters" style="padding:4px 16px 4px">
         <div class="filter-chip active" data-month="all" onclick="setNewsMonth(this,'all')">全部</div>
-        <div class="filter-chip" data-month="2026.07" onclick="setNewsMonth(this,'2026.07')">7月</div>
-        <div class="filter-chip" data-month="2026.06" onclick="setNewsMonth(this,'2026.06')">6月</div>
-        <div class="filter-chip" data-month="2026.05" onclick="setNewsMonth(this,'2026.05')">5月</div>
-        <div class="filter-chip" data-month="2026.04" onclick="setNewsMonth(this,'2026.04')">4月</div>
-        <div class="filter-chip" data-month="2026.03" onclick="setNewsMonth(this,'2026.03')">3月</div>
-        <div class="filter-chip" data-month="2026.02" onclick="setNewsMonth(this,'2026.02')">2月</div>
-        <div class="filter-chip" data-month="2026.01" onclick="setNewsMonth(this,'2026.01')">1月</div>
       </div>
       <!-- 類型篩選 -->
       <div style="padding:2px 16px 2px;font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase">類型</div>
@@ -2586,6 +2579,20 @@ window.openNewsLink = (date) => {
   window.open(url, '_blank');
 };
 
+// 月份篩選晶片依實際抓到的新聞資料動態產生，不寫死月份，
+// 這樣未來新增的月份（8月、9月...甚至跨年）會自動出現，不用改程式碼
+function populateNewsMonthFilters() {
+  const container = document.getElementById('news-month-filters');
+  const months = [...new Set(allNewsItems.map(n => n.date))].sort((a, b) => b.localeCompare(a));
+  const chipHtml = (month, label, active) =>
+    `<div class="filter-chip${active ? ' active' : ''}" data-month="${month}" onclick="setNewsMonth(this,'${month}')">${label}</div>`;
+
+  container.innerHTML = [
+    chipHtml('all', '全部', newsMonthFilter === 'all'),
+    ...months.map(m => chipHtml(m, `${parseInt(m.split('.')[1], 10)}月`, newsMonthFilter === m))
+  ].join('');
+}
+
 window.setNewsMonth = (el, month) => {
   newsMonthFilter = month;
   document.querySelectorAll('[data-month]').forEach(c => c.classList.remove('active'));
@@ -2652,6 +2659,7 @@ async function renderNews() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     allNewsItems = data.items || [];
+    populateNewsMonthFilters();
     filterNews();
   } catch(err) {
     list.innerHTML = `
