@@ -1591,11 +1591,27 @@
         </div>
 
         <div class="settings-section-label">關於</div>
+        <div class="settings-item" onclick="openChangelogModal()">
+          <div class="settings-icon">📋</div>
+          <div class="settings-text">
+            <div class="settings-label">改版專區</div>
+            <div class="settings-desc">看看每個版本改了什麼</div>
+          </div>
+          <div class="settings-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+        </div>
+        <div class="settings-item" onclick="openFeedbackModal()">
+          <div class="settings-icon">💬</div>
+          <div class="settings-text">
+            <div class="settings-label">意見回饋</div>
+            <div class="settings-desc">提改善建議或回報問題</div>
+          </div>
+          <div class="settings-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+        </div>
         <div class="settings-item">
           <div class="settings-icon">🏎️</div>
           <div class="settings-text">
             <div class="settings-label">TomicaGo</div>
-            <div class="settings-desc">版本 V3.1.0 · tomicago.com</div>
+            <div class="settings-desc" id="app-version-desc">版本 · tomicago.com</div>
           </div>
         </div>
       </div>
@@ -1711,6 +1727,48 @@
       </div>
       <div class="plan-note">付款功能即將開通，敬請期待<br>目前所有用戶享有免費 80 台體驗</div>
       <button class="btn-submit" style="margin-top:12px" onclick="closePlanModal()">暫時不用</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGELOG MODAL -->
+<div class="modal-overlay" id="changelog-modal" onclick="if(event.target===this)closeChangelogModal()">
+  <div style="width:100%;max-width:480px;padding:0 16px;max-height:80vh">
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-top:3px solid var(--red);border-radius:var(--radius);padding:24px;max-height:80vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px">改版專區</div>
+        <div class="icon-btn" onclick="closeChangelogModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </div>
+      </div>
+      <div id="changelog-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div class="modal-overlay" id="feedback-modal" onclick="if(event.target===this)closeFeedbackModal()">
+  <div style="width:100%;max-width:480px;padding:0 16px">
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-top:3px solid var(--red);border-radius:var(--radius);padding:24px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;margin-bottom:16px">意見回饋</div>
+
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">類型</label>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <div class="filter-chip active" id="fb-type-suggest" onclick="setFeedbackType('建議')" style="flex:1;text-align:center">💡 建議</div>
+          <div class="filter-chip" id="fb-type-bug" onclick="setFeedbackType('問題回報')" style="flex:1;text-align:center">🐛 問題回報</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">內容</label>
+        <textarea id="feedback-text" class="form-input" rows="5" placeholder="想到什麼都可以說，例如想要的新功能、覺得哪裡卡卡的、或是遇到的錯誤..." style="resize:vertical;min-height:120px;font-family:'Noto Sans TC',sans-serif;line-height:1.5;padding-top:12px"></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button onclick="closeFeedbackModal()" style="flex:1;background:none;border:1px solid var(--border2);color:var(--text2);padding:12px;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;cursor:pointer">取消</button>
+        <button class="btn-submit" id="btn-submit-feedback" onclick="submitFeedback()" style="flex:2;margin-top:0">送出</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3220,6 +3278,107 @@ window.closePlanModal = () => document.getElementById('plan-modal').classList.re
 window.initiateUpgrade = (plan) => {
   closePlanModal();
   showToast('付款功能即將開通，敬請期待！');
+};
+
+// ── 改版專區 ──
+// 每次出新版本就在最前面加一筆，settings 頁的版本號會自動跟著這裡的
+// CHANGELOG[0].version 顯示，不用兩個地方分別改
+const CHANGELOG = [
+  {
+    version: 'V3.2.0',
+    date: '2026.07.28',
+    changes: [
+      '修正展示廳、排行榜因 Firestore 安全規則問題完全無法使用的錯誤',
+      '最新資訊改成直接解析官網頁面，不再依賴付費 API，且會提前抓取官網已公布的未來月份',
+      '最新資訊的月份篩選改成依實際資料動態產生，之後新增月份不用改程式碼',
+      '強化 PWA 安裝體驗：修正圖示被裁切的問題、加入離線支援、可從設定頁直接安裝到主畫面',
+      '新增「改版專區」與「意見回饋」功能'
+    ]
+  },
+  {
+    version: 'V3.1.0',
+    date: '2026.05.13',
+    changes: [
+      '新增訪客模式，未登入也能瀏覽最新資訊與展示廳',
+      '程式碼優化'
+    ]
+  },
+  {
+    version: 'V3.0.0',
+    date: '2026.05.11',
+    changes: [
+      '新增進階篩選、多選批次操作',
+      '新增收藏統計分析（圓餅圖、排行、趨勢）',
+      '新增展示廳排行榜',
+      '新增收藏清單 PDF 匯出'
+    ]
+  }
+];
+
+document.getElementById('app-version-desc').textContent = `版本 ${CHANGELOG[0].version} · tomicago.com`;
+
+function renderChangelog() {
+  document.getElementById('changelog-list').innerHTML = CHANGELOG.map((entry, i) => `
+    <div style="margin-bottom:${i === CHANGELOG.length - 1 ? '0' : '20px'};padding-bottom:${i === CHANGELOG.length - 1 ? '0' : '20px'};border-bottom:${i === CHANGELOG.length - 1 ? 'none' : '1px solid var(--border)'}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:var(--red)">${entry.version}</div>
+        <div style="font-size:11px;color:var(--text3)">${entry.date}</div>
+      </div>
+      <ul style="padding-left:18px;display:flex;flex-direction:column;gap:6px">
+        ${entry.changes.map(c => `<li style="font-size:13px;color:var(--text2);line-height:1.5">${c}</li>`).join('')}
+      </ul>
+    </div>
+  `).join('');
+}
+
+window.openChangelogModal = () => {
+  renderChangelog();
+  document.getElementById('changelog-modal').classList.add('open');
+};
+window.closeChangelogModal = () => document.getElementById('changelog-modal').classList.remove('open');
+
+// ── 意見回饋 ──
+let feedbackType = '建議';
+window.setFeedbackType = (type) => {
+  feedbackType = type;
+  document.getElementById('fb-type-suggest').classList.toggle('active', type === '建議');
+  document.getElementById('fb-type-bug').classList.toggle('active', type === '問題回報');
+};
+
+window.openFeedbackModal = () => {
+  document.getElementById('feedback-text').value = '';
+  setFeedbackType('建議');
+  document.getElementById('feedback-modal').classList.add('open');
+};
+window.closeFeedbackModal = () => document.getElementById('feedback-modal').classList.remove('open');
+
+window.submitFeedback = async () => {
+  const message = document.getElementById('feedback-text').value.trim();
+  if (!message) { showToast('請輸入內容'); return; }
+  if (!currentUser) { showToast('請先登入'); return; }
+
+  const btn = document.getElementById('btn-submit-feedback');
+  btn.disabled = true;
+  btn.textContent = '送出中...';
+
+  try {
+    await addDoc(collection(db, 'feedback'), {
+      type: feedbackType,
+      message,
+      userId: currentUser.uid,
+      userName: currentUser.displayName || '匿名使用者',
+      userEmail: currentUser.email || '',
+      status: 'new',
+      createdAt: Date.now()
+    });
+    closeFeedbackModal();
+    showToast('✅ 已送出，謝謝你的回饋！');
+  } catch(e) {
+    showToast('送出失敗：' + e.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '送出';
 };
 
 // ── TOAST ──

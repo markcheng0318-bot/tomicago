@@ -432,6 +432,41 @@
         <div class="stat-label">付費會員</div>
         <div class="stat-value" id="s-paid">-<span class="stat-unit">人</span></div>
       </div>
+      <div class="stat-card" style="border-top-color:#a855f7">
+        <div class="stat-label">待處理留言</div>
+        <div class="stat-value" id="s-feedback-pending">-<span class="stat-unit">則</span></div>
+      </div>
+    </div>
+
+    <!-- FEEDBACK TABLE -->
+    <div class="section-title">
+      意見回饋
+      <span class="count" id="feedback-count">載入中...</span>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-search">
+        <div class="action-btn active-filter" data-status="all" onclick="filterFeedback('all')" style="border-color:var(--red);color:var(--red)">全部</div>
+        <div class="action-btn" data-status="new" onclick="filterFeedback('new')">待處理</div>
+        <div class="action-btn" data-status="resolved" onclick="filterFeedback('resolved')">已處理</div>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>類型</th>
+              <th>內容</th>
+              <th>使用者</th>
+              <th>時間</th>
+              <th>狀態</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="feedback-tbody">
+            <tr><td colspan="6" class="loading"><div class="spinner"></div>載入中...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- MEMBERS TABLE -->
@@ -511,7 +546,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, doc, getDocs, getDoc, updateDoc, query, orderBy, collectionGroup }
+import { getFirestore, collection, doc, getDocs, getDoc, updateDoc, deleteDoc, query, orderBy, collectionGroup }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -564,7 +599,105 @@ onAuthStateChanged(auth, async user => {
   document.getElementById('admin-screen').style.display = 'block';
   document.getElementById('admin-user-name').textContent = user.displayName;
   loadDashboard();
+  loadFeedback();
 });
+
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+let allFeedback = [];
+let feedbackFilter = 'all';
+
+async function loadFeedback() {
+  try {
+    const snap = await getDocs(query(collection(db, 'feedback'), orderBy('createdAt', 'desc')));
+    allFeedback = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    updateFeedbackPendingCount();
+    renderFeedback();
+  } catch(e) {
+    document.getElementById('feedback-tbody').innerHTML =
+      `<tr><td colspan="6" style="text-align:center;padding:24px;color:#ef4444">載入失敗：${escapeHtml(e.message)}</td></tr>`;
+  }
+}
+
+function updateFeedbackPendingCount() {
+  const pending = allFeedback.filter(f => f.status !== 'resolved').length;
+  document.getElementById('s-feedback-pending').innerHTML = `${pending}<span class="stat-unit">則</span>`;
+}
+
+window.filterFeedback = (status) => {
+  feedbackFilter = status;
+  document.querySelectorAll('[data-status]').forEach(el => {
+    const active = el.dataset.status === status;
+    el.style.borderColor = active ? 'var(--red)' : '';
+    el.style.color = active ? 'var(--red)' : '';
+  });
+  renderFeedback();
+};
+
+function renderFeedback() {
+  const list = feedbackFilter === 'all' ? allFeedback : allFeedback.filter(f => (f.status || 'new') === feedbackFilter);
+  document.getElementById('feedback-count').textContent = `${list.length} 則`;
+
+  if (list.length === 0) {
+    document.getElementById('feedback-tbody').innerHTML =
+      `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3)">沒有資料</td></tr>`;
+    return;
+  }
+
+  document.getElementById('feedback-tbody').innerHTML = list.map(f => {
+    const typeBadge = f.type === '問題回報'
+      ? '<span class="badge badge-suspended">🐛 問題回報</span>'
+      : '<span class="badge badge-standard">💡 建議</span>';
+    const statusBadge = f.status === 'resolved'
+      ? '<span class="badge badge-active">已處理</span>'
+      : '<span class="badge badge-free">待處理</span>';
+    const date = f.createdAt ? new Date(f.createdAt) : null;
+    const dateStr = date ? `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}` : '-';
+
+    return `<tr>
+      <td>${typeBadge}</td>
+      <td style="max-width:320px;white-space:pre-wrap;line-height:1.5">${escapeHtml(f.message)}</td>
+      <td>
+        <div class="user-name">${escapeHtml(f.userName || '匿名')}</div>
+        <div class="user-email">${escapeHtml(f.userEmail || '')}</div>
+      </td>
+      <td style="color:var(--text3);white-space:nowrap">${dateStr}</td>
+      <td>${statusBadge}</td>
+      <td style="white-space:nowrap">
+        ${f.status === 'resolved'
+          ? `<button class="action-btn" onclick="setFeedbackStatus('${f.id}','new')">設為待處理</button>`
+          : `<button class="action-btn green" onclick="setFeedbackStatus('${f.id}','resolved')">標記已處理</button>`}
+        <button class="action-btn" onclick="deleteFeedbackItem('${f.id}')">刪除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+window.setFeedbackStatus = async (id, status) => {
+  try {
+    await updateDoc(doc(db, 'feedback', id), { status });
+    const item = allFeedback.find(f => f.id === id);
+    if (item) item.status = status;
+    updateFeedbackPendingCount();
+    renderFeedback();
+  } catch(e) {
+    alert('更新失敗：' + e.message);
+  }
+};
+
+window.deleteFeedbackItem = async (id) => {
+  if (!confirm('確定要刪除這則留言嗎？')) return;
+  try {
+    await deleteDoc(doc(db, 'feedback', id));
+    allFeedback = allFeedback.filter(f => f.id !== id);
+    updateFeedbackPendingCount();
+    renderFeedback();
+  } catch(e) {
+    alert('刪除失敗：' + e.message);
+  }
+};
 
 async function loadDashboard() {
   try {
