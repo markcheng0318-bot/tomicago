@@ -55,11 +55,17 @@ function callClaudeWithSearch(prompt) {
   });
 }
 
+// 官網常會提前公布未來月份的新品（例如6月底就會放8月的資訊），
+// 所以查詢範圍除了當月，還要往後看2個月；往前留1個月當安全網，
+// 避免某次執行失敗或官網資料晚公布而漏掉。
+const MONTH_OFFSET_START = -1; // 上個月
+const MONTH_OFFSET_END = 2;    // 未來2個月
+
 function getMonthInfo() {
   const now = new Date();
   const months = [];
-  for (let i = 0; i < 3; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+  for (let i = MONTH_OFFSET_START; i <= MONTH_OFFSET_END; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
     const yy = String(d.getFullYear()).slice(2);
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     months.push({
