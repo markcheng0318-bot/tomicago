@@ -72,13 +72,50 @@ function getMonthInfo() {
   return months;
 }
 
+async function loadExistingItems(outputPath) {
+  try {
+    const mod = await import('file://' + outputPath + '?t=' + Date.now());
+    const items = [];
+    await mod.default(
+      { method: 'GET' },
+      {
+        setHeader() {},
+        status() { return this; },
+        json(payload) { items.push(...(payload.items || [])); }
+      }
+    );
+    return items;
+  } catch (e) {
+    console.error('讀取現有 api/news.js 失敗，視為沒有舊資料:', e.message);
+    return [];
+  }
+}
+
+// 同一筆新聞的識別 key：同一天期＋同一標題視為同一筆（新抓到的內容會覆蓋舊的，
+// 用來修正之前抓錯的描述或圖片，同時不會產生重複項目）
+function itemKey(item) {
+  return `${item.date}|${item.title}`;
+}
+
+function mergeItems(existing, fresh) {
+  const map = new Map();
+  for (const item of existing) map.set(itemKey(item), item);
+  for (const item of fresh) map.set(itemKey(item), item);
+  // 依日期新到舊排序（YYYY.MM 字串格式，字典序排序即為時間序）
+  return [...map.values()].sort((a, b) => b.date.localeCompare(a.date));
+}
+
 async function main() {
-  console.log('TomicaGo 新聞更新開始（v2）...');
+  console.log('TomicaGo 新聞更新開始（v3，累積合併模式）...');
 
   if (!ANTHROPIC_API_KEY) {
     console.error('缺少 ANTHROPIC_API_KEY');
     process.exit(1);
   }
+
+  const outputPath = path.join(__dirname, '..', 'api', 'news.js');
+  const existingItems = await loadExistingItems(outputPath);
+  console.log('現有資料筆數:', existingItems.length);
 
   const months = getMonthInfo();
   console.log('查詢月份:', months.map(m => m.label).join(', '));
@@ -96,7 +133,7 @@ ${months.map(m => `- ${m.label}: ${m.url}`).join('\n')}
 規則：每月最多10筆。Disney/動漫聯名→tag用聯名。限定款→tag用限定。一般新車→tag用新品。圖片網址不確定就用null。只輸出JSON不要markdown。`;
 
   console.log('呼叫 Claude 搜尋...');
-  let allItems = [];
+  let freshItems = [];
 
   try {
     const response = await callClaudeWithSearch(prompt);
@@ -105,8 +142,8 @@ ${months.map(m => `- ${m.label}: ${m.url}`).join('\n')}
     const jsonMatch = response.match(/\{[\s\S]*"items"[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      allItems = parsed.items || [];
-      console.log('成功解析', allItems.length, '筆資料');
+      freshItems = parsed.items || [];
+      console.log('成功解析', freshItems.length, '筆資料');
     } else {
       console.error('找不到 JSON，回傳內容前500字：');
       console.error(response.slice(0, 500));
@@ -115,10 +152,13 @@ ${months.map(m => `- ${m.label}: ${m.url}`).join('\n')}
     console.error('執行失敗:', e.message);
   }
 
-  if (allItems.length === 0) {
-    console.error('沒有抓到資料，保留現有 news.js');
+  if (freshItems.length === 0) {
+    console.error('沒有抓到新資料，保留現有 news.js');
     process.exit(0);
   }
+
+  const allItems = mergeItems(existingItems, freshItems);
+  console.log(`合併後共 ${allItems.length} 筆（原有 ${existingItems.length} 筆 + 新抓 ${freshItems.length} 筆，含更新/去重）`);
 
   const output = `export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -131,7 +171,6 @@ ${months.map(m => `- ${m.label}: ${m.url}`).join('\n')}
 }
 `;
 
-  const outputPath = path.join(__dirname, '..', 'api', 'news.js');
   fs.writeFileSync(outputPath, output, 'utf8');
   console.log('已更新 api/news.js，完成！');
 }
