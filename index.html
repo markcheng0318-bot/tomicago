@@ -1689,6 +1689,53 @@
   </div>
 </div>
 
+<!-- NEWS DETAIL MODAL -->
+<div class="detail-modal" id="news-detail-modal">
+  <div class="detail-img" id="news-detail-img-area">
+    <span id="news-detail-img-placeholder" style="font-size:72px">🚗</span>
+    <img id="news-detail-img" src="" alt="" style="display:none">
+    <button class="detail-back" onclick="closeNewsDetail()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </button>
+  </div>
+  <div class="detail-content">
+    <div class="detail-header">
+      <div id="news-detail-tag" class="detail-number" style="display:none"></div>
+      <div class="detail-name" id="news-detail-title"></div>
+      <div class="detail-year" id="news-detail-date"></div>
+    </div>
+    <div id="news-detail-desc" style="font-size:14px;color:var(--text2);line-height:1.6;margin-top:12px"></div>
+    <div id="news-detail-series" style="font-size:12px;color:var(--text3);margin-top:8px"></div>
+    <div style="margin-top:12px">
+      <a href="#" id="news-official-link" target="_blank" rel="noopener" style="font-size:13px;color:var(--text2);text-decoration:underline">查看官網原文 →</a>
+    </div>
+
+    <div style="display:flex;gap:8px;padding:14px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-top:16px">
+      <button class="btn-detail" id="news-like-btn" onclick="toggleNewsReaction('like')" style="display:flex;align-items:center;justify-content:center;gap:6px">
+        <span>❤️</span><span id="news-like-count">0</span>
+      </button>
+      <button class="btn-detail" id="news-dislike-btn" onclick="toggleNewsReaction('dislike')" style="display:flex;align-items:center;justify-content:center;gap:6px">
+        <span>👎</span><span id="news-dislike-count">0</span>
+      </button>
+      <button class="btn-detail" onclick="shareNewsItem()" style="display:flex;align-items:center;justify-content:center;gap:6px">
+        <span>🔗</span><span>分享</span>
+      </button>
+    </div>
+
+    <div style="margin-top:20px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px">💬 留言 <span id="news-comment-count" style="color:var(--text3);font-weight:400">(0)</span></div>
+      <div id="news-comment-input-wrap" style="display:flex;gap:8px;margin-bottom:16px">
+        <input class="form-input" type="text" id="news-comment-text" placeholder="說點什麼..." style="flex:1" onkeydown="if(event.key==='Enter')submitNewsComment()">
+        <button class="icon-btn" onclick="submitNewsComment()" style="flex-shrink:0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+      <div id="news-comment-login-hint" style="display:none;font-size:12px;color:var(--text3);margin-bottom:16px;text-align:center;padding:12px;background:var(--bg3);border-radius:8px">登入後即可留言</div>
+      <div id="news-comment-list"></div>
+    </div>
+  </div>
+</div>
+
 <!-- RENAME MODAL -->
 <div class="modal-overlay" id="rename-modal" onclick="if(event.target===this)closeRenameModal()">
   <div style="width:100%;max-width:480px;padding:0 16px;position:absolute;top:50%;transform:translateY(-50%)">
@@ -1872,7 +1919,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut as fbSignOut }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, collectionGroup, doc, addDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, getDoc, setDoc }
+import { getFirestore, collection, collectionGroup, doc, addDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit, onSnapshot, getDoc, setDoc, increment }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
@@ -2638,14 +2685,213 @@ window.submitCar = async () => {
 let allNewsItems = [];
 let newsMonthFilter = 'all';
 let newsTagFilter = 'all';
+let renderedNewsItems = [];
 
-window.openNewsLink = (date) => {
+function buildNewsOfficialUrl(date) {
   // date 格式：2026.07 或 2026.07.23
   const parts = date.split('.');
   const year = parts[0].slice(2); // 取後兩碼
   const month = parts[1].padStart(2, '0');
-  const url = `https://www.takaratomy.co.jp/products/tomica/new/${year}${month}.htm`;
-  window.open(url, '_blank');
+  return `https://www.takaratomy.co.jp/products/tomica/new/${year}${month}.htm`;
+}
+
+window.openNewsLink = (date) => {
+  window.open(buildNewsOfficialUrl(date), '_blank');
+};
+
+// ── 最新資訊：讚 / 倒讚 / 留言 / 分享 ──
+// 用內容 hash 當作穩定 ID，這樣即使新聞資料每個月被自動更新覆蓋，
+// 只要標題和日期沒變，讚數與留言就不會跟著不見
+function hashNewsId(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  return 'n' + (h >>> 0).toString(36);
+}
+
+let currentNewsItem = null;
+let currentNewsId = null;
+let currentNewsReaction = null; // 'like' | 'dislike' | null
+let newsEngagementUnsub = null;
+let newsCommentsUnsub = null;
+
+window.openNewsDetail = async (index) => {
+  const n = renderedNewsItems[index];
+  if (!n) return;
+  currentNewsItem = n;
+  currentNewsId = hashNewsId(`${n.date}|${n.title}`);
+  currentNewsReaction = null;
+
+  document.getElementById('news-detail-title').textContent = n.title;
+  document.getElementById('news-detail-date').textContent = n.date;
+  document.getElementById('news-detail-desc').textContent = n.desc || '';
+  document.getElementById('news-detail-series').textContent = n.series ? `📦 ${n.series}` : '';
+  document.getElementById('news-official-link').href = buildNewsOfficialUrl(n.date);
+
+  const tagEl = document.getElementById('news-detail-tag');
+  tagEl.textContent = n.tag;
+  tagEl.style.display = 'inline-block';
+
+  const img = document.getElementById('news-detail-img');
+  const placeholder = document.getElementById('news-detail-img-placeholder');
+  if (n.image) {
+    img.src = `/api/img?url=${encodeURIComponent(n.image)}`;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    placeholder.style.display = 'flex';
+  }
+
+  document.getElementById('news-comment-input-wrap').style.display = currentUser ? 'flex' : 'none';
+  document.getElementById('news-comment-login-hint').style.display = currentUser ? 'none' : 'block';
+  document.getElementById('news-comment-text').value = '';
+
+  const modal = document.getElementById('news-detail-modal');
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('open'));
+
+  subscribeNewsEngagement();
+  updateNewsReactionButtons();
+
+  if (currentUser) {
+    try {
+      const reactionSnap = await getDoc(doc(db, 'newsEngagement', currentNewsId, 'reactions', currentUser.uid));
+      currentNewsReaction = reactionSnap.exists() ? reactionSnap.data().type : null;
+      updateNewsReactionButtons();
+    } catch(e) {}
+  }
+};
+
+window.closeNewsDetail = () => {
+  const modal = document.getElementById('news-detail-modal');
+  modal.classList.remove('open');
+  setTimeout(() => { modal.style.display = 'none'; }, 350);
+  if (newsEngagementUnsub) { newsEngagementUnsub(); newsEngagementUnsub = null; }
+  if (newsCommentsUnsub) { newsCommentsUnsub(); newsCommentsUnsub = null; }
+};
+
+function subscribeNewsEngagement() {
+  if (newsEngagementUnsub) newsEngagementUnsub();
+  if (newsCommentsUnsub) newsCommentsUnsub();
+
+  newsEngagementUnsub = onSnapshot(doc(db, 'newsEngagement', currentNewsId), snap => {
+    const data = snap.data() || {};
+    document.getElementById('news-like-count').textContent = data.likes || 0;
+    document.getElementById('news-dislike-count').textContent = data.dislikes || 0;
+    document.getElementById('news-comment-count').textContent = `(${data.commentCount || 0})`;
+  });
+
+  const q = query(collection(db, 'newsEngagement', currentNewsId, 'comments'), orderBy('createdAt', 'desc'), limit(50));
+  newsCommentsUnsub = onSnapshot(q, snap => {
+    renderNewsComments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  });
+}
+
+function renderNewsComments(comments) {
+  const wrap = document.getElementById('news-comment-list');
+  if (comments.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">還沒有留言，來當第一個吧！</div>`;
+    return;
+  }
+  wrap.innerHTML = comments.map(c => `
+    <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--bg3);overflow:hidden;flex-shrink:0">
+        ${c.userPhoto ? `<img src="${c.userPhoto}" style="width:100%;height:100%;object-fit:cover">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px">👤</div>'}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div style="font-size:12px;font-weight:600;color:var(--text)">${c.userName || '匿名'}</div>
+          ${currentUser && currentUser.uid === c.userId ? `<button onclick="deleteNewsComment('${c.id}')" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;flex-shrink:0">刪除</button>` : ''}
+        </div>
+        <div style="font-size:13px;color:var(--text2);margin-top:2px;line-height:1.5;white-space:pre-wrap;word-break:break-word">${c.text}</div>
+      </div>
+    </div>`).join('');
+}
+
+function updateNewsReactionButtons() {
+  const likeBtn = document.getElementById('news-like-btn');
+  const dislikeBtn = document.getElementById('news-dislike-btn');
+  likeBtn.style.background = currentNewsReaction === 'like' ? 'var(--red)' : '';
+  likeBtn.style.color = currentNewsReaction === 'like' ? 'white' : '';
+  likeBtn.style.borderColor = currentNewsReaction === 'like' ? 'var(--red)' : '';
+  dislikeBtn.style.background = currentNewsReaction === 'dislike' ? 'var(--bg3)' : '';
+  dislikeBtn.style.color = currentNewsReaction === 'dislike' ? 'var(--text)' : '';
+  dislikeBtn.style.borderColor = currentNewsReaction === 'dislike' ? 'var(--text3)' : '';
+}
+
+window.toggleNewsReaction = async (type) => {
+  if (!currentUser) { showToast('請先登入'); return; }
+  const reactionRef = doc(db, 'newsEngagement', currentNewsId, 'reactions', currentUser.uid);
+  const parentRef = doc(db, 'newsEngagement', currentNewsId);
+  const prev = currentNewsReaction;
+  const field = type === 'like' ? 'likes' : 'dislikes';
+  const otherField = type === 'like' ? 'dislikes' : 'likes';
+
+  try {
+    if (prev === type) {
+      await deleteDoc(reactionRef);
+      await setDoc(parentRef, { [field]: increment(-1) }, { merge: true });
+      currentNewsReaction = null;
+    } else {
+      await setDoc(reactionRef, { type, updatedAt: Date.now() });
+      const updates = { [field]: increment(1) };
+      if (prev) updates[otherField] = increment(-1);
+      await setDoc(parentRef, updates, { merge: true });
+      currentNewsReaction = type;
+    }
+    updateNewsReactionButtons();
+  } catch(e) {
+    showToast('操作失敗：' + e.message);
+  }
+};
+
+window.submitNewsComment = async () => {
+  if (!currentUser) { showToast('請先登入'); return; }
+  const input = document.getElementById('news-comment-text');
+  const text = input.value.trim();
+  if (!text) return;
+
+  try {
+    await addDoc(collection(db, 'newsEngagement', currentNewsId, 'comments'), {
+      userId: currentUser.uid,
+      userName: currentUser.displayName || '匿名使用者',
+      userPhoto: currentUser.photoURL || '',
+      text,
+      createdAt: Date.now()
+    });
+    await setDoc(doc(db, 'newsEngagement', currentNewsId), { commentCount: increment(1) }, { merge: true });
+    input.value = '';
+  } catch(e) {
+    showToast('留言失敗：' + e.message);
+  }
+};
+
+window.deleteNewsComment = async (commentId) => {
+  if (!confirm('確定要刪除這則留言嗎？')) return;
+  try {
+    await deleteDoc(doc(db, 'newsEngagement', currentNewsId, 'comments', commentId));
+    await setDoc(doc(db, 'newsEngagement', currentNewsId), { commentCount: increment(-1) }, { merge: true });
+  } catch(e) {
+    showToast('刪除失敗：' + e.message);
+  }
+};
+
+window.shareNewsItem = async () => {
+  const n = currentNewsItem;
+  if (!n) return;
+  const url = buildNewsOfficialUrl(n.date);
+  const shareData = { title: `TomicaGo - ${n.title}`, text: n.desc || n.title, url };
+
+  if (navigator.share) {
+    try { await navigator.share(shareData); } catch(e) {}
+  } else {
+    try {
+      await navigator.clipboard.writeText(`${n.title}\n${url}`);
+      showToast('✅ 連結已複製');
+    } catch(e) {
+      showToast('分享失敗');
+    }
+  }
 };
 
 // 月份篩選晶片依實際抓到的新聞資料動態產生，不寫死月份，
@@ -2687,6 +2933,7 @@ window.filterNews = () => {
 
 function renderNewsList(items) {
   const list = document.getElementById('news-list');
+  renderedNewsItems = items || [];
   if (!items || items.length === 0) {
     list.innerHTML = `<div class="empty-state"><div class="empty-icon">📰</div><div class="empty-title">找不到相關資訊</div></div>`;
     return;
@@ -2700,8 +2947,8 @@ function renderNewsList(items) {
 
   list.innerHTML = `
     <div style="font-size:11px;color:var(--text3);text-align:right;padding:4px 20px 0">🔄 ${updatedStr} · 共${items.length}筆</div>
-    ${items.map(n => `
-      <div class="news-card" onclick="openNewsLink('${n.date}')" style="cursor:pointer">
+    ${items.map((n, i) => `
+      <div class="news-card" onclick="openNewsDetail(${i})" style="cursor:pointer">
         <div class="news-card-img" style="${n.image ? '' : 'font-size:48px'}" data-icon="${tagIcons[n.tag]||'🚗'}">
           ${n.image
             ? `<img src="/api/img?url=${encodeURIComponent(n.image)}" alt="${n.title}" style="width:100%;height:100%;object-fit:cover" onerror="var p=this.parentElement;if(p){p.innerHTML='<span style=\\'font-size:48px\\'>'+(p.dataset.icon||'🚗')+'</span>';}">`
