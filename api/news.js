@@ -165,6 +165,22 @@ export default async function handler(req, res) {
   },
   {
     "tag": "新品",
+    "title": "トミカプレミアムｕｎｌｉｍｉｔｅｄ 爆走兄弟レッツ＆ゴー!! ミニ四駆 プロトセイバーエボリューション",
+    "desc": "ローラー回転。1,430円。",
+    "date": "2026.09",
+    "series": "トミカプレミアムｕｎｌｉｍｉｔｅｄ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tpu_letsgo_mini4_pse_01.webp"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカプレミアムｕｎｌｉｍｉｔｅｄ 爆走兄弟レッツ＆ゴー!! ミニ四駆 スピンコブラ",
+    "desc": "トミカプレミアムｕｎｌｉｍｉｔｅｄに 爆走兄弟レッツ＆ゴー!! ミニ四駆 スピンコブラ が登場！。1,430円。",
+    "date": "2026.09",
+    "series": "トミカプレミアムｕｎｌｉｍｉｔｅｄ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tpu_letsgo_mini4_spincobra_01.webp"
+  },
+  {
+    "tag": "新品",
     "title": "ｔｏｍｉｃａトランスポーター グッドスマイル 初音ミク AMG 2024 Ver.",
     "desc": "トミカプレミアムRacingを積載できる「tomicaトランスポーター」が登場！ オリジナルトランスポーターにトミカプレ。3,300円。",
     "date": "2026.09",
@@ -1014,5 +1030,5 @@ export default async function handler(req, res) {
 ];
 
   res.setHeader('Cache-Control', 's-maxage=86400');
-  return res.status(200).json({ items: allItems, updatedAt: 1785218631320 });
+  return res.status(200).json({ items: allItems, updatedAt: 1785614706081 });
 }
