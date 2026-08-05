@@ -1826,7 +1826,7 @@
         </div>
         <div class="plan-option-desc">收藏上限 3,000 台 · 照片上傳 · 雲端同步備份 · 優先取得新功能</div>
       </div>
-      <div class="plan-note">付款功能即將開通，敬請期待<br>目前所有用戶享有免費 80 台體驗</div>
+      <div class="plan-note">點選方案後會跳轉到綠界金流付款頁<br>付款完成後方案會自動生效（可能需要幾分鐘）</div>
       <button class="btn-submit" style="margin-top:12px" onclick="closePlanModal()">暫時不用</button>
     </div>
   </div>
@@ -3749,9 +3749,35 @@ window.saveDisplayName = async () => {
 // ── PLAN MODAL ──
 window.showPlanModal = () => document.getElementById('plan-modal').classList.add('open');
 window.closePlanModal = () => document.getElementById('plan-modal').classList.remove('open');
-window.initiateUpgrade = (plan) => {
-  closePlanModal();
-  showToast('付款功能即將開通，敬請期待！');
+window.initiateUpgrade = async (plan) => {
+  if (!currentUser) { showToast('請先登入'); return; }
+
+  try {
+    const res = await fetch('/api/checkout-create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: currentUser.uid, plan })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '建立訂單失敗');
+
+    closePlanModal();
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = data.actionUrl;
+    Object.entries(data.params).forEach(([key, value]) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+  } catch(e) {
+    showToast('建立訂單失敗：' + e.message);
+  }
 };
 
 // ── 改版專區 ──
@@ -3956,10 +3982,23 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// 從綠界付款頁導回來時提示一下（實際方案是否生效仍以 Server 端付款通知為準，
+// 這裡的網址參數只是使用者體驗用，不能拿來當作付款成功的依據）
+function checkCheckoutReturn() {
+  const params = new URLSearchParams(location.search);
+  if (params.get('checkout') === 'done') {
+    showToast('付款處理中，方案生效可能需要幾分鐘，請稍後再確認');
+    params.delete('checkout');
+    const qs = params.toString();
+    history.replaceState({}, '', location.pathname + (qs ? `?${qs}` : ''));
+  }
+}
+
 // hide loading after fonts
 window.addEventListener('load', () => {
   detectBrowser();
   updateInstallUI();
+  checkCheckoutReturn();
   if (isIOSDevice()) setTimeout(maybeShowInstallPrompt, 2000);
   setTimeout(() => {
     document.getElementById('loading').style.display = 'none';
