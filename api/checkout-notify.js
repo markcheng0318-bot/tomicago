@@ -1,12 +1,4 @@
-import admin from 'firebase-admin';
-import { generateCheckMacValue, getEcpayConfig } from './_ecpay.js';
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
-  });
-}
-const db = admin.firestore();
+import { generateCheckMacValue, getEcpayConfig, getFirestoreDb } from './_ecpay.js';
 
 // 綠界的付款結果通知（Server 對 Server），一定要驗證 CheckMacValue，
 // 否則任何人都能直接對這支 API POST 假的「付款成功」訊息來偷升級方案。
@@ -14,6 +6,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('0|MethodNotAllowed');
 
   try {
+    const db = getFirestoreDb();
     const data = req.body || {};
     const { hashKey, hashIV } = getEcpayConfig();
 

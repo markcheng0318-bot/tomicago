@@ -1,4 +1,24 @@
 import crypto from 'crypto';
+import admin from 'firebase-admin';
+
+// 延遲初始化 Firebase Admin，缺環境變數時丟出清楚的錯誤訊息，
+// 而不是讓整支 function 在 module 載入階段就直接當機（Vercel 的通用
+// 錯誤頁完全看不出問題在哪）。
+export function getFirestoreDb() {
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+    throw new Error('尚未設定 FIREBASE_SERVICE_ACCOUNT 環境變數');
+  }
+  if (!admin.apps.length) {
+    let serviceAccount;
+    try {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } catch (e) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT 環境變數不是合法的 JSON');
+    }
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+  }
+  return admin.firestore();
+}
 
 // 綠界官方公開的測試環境介接資訊（非機密，僅供開發測試用）
 // 正式環境請在 Vercel 環境變數設定 ECPAY_MERCHANT_ID / ECPAY_HASH_KEY / ECPAY_HASH_IV / ECPAY_ACTION_URL

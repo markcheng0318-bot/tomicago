@@ -1,12 +1,4 @@
-import admin from 'firebase-admin';
-import { generateCheckMacValue, getEcpayConfig, PLAN_PRICES } from './_ecpay.js';
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
-  });
-}
-const db = admin.firestore();
+import { generateCheckMacValue, getEcpayConfig, getFirestoreDb, PLAN_PRICES } from './_ecpay.js';
 
 function pad(n) { return String(n).padStart(2, '0'); }
 
@@ -30,6 +22,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: '缺少必要參數' });
     }
 
+    const db = getFirestoreDb();
     const merchantTradeNo = generateTradeNo();
     const { merchantId, hashKey, hashIV, actionUrl } = getEcpayConfig();
     const origin = `https://${req.headers.host}`;
