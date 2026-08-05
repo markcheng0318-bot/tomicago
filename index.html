@@ -906,8 +906,34 @@
   .settings-text { flex: 1; }
   .settings-label { font-size: 14px; font-weight: 500; color: var(--text); }
   .settings-desc { font-size: 11px; color: var(--text3); margin-top: 2px; }
-  .settings-arrow { color: var(--text3); }
+  .settings-arrow { color: var(--text3); transition: transform 0.2s; }
   .settings-arrow svg { width: 16px; height: 16px; }
+
+  /* 設定頁分類收合 */
+  .settings-subitems {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 6px 0 0 18px;
+    padding-left: 12px;
+    border-left: 2px solid var(--border);
+  }
+
+  .settings-subitem {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .settings-subitem:active { background: var(--bg3); }
+  .settings-subitem .settings-icon { width: 30px; height: 30px; font-size: 15px; }
+  .settings-subitem .settings-label { font-size: 13px; }
 
   /* PLAN CARD */
   .plan-card {
@@ -1518,102 +1544,130 @@
       </div>
 
       <div class="settings-list">
-        <div class="settings-section-label">收藏統計</div>
-        <div class="settings-item" onclick="toggleStatsPanel()">
+
+        <!-- 我的收藏 -->
+        <div class="settings-item" onclick="toggleSettingsCategory('cat-collection')">
           <div class="settings-icon">📊</div>
           <div class="settings-text">
-            <div class="settings-label">詳細統計分析</div>
-            <div class="settings-desc">圓餅圖、排行、趨勢</div>
+            <div class="settings-label">我的收藏</div>
+            <div class="settings-desc">統計分析、匯出 PDF</div>
           </div>
-          <div class="settings-arrow" id="stats-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+          <div class="settings-arrow settings-category-arrow" id="cat-collection-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
         </div>
-        <div id="stats-panel" style="display:none;padding:0 16px 8px"></div>
+        <div class="settings-subitems" id="cat-collection-panel" style="display:none">
+          <div class="settings-subitem" onclick="toggleStatsPanel()">
+            <div class="settings-icon">📈</div>
+            <div class="settings-text">
+              <div class="settings-label">詳細統計分析</div>
+              <div class="settings-desc">圓餅圖、排行、趨勢</div>
+            </div>
+            <div class="settings-arrow" id="stats-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+          </div>
+          <div id="stats-panel" style="display:none;padding:0 2px 8px"></div>
 
-        <div class="settings-item" onclick="exportToPDF()">
-          <div class="settings-icon">📄</div>
+          <div class="settings-subitem" onclick="exportToPDF()">
+            <div class="settings-icon">📄</div>
+            <div class="settings-text">
+              <div class="settings-label">匯出收藏清單 PDF</div>
+              <div class="settings-desc">下載完整收藏資料</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 外觀與應用程式 -->
+        <div class="settings-item" onclick="toggleSettingsCategory('cat-app')">
+          <div class="settings-icon">🎨</div>
           <div class="settings-text">
-            <div class="settings-label">匯出收藏清單 PDF</div>
-            <div class="settings-desc">下載完整收藏資料</div>
+            <div class="settings-label">外觀與應用程式</div>
+            <div class="settings-desc">主題、安裝、分享 App</div>
           </div>
-          <div class="settings-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+          <div class="settings-arrow settings-category-arrow" id="cat-app-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+        </div>
+        <div class="settings-subitems" id="cat-app-panel" style="display:none">
+          <div class="settings-subitem" onclick="toggleTheme()">
+            <div class="settings-icon">🌙</div>
+            <div class="settings-text">
+              <div class="settings-label">深色 / 淺色模式</div>
+              <div class="settings-desc" id="theme-desc">目前：深色模式</div>
+            </div>
+          </div>
+
+          <div class="settings-subitem" id="install-item" style="display:none" onclick="installApp()">
+            <div class="settings-icon">📲</div>
+            <div class="settings-text">
+              <div class="settings-label">加入主畫面</div>
+              <div class="settings-desc" id="install-desc">像 App 一樣從主畫面直接開啟</div>
+            </div>
+          </div>
+
+          <div class="settings-subitem" onclick="shareApp()">
+            <div class="settings-icon">🔗</div>
+            <div class="settings-text">
+              <div class="settings-label">分享 TomicaGo 給朋友</div>
+              <div class="settings-desc">推薦這個 App 給同好</div>
+            </div>
+          </div>
         </div>
 
-        <div class="settings-section-label">外觀</div>
-        <div class="settings-item" onclick="toggleTheme()">
-          <div class="settings-icon">🌙</div>
+        <!-- 帳號 -->
+        <div class="settings-item" onclick="toggleSettingsCategory('cat-account')">
+          <div class="settings-icon">👤</div>
           <div class="settings-text">
-            <div class="settings-label">深色 / 淺色模式</div>
-            <div class="settings-desc" id="theme-desc">目前：深色模式</div>
+            <div class="settings-label">帳號</div>
+            <div class="settings-desc">顯示名稱、登出</div>
           </div>
-          <div class="settings-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+          <div class="settings-arrow settings-category-arrow" id="cat-account-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
         </div>
-
-        <div class="settings-section-label" id="install-section-label" style="display:none">App</div>
-        <div class="settings-item" id="install-item" style="display:none" onclick="installApp()">
-          <div class="settings-icon">📲</div>
-          <div class="settings-text">
-            <div class="settings-label">加入主畫面</div>
-            <div class="settings-desc" id="install-desc">像 App 一樣從主畫面直接開啟</div>
+        <div class="settings-subitems" id="cat-account-panel" style="display:none">
+          <div class="settings-subitem" onclick="openRenameModal()">
+            <div class="settings-icon">✏️</div>
+            <div class="settings-text">
+              <div class="settings-label">修改顯示名稱</div>
+              <div class="settings-desc" id="settings-display-name">載入中...</div>
+            </div>
           </div>
-          <div class="settings-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
-        </div>
-
-        <div class="settings-section-label">帳號</div>
-
-        <div class="settings-item" onclick="openRenameModal()">
-          <div class="settings-icon">✏️</div>
-          <div class="settings-text">
-            <div class="settings-label">修改顯示名稱</div>
-            <div class="settings-desc" id="settings-display-name">載入中...</div>
-          </div>
-          <div class="settings-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
-        </div>
-
-        <div class="settings-section-label">進階</div>
-        <div class="settings-item" onclick="toggleDangerZone()">
-          <div class="settings-icon">⚙️</div>
-          <div class="settings-text">
-            <div class="settings-label">進階設定</div>
-            <div class="settings-desc">帳號管理等選項</div>
-          </div>
-          <div class="settings-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
-        </div>
-
-        <div id="danger-zone" style="display:none">
-          <div class="settings-item" onclick="signOut()" style="margin-top:8px">
+          <div class="settings-subitem" onclick="signOut()">
             <div class="settings-icon">🚪</div>
             <div class="settings-text">
               <div class="settings-label" style="color:#ef4444">登出</div>
               <div class="settings-desc">登出目前帳號</div>
             </div>
-            <div class="settings-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
           </div>
         </div>
 
-        <div class="settings-section-label">關於</div>
-        <div class="settings-item" onclick="openChangelogModal()">
-          <div class="settings-icon">📋</div>
+        <!-- 關於與支援 -->
+        <div class="settings-item" onclick="toggleSettingsCategory('cat-about')">
+          <div class="settings-icon">ℹ️</div>
           <div class="settings-text">
-            <div class="settings-label">改版專區</div>
-            <div class="settings-desc">看看每個版本改了什麼</div>
+            <div class="settings-label">關於與支援</div>
+            <div class="settings-desc">改版專區、意見回饋</div>
           </div>
-          <div class="settings-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+          <div class="settings-arrow settings-category-arrow" id="cat-about-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
         </div>
-        <div class="settings-item" onclick="openFeedbackModal()">
-          <div class="settings-icon">💬</div>
-          <div class="settings-text">
-            <div class="settings-label">意見回饋</div>
-            <div class="settings-desc">提改善建議或回報問題</div>
+        <div class="settings-subitems" id="cat-about-panel" style="display:none">
+          <div class="settings-subitem" onclick="openChangelogModal()">
+            <div class="settings-icon">📋</div>
+            <div class="settings-text">
+              <div class="settings-label">改版專區</div>
+              <div class="settings-desc">看看每個版本改了什麼</div>
+            </div>
           </div>
-          <div class="settings-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
-        </div>
-        <div class="settings-item">
-          <div class="settings-icon">🏎️</div>
-          <div class="settings-text">
-            <div class="settings-label">TomicaGo</div>
-            <div class="settings-desc" id="app-version-desc">版本 · tomicago.com</div>
+          <div class="settings-subitem" onclick="openFeedbackModal()">
+            <div class="settings-icon">💬</div>
+            <div class="settings-text">
+              <div class="settings-label">意見回饋</div>
+              <div class="settings-desc">提改善建議或回報問題</div>
+            </div>
+          </div>
+          <div class="settings-subitem" style="cursor:default">
+            <div class="settings-icon">🏎️</div>
+            <div class="settings-text">
+              <div class="settings-label">TomicaGo</div>
+              <div class="settings-desc" id="app-version-desc">版本 · tomicago.com</div>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
 
@@ -2172,8 +2226,8 @@ function resetUserState() {
   document.getElementById('user-avatar-img').style.display = 'none';
   document.getElementById('user-avatar-img').src = '';
   document.getElementById('user-avatar-fallback').style.display = 'flex';
-  document.getElementById('danger-zone').style.display = 'none';
-  dangerZoneOpen = false;
+  document.querySelectorAll('.settings-subitems').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.settings-category-arrow').forEach(a => a.style.transform = '');
 
   renderGarage();
   updateStats();
@@ -3612,6 +3666,42 @@ window.goTo = (screen) => {
   if (screen === 'garage' && advFilterOpen) populateFilterOptions();
 };
 
+// ── 設定頁分類收合（手風琴，一次只展開一個大項）──
+window.toggleSettingsCategory = (id) => {
+  const panel = document.getElementById(`${id}-panel`);
+  const arrow = document.getElementById(`${id}-arrow`);
+  if (!panel || !arrow) return;
+  const isOpen = panel.style.display === 'block';
+
+  document.querySelectorAll('.settings-subitems').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.settings-category-arrow').forEach(a => a.style.transform = '');
+
+  if (!isOpen) {
+    panel.style.display = 'block';
+    arrow.style.transform = 'rotate(90deg)';
+  }
+};
+
+// ── 分享 App ──
+window.shareApp = async () => {
+  const shareData = {
+    title: 'TomicaGo - 你的 Tomica 收藏管家',
+    text: '我在用 TomicaGo 管理我的 Tomica 收藏，一起來玩吧！',
+    url: 'https://tomicago.com'
+  };
+
+  if (navigator.share) {
+    try { await navigator.share(shareData); } catch(e) {}
+  } else {
+    try {
+      await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
+      showToast('✅ 連結已複製，貼給朋友吧！');
+    } catch(e) {
+      showToast('分享失敗');
+    }
+  }
+};
+
 // ── THEME ──
 const savedTheme = localStorage.getItem('tg-theme') || 'dark';
 document.documentElement.setAttribute('data-theme', savedTheme);
@@ -3654,13 +3744,6 @@ window.saveDisplayName = async () => {
   } catch(e) {
     showToast('更新失敗：' + e.message);
   }
-};
-
-// ── 進階設定（藏登出）──
-let dangerZoneOpen = false;
-window.toggleDangerZone = () => {
-  dangerZoneOpen = !dangerZoneOpen;
-  document.getElementById('danger-zone').style.display = dangerZoneOpen ? 'block' : 'none';
 };
 
 // ── PLAN MODAL ──
@@ -3786,17 +3869,14 @@ const isStandalone = () => window.matchMedia('(display-mode: standalone)').match
 const isIOSDevice = () => /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
 
 function updateInstallUI() {
-  const label = document.getElementById('install-section-label');
   const item = document.getElementById('install-item');
   const desc = document.getElementById('install-desc');
-  if (!label || !item || !desc) return;
+  if (!item || !desc) return;
 
   if (isStandalone() || (!deferredInstallPrompt && !isIOSDevice())) {
-    label.style.display = 'none';
     item.style.display = 'none';
     return;
   }
-  label.style.display = 'block';
   item.style.display = 'flex';
   desc.textContent = isIOSDevice() ? '點擊查看安裝步驟' : '像 App 一樣從主畫面直接開啟';
 }
