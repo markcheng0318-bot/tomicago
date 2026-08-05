@@ -2099,6 +2099,7 @@ onAuthStateChanged(auth, async user => {
     currentUser = null;
     // 訪客模式：導覽設定按鈕改為登入
     document.getElementById('nav-settings-label').textContent = '登入';
+    resetUserState();
   }
 
   // 資訊頁所有人都載入
@@ -2108,10 +2109,12 @@ onAuthStateChanged(auth, async user => {
 
 // ── USER PLAN（即時監聽）──
 let currentUserPlan = 'free';
+let userPlanUnsub = null;
 
 function loadUserPlan() {
+  if (userPlanUnsub) userPlanUnsub();
   const userRef = doc(db, 'users', currentUser.uid);
-  onSnapshot(userRef, snap => {
+  userPlanUnsub = onSnapshot(userRef, snap => {
     if (snap.exists()) {
       currentUserPlan = snap.data().plan || 'free';
       const name = snap.data().displayName || currentUser.displayName || '使用者';
@@ -2123,14 +2126,47 @@ function loadUserPlan() {
 }
 
 // ── LOAD CARS ──
+let carsUnsub = null;
+
 function loadCars() {
+  if (carsUnsub) carsUnsub();
   const q = query(collection(db, 'users', currentUser.uid, 'cars'), orderBy('addedAt', 'desc'));
-  onSnapshot(q, snap => {
+  carsUnsub = onSnapshot(q, snap => {
     cars = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderGarage();
     updateStats();
     updatePlanCard();
   });
+}
+
+// 登出或訪客狀態時，把上一個使用者殘留的監聽器、資料、畫面內容清乾淨
+function resetUserState() {
+  if (carsUnsub) { carsUnsub(); carsUnsub = null; }
+  if (userPlanUnsub) { userPlanUnsub(); userPlanUnsub = null; }
+
+  cars = [];
+  currentUserPlan = 'free';
+  selectedCars.clear();
+  multiSelectMode = false;
+
+  document.getElementById('settings-user-name').textContent = '載入中...';
+  document.getElementById('settings-user-email').textContent = '';
+  document.getElementById('settings-display-name').textContent = '載入中...';
+  document.getElementById('user-avatar-img').style.display = 'none';
+  document.getElementById('user-avatar-img').src = '';
+  document.getElementById('user-avatar-fallback').style.display = 'flex';
+  document.getElementById('danger-zone').style.display = 'none';
+  dangerZoneOpen = false;
+
+  renderGarage();
+  updateStats();
+  updatePlanCard();
+
+  // 如果登出當下停在需要登入的畫面，導回資訊頁
+  const activeId = document.querySelector('.screen.active')?.id;
+  if (['screen-garage', 'screen-upload', 'screen-settings'].includes(activeId)) {
+    goTo('news');
+  }
 }
 
 // ── RENDER GARAGE ──
