@@ -1820,6 +1820,23 @@
   </div>
 </div>
 
+<!-- INSTALL PROMPT MODAL -->
+<div class="modal-overlay" id="install-prompt-modal">
+  <div style="width:100%;max-width:480px;padding:0 0 var(--safe-bottom,0) 0;position:absolute;bottom:0">
+    <div class="plan-modal" style="text-align:center">
+      <div style="font-size:40px;margin-bottom:8px">📲</div>
+      <div class="plan-modal-title" style="margin-bottom:8px">加入主畫面</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px">把 TomicaGo 加到手機主畫面，開啟更快，用起來就像 App 一樣</div>
+      <div id="install-prompt-ios-steps" style="display:none;text-align:left;background:var(--bg3);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--text2);line-height:2">
+        1️⃣ 點瀏覽器工具列的「分享」圖示 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg><br>
+        2️⃣ 往下找到「加入主畫面」並點選
+      </div>
+      <button class="btn-submit" onclick="acceptInstallPrompt()" id="install-prompt-accept-btn">加入主畫面</button>
+      <button onclick="dismissInstallPrompt()" style="background:none;border:none;color:var(--text3);font-size:13px;margin-top:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">先不要</button>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT CAR MODAL -->
 <div class="detail-modal" id="edit-modal">
   <div class="page-header" style="position:sticky;top:0;z-index:10">
@@ -2722,6 +2739,8 @@ let allNewsItems = [];
 let newsMonthFilter = 'all';
 let newsTagFilter = 'all';
 let renderedNewsItems = [];
+let newsEngagementCache = {}; // nid -> { likes, dislikes, commentCount }
+let newsReactionCache = {};   // nid -> 'like' | 'dislike' | null（僅登入時有意義）
 
 function buildNewsOfficialUrl(date) {
   // date 格式：2026.07 或 2026.07.23
@@ -2750,12 +2769,12 @@ let currentNewsReaction = null; // 'like' | 'dislike' | null
 let newsEngagementUnsub = null;
 let newsCommentsUnsub = null;
 
-window.openNewsDetail = async (index) => {
+window.openNewsDetail = async (index, focusComments) => {
   const n = renderedNewsItems[index];
   if (!n) return;
   currentNewsItem = n;
   currentNewsId = hashNewsId(`${n.date}|${n.title}`);
-  currentNewsReaction = null;
+  currentNewsReaction = currentUser ? (newsReactionCache[currentNewsId] ?? null) : null;
 
   document.getElementById('news-detail-title').textContent = n.title;
   document.getElementById('news-detail-date').textContent = n.date;
@@ -2789,10 +2808,18 @@ window.openNewsDetail = async (index) => {
   subscribeNewsEngagement();
   updateNewsReactionButtons();
 
-  if (currentUser) {
+  if (focusComments) {
+    setTimeout(() => {
+      document.getElementById('news-comment-count')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (currentUser) document.getElementById('news-comment-text')?.focus();
+    }, 400);
+  }
+
+  if (currentUser && !(currentNewsId in newsReactionCache)) {
     try {
       const reactionSnap = await getDoc(doc(db, 'newsEngagement', currentNewsId, 'reactions', currentUser.uid));
       currentNewsReaction = reactionSnap.exists() ? reactionSnap.data().type : null;
+      newsReactionCache[currentNewsId] = currentNewsReaction;
       updateNewsReactionButtons();
     } catch(e) {}
   }
@@ -2815,6 +2842,8 @@ function subscribeNewsEngagement() {
     document.getElementById('news-like-count').textContent = data.likes || 0;
     document.getElementById('news-dislike-count').textContent = data.dislikes || 0;
     document.getElementById('news-comment-count').textContent = `(${data.commentCount || 0})`;
+    newsEngagementCache[currentNewsId] = data;
+    updateNewsListCardUI(currentNewsId);
   });
 
   const q = query(collection(db, 'newsEngagement', currentNewsId, 'comments'), orderBy('createdAt', 'desc'), limit(50));
@@ -2855,31 +2884,100 @@ function updateNewsReactionButtons() {
   dislikeBtn.style.borderColor = currentNewsReaction === 'dislike' ? 'var(--text3)' : '';
 }
 
-window.toggleNewsReaction = async (type) => {
-  if (!currentUser) { showToast('請先登入'); return; }
-  const reactionRef = doc(db, 'newsEngagement', currentNewsId, 'reactions', currentUser.uid);
-  const parentRef = doc(db, 'newsEngagement', currentNewsId);
-  const prev = currentNewsReaction;
+// 讚／倒讚的核心邏輯，詳細頁跟列表卡片共用
+async function applyNewsReaction(nid, type, prev) {
+  const reactionRef = doc(db, 'newsEngagement', nid, 'reactions', currentUser.uid);
+  const parentRef = doc(db, 'newsEngagement', nid);
   const field = type === 'like' ? 'likes' : 'dislikes';
   const otherField = type === 'like' ? 'dislikes' : 'likes';
 
+  if (prev === type) {
+    await deleteDoc(reactionRef);
+    await setDoc(parentRef, { [field]: increment(-1) }, { merge: true });
+    return null;
+  }
+  await setDoc(reactionRef, { type, updatedAt: Date.now() });
+  const updates = { [field]: increment(1) };
+  if (prev) updates[otherField] = increment(-1);
+  await setDoc(parentRef, updates, { merge: true });
+  return type;
+}
+
+window.toggleNewsReaction = async (type) => {
+  if (!currentUser) { showToast('請先登入'); return; }
   try {
-    if (prev === type) {
-      await deleteDoc(reactionRef);
-      await setDoc(parentRef, { [field]: increment(-1) }, { merge: true });
-      currentNewsReaction = null;
-    } else {
-      await setDoc(reactionRef, { type, updatedAt: Date.now() });
-      const updates = { [field]: increment(1) };
-      if (prev) updates[otherField] = increment(-1);
-      await setDoc(parentRef, updates, { merge: true });
-      currentNewsReaction = type;
-    }
+    currentNewsReaction = await applyNewsReaction(currentNewsId, type, currentNewsReaction);
+    newsReactionCache[currentNewsId] = currentNewsReaction;
     updateNewsReactionButtons();
   } catch(e) {
     showToast('操作失敗：' + e.message);
   }
 };
+
+// 列表卡片上的快速按讚（不用點進詳細頁）
+window.quickToggleNewsLike = async (evt, index) => {
+  evt.stopPropagation();
+  if (!currentUser) { showToast('請先登入'); return; }
+  const n = renderedNewsItems[index];
+  if (!n) return;
+  const nid = hashNewsId(`${n.date}|${n.title}`);
+  const prev = newsReactionCache[nid] ?? null;
+
+  try {
+    const next = await applyNewsReaction(nid, 'like', prev);
+    newsReactionCache[nid] = next;
+
+    const agg = newsEngagementCache[nid] || { likes: 0, dislikes: 0, commentCount: 0 };
+    if (prev === 'like' && next === null) agg.likes = Math.max(0, (agg.likes || 0) - 1);
+    else if (prev !== 'like' && next === 'like') {
+      agg.likes = (agg.likes || 0) + 1;
+      if (prev === 'dislike') agg.dislikes = Math.max(0, (agg.dislikes || 0) - 1);
+    }
+    newsEngagementCache[nid] = agg;
+    updateNewsListCardUI(nid);
+
+    if (currentNewsId === nid) { currentNewsReaction = next; updateNewsReactionButtons(); }
+  } catch(e) {
+    showToast('操作失敗：' + e.message);
+  }
+};
+
+// 依 nid 更新目前列表裡對應卡片的讚數／留言數／按鈕狀態
+function updateNewsListCardUI(nid) {
+  const agg = newsEngagementCache[nid] || {};
+  const reaction = newsReactionCache[nid];
+  renderedNewsItems.forEach((n, i) => {
+    if (hashNewsId(`${n.date}|${n.title}`) !== nid) return;
+    const likeCountEl = document.getElementById(`news-card-like-count-${i}`);
+    const commentCountEl = document.getElementById(`news-card-comment-count-${i}`);
+    const likeBtn = document.getElementById(`news-card-like-btn-${i}`);
+    if (likeCountEl) likeCountEl.textContent = agg.likes || 0;
+    if (commentCountEl) commentCountEl.textContent = agg.commentCount || 0;
+    if (likeBtn) {
+      likeBtn.style.color = reaction === 'like' ? 'var(--red)' : '';
+    }
+  });
+}
+
+// 進入最新資訊列表時，非同步把每篇的讚數／留言數（跟自己是否按過讚）補上去，
+// 不會擋住列表本身先顯示出來
+function loadNewsEngagementForList(items) {
+  items.forEach((n, i) => {
+    const nid = hashNewsId(`${n.date}|${n.title}`);
+    if (nid in newsEngagementCache) { updateNewsListCardUI(nid); return; }
+
+    (async () => {
+      try {
+        const tasks = [getDoc(doc(db, 'newsEngagement', nid))];
+        if (currentUser) tasks.push(getDoc(doc(db, 'newsEngagement', nid, 'reactions', currentUser.uid)));
+        const [aggSnap, reactionSnap] = await Promise.all(tasks);
+        newsEngagementCache[nid] = aggSnap.data() || { likes: 0, dislikes: 0, commentCount: 0 };
+        if (reactionSnap) newsReactionCache[nid] = reactionSnap.exists() ? reactionSnap.data().type : null;
+        updateNewsListCardUI(nid);
+      } catch(e) {}
+    })();
+  });
+}
 
 window.submitNewsComment = async () => {
   if (!currentUser) { showToast('請先登入'); return; }
@@ -2998,8 +3096,18 @@ function renderNewsList(items) {
           <div class="news-title">${n.title}</div>
           ${n.desc ? `<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5">${n.desc}</div>` : ''}
           ${n.series ? `<div style="font-size:11px;color:var(--text3);margin-top:6px">📦 ${n.series}</div>` : ''}
+          <div style="display:flex;align-items:center;gap:16px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)" onclick="event.stopPropagation()">
+            <button id="news-card-like-btn-${i}" onclick="quickToggleNewsLike(event, ${i})" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;padding:2px">
+              <span>❤️</span><span id="news-card-like-count-${i}">-</span>
+            </button>
+            <button onclick="openNewsDetail(${i}, true)" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;padding:2px">
+              <span>💬</span><span id="news-card-comment-count-${i}">-</span>
+            </button>
+          </div>
         </div>
       </div>`).join('')}`;
+
+  loadNewsEngagementForList(items);
 }
 
 async function renderNews() {
@@ -3697,6 +3805,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredInstallPrompt = e;
   updateInstallUI();
+  setTimeout(maybeShowInstallPrompt, 2000);
 });
 
 window.installApp = async () => {
@@ -3718,8 +3827,48 @@ window.installApp = async () => {
 window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
   updateInstallUI();
+  localStorage.setItem(INSTALL_PROMPT_DISMISS_KEY, String(Date.now() + 1000 * 60 * 60 * 24 * 365));
   showToast('✅ TomicaGo 已加入主畫面！');
 });
+
+// ── 主動偵測是否已加入主畫面，沒有的話跳出提示 ──
+const INSTALL_PROMPT_DISMISS_KEY = 'tg-install-prompt-dismissed-until';
+
+function maybeShowInstallPrompt() {
+  if (isStandalone()) return; // 已經是安裝版，不用問
+  if (!deferredInstallPrompt && !isIOSDevice()) return; // 這個瀏覽器不支援安裝，問了也沒用
+  if (document.getElementById('install-prompt-modal').classList.contains('open')) return;
+
+  const dismissedUntil = Number(localStorage.getItem(INSTALL_PROMPT_DISMISS_KEY) || 0);
+  if (Date.now() < dismissedUntil) return;
+
+  const iosManual = isIOSDevice() && !deferredInstallPrompt;
+  document.getElementById('install-prompt-ios-steps').style.display = iosManual ? 'block' : 'none';
+  document.getElementById('install-prompt-accept-btn').textContent = iosManual ? '我知道了' : '加入主畫面';
+  document.getElementById('install-prompt-modal').classList.add('open');
+}
+
+window.acceptInstallPrompt = async () => {
+  document.getElementById('install-prompt-modal').classList.remove('open');
+
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    updateInstallUI();
+    if (outcome === 'accepted') {
+      showToast('✅ 已加入主畫面');
+      return; // appinstalled 事件會處理長期不再提示
+    }
+  }
+  // iOS 手動步驟看完，或使用者在安裝提示跳出前按了取消：先不要一直煩他們
+  localStorage.setItem(INSTALL_PROMPT_DISMISS_KEY, String(Date.now() + 1000 * 60 * 60 * 24 * 14));
+};
+
+window.dismissInstallPrompt = () => {
+  document.getElementById('install-prompt-modal').classList.remove('open');
+  localStorage.setItem(INSTALL_PROMPT_DISMISS_KEY, String(Date.now() + 1000 * 60 * 60 * 24 * 7));
+};
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -3731,6 +3880,7 @@ if ('serviceWorker' in navigator) {
 window.addEventListener('load', () => {
   detectBrowser();
   updateInstallUI();
+  if (isIOSDevice()) setTimeout(maybeShowInstallPrompt, 2000);
   setTimeout(() => {
     document.getElementById('loading').style.display = 'none';
   }, 800);
