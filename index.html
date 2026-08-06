@@ -4061,6 +4061,13 @@ async function enableNewsNotifications() {
     });
     localStorage.setItem('tg-notify-enabled', '1');
     updateNotifyUI();
+
+    // 發一則測試推播，讓使用者馬上看到系統通知確認真的有訂閱成功
+    fetch('/api/send-test-notification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    }).catch(() => {});
     showToast('🔔 新品通知已開啟');
   } catch (e) {
     showToast('開啟失敗：' + e.message);
