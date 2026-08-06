@@ -340,6 +340,14 @@ export default async function handler(req, res) {
     "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_so_tomiplashop_01.webp"
   },
   {
+    "tag": "限定",
+    "title": "寿司トミカ リラックマ",
+    "desc": "トミカが本格的な寿司になった「寿司トミカ」シリーズにリラックマが登場！。1,320円。",
+    "date": "2026.08",
+    "series": "販売店オリジナルトミカ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_so_kiddyland_01.webp"
+  },
+  {
     "tag": "新品",
     "title": "No.24 キャンピングカー",
     "desc": "ドア開閉/サイドタープ設営、収納/自転車積み下ろし。594円。",
@@ -1030,5 +1038,5 @@ export default async function handler(req, res) {
 ];
 
   res.setHeader('Cache-Control', 's-maxage=86400');
-  return res.status(200).json({ items: allItems, updatedAt: 1785614706081 });
+  return res.status(200).json({ items: allItems, updatedAt: 1786014360276 });
 }
