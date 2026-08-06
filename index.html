@@ -1592,6 +1592,14 @@
             </div>
           </div>
 
+          <div class="settings-subitem" id="notify-item" onclick="toggleNewsNotifications()">
+            <div class="settings-icon">🔔</div>
+            <div class="settings-text">
+              <div class="settings-label">新品通知</div>
+              <div class="settings-desc" id="notify-desc">開啟後有新品上架會通知你</div>
+            </div>
+          </div>
+
           <div class="settings-subitem" id="install-item" style="display:none" onclick="installApp()">
             <div class="settings-icon">📲</div>
             <div class="settings-text">
@@ -1994,6 +2002,8 @@ import { getFirestore, collection, collectionGroup, doc, addDoc, getDocs, update
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+import { getMessaging, getToken, deleteToken, onMessage, isSupported as isMessagingSupported }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js';
 
 // ── FIREBASE CONFIG ──
 const firebaseConfig = {
@@ -2011,6 +2021,10 @@ const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 const storage = getStorage(fbApp);
 const provider = new GoogleAuthProvider();
+
+// VAPID 公開金鑰用來申請推播訂閱，是設計成公開使用的（不是機密），
+// 要去 Firebase Console → 專案設定 → Cloud Messaging → 產生 Web Push 憑證 取得
+const FCM_VAPID_KEY = 'REPLACE_WITH_YOUR_VAPID_KEY';
 
 // ── STATE ──
 let currentUser = null;
@@ -3987,6 +4001,86 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   });
+}
+
+// ── 新品通知（Firebase Cloud Messaging）──
+let messaging = null;
+let messagingReady = false;
+
+(async () => {
+  try {
+    if (!(await isMessagingSupported())) return;
+    messaging = getMessaging(fbApp);
+    messagingReady = true;
+    onMessage(messaging, payload => {
+      const { title, body } = payload.notification || {};
+      showToast(`🔔 ${title || '新品通知'}：${body || ''}`);
+    });
+  } catch (e) {} finally {
+    updateNotifyUI();
+  }
+})();
+
+function updateNotifyUI() {
+  const desc = document.getElementById('notify-desc');
+  if (!desc) return;
+  if (!messagingReady) { desc.textContent = '此瀏覽器不支援推播通知'; return; }
+  if (Notification.permission === 'denied') { desc.textContent = '已被瀏覽器封鎖，請至瀏覽器設定開啟'; return; }
+  desc.textContent = (Notification.permission === 'granted' && localStorage.getItem('tg-notify-enabled') === '1')
+    ? '✅ 已開啟，有新品會通知你'
+    : '開啟後有新品上架會通知你';
+}
+
+window.toggleNewsNotifications = async () => {
+  if (!currentUser) { showToast('請先登入'); return; }
+  if (!messagingReady) { showToast('此瀏覽器不支援推播通知'); return; }
+
+  const enabled = localStorage.getItem('tg-notify-enabled') === '1';
+  if (enabled) {
+    await disableNewsNotifications();
+  } else {
+    await enableNewsNotifications();
+  }
+};
+
+async function enableNewsNotifications() {
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      showToast('沒有允許通知權限，無法開啟');
+      updateNotifyUI();
+      return;
+    }
+    const registration = await navigator.serviceWorker.ready;
+    const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration });
+    if (!token) { showToast('無法取得推播權杖'); return; }
+
+    await setDoc(doc(db, 'users', currentUser.uid, 'pushTokens', token), {
+      createdAt: Date.now(),
+      userAgent: navigator.userAgent.slice(0, 200),
+    });
+    localStorage.setItem('tg-notify-enabled', '1');
+    updateNotifyUI();
+    showToast('🔔 新品通知已開啟');
+  } catch (e) {
+    showToast('開啟失敗：' + e.message);
+  }
+}
+
+async function disableNewsNotifications() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration }).catch(() => null);
+    if (token) {
+      await deleteDoc(doc(db, 'users', currentUser.uid, 'pushTokens', token)).catch(() => {});
+    }
+    await deleteToken(messaging).catch(() => {});
+    localStorage.removeItem('tg-notify-enabled');
+    updateNotifyUI();
+    showToast('已關閉新品通知');
+  } catch (e) {
+    showToast('關閉失敗：' + e.message);
+  }
 }
 
 // 從綠界付款頁導回來時提示一下（實際方案是否生效仍以 Server 端付款通知為準，

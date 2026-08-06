@@ -1,4 +1,5 @@
-import { generateCheckMacValue, getEcpayConfig, getFirestoreDb } from './_ecpay.js';
+import { generateCheckMacValue, getEcpayConfig } from './_ecpay.js';
+import { getFirestoreDb } from './_firebase.js';
 
 // 綠界的付款結果通知（Server 對 Server），一定要驗證 CheckMacValue，
 // 否則任何人都能直接對這支 API POST 假的「付款成功」訊息來偷升級方案。

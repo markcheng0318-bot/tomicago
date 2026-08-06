@@ -1,4 +1,5 @@
-import { generateCheckMacValue, getEcpayConfig, getFirestoreDb, PLAN_PRICES } from './_ecpay.js';
+import { generateCheckMacValue, getEcpayConfig, PLAN_PRICES } from './_ecpay.js';
+import { getFirestoreDb } from './_firebase.js';
 
 function pad(n) { return String(n).padStart(2, '0'); }
 

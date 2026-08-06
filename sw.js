@@ -1,4 +1,4 @@
-const CACHE = 'tomicago-v28';
+const CACHE = 'tomicago-v29';
 const ASSETS = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -36,5 +36,42 @@ self.addEventListener('fetch', e => {
 
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
+  );
+});
+
+// ── 推播通知（Firebase Cloud Messaging，App 沒開著時靠這段跳系統通知）──
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey: "AIzaSyCuumH2zglw5Oxqz4bGOx9hOYOmyOopibE",
+  authDomain: "tomicago-8e407.firebaseapp.com",
+  projectId: "tomicago-8e407",
+  storageBucket: "tomicago-8e407.firebasestorage.app",
+  messagingSenderId: "728603126879",
+  appId: "1:728603126879:web:5c3e171a4e68b5bdffbfea",
+});
+
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage(payload => {
+  const { title, body } = payload.notification || {};
+  self.registration.showNotification(title || 'TomicaGo', {
+    body: body || '',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    data: payload.data || {},
+  });
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = e.notification.data?.url || '/';
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then(clientsArr => {
+      const existing = clientsArr.find(c => c.url.includes(self.location.origin));
+      if (existing) return existing.focus();
+      return self.clients.openWindow(url);
+    })
   );
 });

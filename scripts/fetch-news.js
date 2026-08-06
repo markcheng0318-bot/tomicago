@@ -144,6 +144,51 @@ async function loadExistingItems(outputPath) {
   }
 }
 
+function itemKey(item) { return `${item.date}|${item.title}`; }
+
+// 找出「這次抓到、但之前完全沒有」的項目，用來決定要不要發推播通知
+// （避免價格/描述被修正這種小更新也跳通知，只通知真正的新品）
+function findNewItems(existing, freshByMonth) {
+  const existingKeys = new Set(existing.map(itemKey));
+  const fresh = [...freshByMonth.values()].flat();
+  return fresh.filter(item => !existingKeys.has(itemKey(item)));
+}
+
+function notifyNewItems(items) {
+  return new Promise((resolve) => {
+    const secret = process.env.NOTIFY_SECRET;
+    if (!secret) {
+      console.log('沒有設定 NOTIFY_SECRET，略過推播通知');
+      resolve();
+      return;
+    }
+
+    const body = JSON.stringify({ items: items.map(i => ({ title: i.title, tag: i.tag, date: i.date })) });
+    const options = {
+      hostname: 'tomicago.com',
+      path: '/api/notify-news',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-notify-secret': secret,
+        'Content-Length': Buffer.byteLength(body),
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        console.log(`推播通知結果（HTTP ${res.statusCode}）:`, data);
+        resolve();
+      });
+    });
+    req.on('error', (e) => { console.error('推播通知失敗:', e.message); resolve(); });
+    req.write(body);
+    req.end();
+  });
+}
+
 // 合併策略：以「月份」為單位整批取代——這次有實際抓到資料的月份，
 // 用新抓到的內容整批換掉該月份的舊資料（避免新舊資料標題格式不一致時
 // 誤判成兩筆不同新聞而重複顯示）；沒抓到資料的月份（可能該月頁面尚未
@@ -180,6 +225,9 @@ async function main() {
   const freshCount = [...freshByMonth.values()].reduce((s, arr) => s + arr.length, 0);
   console.log(`合併後共 ${allItems.length} 筆（更新了 ${freshByMonth.size} 個月份，共 ${freshCount} 筆新資料）`);
 
+  const newItems = findNewItems(existingItems, freshByMonth);
+  console.log(`其中 ${newItems.length} 筆是全新項目（其餘是既有項目的內容更新）`);
+
   const output = `export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -193,6 +241,10 @@ async function main() {
 
   fs.writeFileSync(outputPath, output, 'utf8');
   console.log('已更新 api/news.js，完成！');
+
+  if (newItems.length > 0) {
+    await notifyNewItems(newItems);
+  }
 }
 
 main().catch(err => {
