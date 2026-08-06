@@ -2186,13 +2186,20 @@ function loadUserPlan() {
   if (userPlanUnsub) userPlanUnsub();
   const userRef = doc(db, 'users', currentUser.uid);
   userPlanUnsub = onSnapshot(userRef, snap => {
-    if (snap.exists()) {
-      currentUserPlan = snap.data().plan || 'free';
-      const name = snap.data().displayName || currentUser.displayName || '使用者';
-      document.getElementById('settings-user-name').textContent = name;
-      document.getElementById('settings-display-name').textContent = name;
-      updatePlanCard();
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    // 升級方案有效期限過了就自動打回免費版，不然付一次錢就變成終身升級
+    if (data.planExpiry && data.planExpiry < Date.now() && data.plan !== 'free') {
+      updateDoc(userRef, { plan: 'free', planExpiry: null }).catch(() => {});
+      return; // 這次快照先不渲染，等上面寫入觸發下一次快照再用最新資料顯示
     }
+
+    currentUserPlan = data.plan || 'free';
+    const name = data.displayName || currentUser.displayName || '使用者';
+    document.getElementById('settings-user-name').textContent = name;
+    document.getElementById('settings-display-name').textContent = name;
+    updatePlanCard();
   });
 }
 
