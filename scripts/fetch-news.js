@@ -165,7 +165,7 @@ function notifyNewItems(items) {
 
     const body = JSON.stringify({ items: items.map(i => ({ title: i.title, tag: i.tag, date: i.date })) });
     const options = {
-      hostname: 'tomicago.com',
+      hostname: 'www.tomicago.com',
       path: '/api/notify-news',
       method: 'POST',
       headers: {
