@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       token,
       notification: {
         title: 'TomicaGo',
-        body: '🔔 新品通知已開啟，有新車上架就會第一時間通知你！',
+        body: '🔔 新品通知已開啟',
       },
       data: { url: '/' },
     });
