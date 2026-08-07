@@ -49,3 +49,6 @@ export const PLAN_PRICES = {
   standard: { amount: 300, label: 'TomicaGo 標準版年費訂閱', limitDays: 365 },
   pro: { amount: 500, label: 'TomicaGo 進階版年費訂閱', limitDays: 365 },
 };
+
+// 方案等級，用來判斷「使用者是不是想花錢買一個已經擁有、或更低階的方案」
+export const PLAN_TIER = { free: 0, standard: 1, pro: 2 };

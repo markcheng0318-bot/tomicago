@@ -1851,17 +1851,18 @@
   <div style="width:100%;max-width:480px;padding:0 0 var(--safe-bottom,0) 0;position:absolute;bottom:0">
     <div class="plan-modal">
       <div class="plan-modal-title">升級方案</div>
-      <div class="plan-option" onclick="initiateUpgrade('standard')">
+      <div id="plan-modal-current-status" style="display:none;font-size:12px;color:var(--gold);margin:-8px 0 16px"></div>
+      <div class="plan-option" id="plan-option-standard">
         <div class="plan-option-header">
           <div class="plan-option-name">🥈 標準版</div>
-          <div class="plan-option-price">NT$300 / 年</div>
+          <div class="plan-option-price" data-original-price="NT$300 / 年">NT$300 / 年</div>
         </div>
         <div class="plan-option-desc">收藏上限 800 台 · 照片上傳 · 雲端同步備份</div>
       </div>
-      <div class="plan-option" onclick="initiateUpgrade('pro')">
+      <div class="plan-option" id="plan-option-pro">
         <div class="plan-option-header">
           <div class="plan-option-name">🥇 進階版</div>
-          <div class="plan-option-price">NT$500 / 年</div>
+          <div class="plan-option-price" data-original-price="NT$500 / 年">NT$500 / 年</div>
         </div>
         <div class="plan-option-desc">收藏上限 3,000 台 · 照片上傳 · 雲端同步備份 · 優先取得新功能</div>
       </div>
@@ -2241,7 +2242,10 @@ onAuthStateChanged(auth, async user => {
 
 // ── USER PLAN（即時監聽）──
 let currentUserPlan = 'free';
+let currentUserPlanExpiry = null;
 let userPlanUnsub = null;
+const PLAN_TIER = { free: 0, standard: 1, pro: 2 };
+const PLAN_LABELS = { free: '免費方案', standard: '標準版', pro: '進階版' };
 
 function loadUserPlan() {
   if (userPlanUnsub) userPlanUnsub();
@@ -2257,6 +2261,7 @@ function loadUserPlan() {
     }
 
     currentUserPlan = data.plan || 'free';
+    currentUserPlanExpiry = data.planExpiry || null;
     const name = data.displayName || currentUser.displayName || '使用者';
     document.getElementById('settings-user-name').textContent = name;
     document.getElementById('settings-display-name').textContent = name;
@@ -2285,6 +2290,7 @@ function resetUserState() {
 
   cars = [];
   currentUserPlan = 'free';
+  currentUserPlanExpiry = null;
   selectedCars.clear();
   multiSelectMode = false;
 
@@ -3832,10 +3838,52 @@ window.saveDisplayName = async () => {
 };
 
 // ── PLAN MODAL ──
-window.showPlanModal = () => document.getElementById('plan-modal').classList.add('open');
+// 已經擁有的方案（或更高階的）不能再顯示成可購買，不然使用者會誤按
+// 重複付款，或花錢「升級」到比目前還低階的方案
+function updatePlanModalOptions() {
+  const tier = PLAN_TIER[currentUserPlan] ?? 0;
+  const statusEl = document.getElementById('plan-modal-current-status');
+
+  if (tier > 0) {
+    const expiryStr = currentUserPlanExpiry
+      ? new Date(currentUserPlanExpiry).toLocaleDateString('zh-TW')
+      : '';
+    statusEl.textContent = `目前方案：${PLAN_LABELS[currentUserPlan]}${expiryStr ? '，到期日 ' + expiryStr : ''}`;
+    statusEl.style.display = 'block';
+  } else {
+    statusEl.style.display = 'none';
+  }
+
+  ['standard', 'pro'].forEach(plan => {
+    const el = document.getElementById(`plan-option-${plan}`);
+    const priceEl = el.querySelector('.plan-option-price');
+    const alreadyOwned = tier >= PLAN_TIER[plan];
+
+    if (alreadyOwned) {
+      el.onclick = null;
+      el.style.opacity = '0.45';
+      el.style.cursor = 'default';
+      priceEl.textContent = '✓ 目前方案';
+    } else {
+      el.onclick = () => initiateUpgrade(plan);
+      el.style.opacity = '1';
+      el.style.cursor = 'pointer';
+      priceEl.textContent = priceEl.dataset.originalPrice;
+    }
+  });
+}
+
+window.showPlanModal = () => {
+  updatePlanModalOptions();
+  document.getElementById('plan-modal').classList.add('open');
+};
 window.closePlanModal = () => document.getElementById('plan-modal').classList.remove('open');
 window.initiateUpgrade = async (plan) => {
   if (!currentUser) { showToast('請先登入'); return; }
+  if ((PLAN_TIER[currentUserPlan] ?? 0) >= PLAN_TIER[plan]) {
+    showToast('你已經擁有這個方案（或更高階的方案）了');
+    return;
+  }
 
   try {
     const res = await fetch('/api/checkout-create', {

@@ -1,4 +1,4 @@
-import { generateCheckMacValue, getEcpayConfig, PLAN_PRICES } from './_ecpay.js';
+import { generateCheckMacValue, getEcpayConfig, PLAN_PRICES, PLAN_TIER } from './_ecpay.js';
 import { getFirestoreDb } from './_firebase.js';
 
 function pad(n) { return String(n).padStart(2, '0'); }
@@ -24,6 +24,15 @@ export default async function handler(req, res) {
     }
 
     const db = getFirestoreDb();
+
+    // 已經擁有這個方案（或更高階的）就不能再花錢買一次，避免使用者
+    // 誤觸或被繞過前端的按鈕限制而重複付款/買到更低階的方案
+    const userSnap = await db.collection('users').doc(uid).get();
+    const currentPlan = userSnap.exists ? (userSnap.data().plan || 'free') : 'free';
+    if ((PLAN_TIER[currentPlan] ?? 0) >= PLAN_TIER[plan]) {
+      return res.status(400).json({ error: '你已經擁有這個方案（或更高階的方案）了' });
+    }
+
     const merchantTradeNo = generateTradeNo();
     const { merchantId, hashKey, hashIV, actionUrl } = getEcpayConfig();
     const origin = `https://${req.headers.host}`;
