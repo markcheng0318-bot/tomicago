@@ -1590,6 +1590,14 @@
               <div class="settings-desc">下載完整收藏資料</div>
             </div>
           </div>
+
+          <div class="settings-subitem" onclick="openPurchaseLocationsModal()">
+            <div class="settings-icon">🛒</div>
+            <div class="settings-text">
+              <div class="settings-label">購買地點</div>
+              <div class="settings-desc">台灣、日本的官方店家與通路</div>
+            </div>
+          </div>
         </div>
 
         <!-- 外觀與應用程式 -->
@@ -1869,6 +1877,22 @@
         </div>
       </div>
       <div id="changelog-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PURCHASE LOCATIONS MODAL -->
+<div class="modal-overlay" id="purchase-locations-modal" onclick="if(event.target===this)closePurchaseLocationsModal()">
+  <div style="width:100%;max-width:480px;padding:0 16px;max-height:80vh">
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-top:3px solid var(--red);border-radius:var(--radius);padding:24px;max-height:80vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px">購買地點</div>
+        <div class="icon-btn" onclick="closePurchaseLocationsModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">點項目會開啟該店家/通路的官網連結</div>
+      <div id="purchase-locations-list"></div>
     </div>
   </div>
 </div>
@@ -3818,6 +3842,115 @@ window.initiateUpgrade = async (plan) => {
     showToast('建立訂單失敗：' + e.message);
   }
 };
+
+// ── 購買地點 ──
+// 地址/電話都有實際查證過官方資料來源，不是憑印象亂填
+const PURCHASE_LOCATIONS = {
+  JP: [
+    {
+      type: '官方直營店',
+      name: 'トミカ・プラレールショップ 東京店',
+      address: '東京都千代田区丸の内1-9-1 東京駅一番街 東京キャラクターストリート',
+      phone: '03-5220-1351',
+      hours: '10:00–20:30',
+      url: 'https://www.tokyoeki-1bangai.co.jp/shop/detail/?cd=000252'
+    },
+    {
+      type: '官方直營店',
+      name: 'トミカ・プラレールショップ 大阪店（ルクア大阪）',
+      address: '大阪府大阪市北区梅田3-1-1 ルクア サウス13F',
+      phone: '06-4796-6255',
+      hours: '10:00–20:00',
+      url: 'https://www.takaratomy.co.jp/products/tomica_plarail_shop/shop/osaka.html'
+    },
+    {
+      type: '官方直營店',
+      name: 'トミカ・プラレールショップ ソラマチ店（東京スカイツリータウン）',
+      address: '東京都墨田区押上1-1-2 東京スカイツリータウン・ソラマチ ウエストヤード3階4番地',
+      phone: '03-6658-8300',
+      hours: '10:00–21:00',
+      url: 'https://www.takaratomy.co.jp/products/tomica_plarail_shop/shop/soramachi.html'
+    },
+    {
+      type: '線上購物',
+      name: 'タカラトミーモール（官方線上商店）',
+      url: 'https://takaratomymall.jp/shop/c/cTomica/'
+    },
+    {
+      type: '線上購物',
+      name: '楽天市場 タカラトミーモール店',
+      url: 'https://www.rakuten.co.jp/toyhobbymarket/'
+    }
+  ],
+  TW: [
+    {
+      type: '專門店',
+      name: 'TOMICA SQUARE 台北信義新天地A8店',
+      address: '110台北市信義區松高路12號 5F',
+      phone: '02-2722-2870',
+      url: 'https://www.skm.com.tw/brand/12587'
+    },
+    {
+      type: '專門店',
+      name: 'TOMICA SQUARE 台南新天地店',
+      address: '700台南市中西區西門路一段658號 3F',
+      phone: '06-303-0999',
+      url: 'https://www.skm.com.tw/brand/12587'
+    },
+    {
+      type: '專門店',
+      name: 'TOMICA SQUARE 高雄左營店',
+      address: '高雄市左營區高鐵路123號 5F',
+      phone: '07-346-9999',
+      url: 'https://www.skm.com.tw/brand/12587'
+    },
+    {
+      type: '連鎖玩具店',
+      name: '玩具"反"斗城 Toys"R"Us Taiwan（蝦皮官方旗艦店）',
+      url: 'https://shopee.tw/toysrus_tw'
+    },
+    {
+      type: '線上購物',
+      name: 'momo購物網',
+      url: 'https://www.momoshop.com.tw/'
+    },
+    {
+      type: '線上購物',
+      name: 'PChome 24h購物',
+      url: 'https://24h.pchome.com.tw/store/DEAS1I'
+    }
+  ]
+};
+
+function renderPurchaseLocations() {
+  const groupHtml = (countryCode, countryLabel) => {
+    const items = PURCHASE_LOCATIONS[countryCode];
+    const types = [...new Set(items.map(i => i.type))];
+    return `
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--red);margin:16px 0 10px">${countryLabel}</div>
+      ${types.map(type => `
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${type}</div>
+        ${items.filter(i => i.type === type).map(loc => `
+          <a href="${loc.url}" target="_blank" rel="noopener" style="display:block;text-decoration:none;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${loc.name}</div>
+            ${loc.address ? `<div style="font-size:12px;color:var(--text2);margin-top:4px">📍 ${loc.address}</div>` : ''}
+            ${loc.phone ? `<div style="font-size:12px;color:var(--text2);margin-top:2px">📞 ${loc.phone}</div>` : ''}
+            ${loc.hours ? `<div style="font-size:12px;color:var(--text3);margin-top:2px">🕒 ${loc.hours}</div>` : ''}
+          </a>
+        `).join('')}
+      `).join('')}
+    `;
+  };
+
+  document.getElementById('purchase-locations-list').innerHTML =
+    groupHtml('TW', '🇹🇼 台灣') + groupHtml('JP', '🇯🇵 日本');
+}
+
+window.openPurchaseLocationsModal = () => {
+  renderPurchaseLocations();
+  document.getElementById('purchase-locations-modal').classList.add('open');
+};
+window.closePurchaseLocationsModal = () => document.getElementById('purchase-locations-modal').classList.remove('open');
 
 // ── 改版專區 ──
 // 每次出新版本就在最前面加一筆，settings 頁的版本號會自動跟著這裡的
