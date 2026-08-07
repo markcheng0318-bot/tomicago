@@ -5,11 +5,84 @@ export default async function handler(req, res) {
   const allItems = [
   {
     "tag": "新品",
+    "title": "No.30 三菱 デリカミニ",
+    "desc": "サスペンション。594円。",
+    "date": "2026.10",
+    "series": "トミカシリーズ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_030_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810092445/"
+  },
+  {
+    "tag": "新品",
+    "title": "No.34 F80",
+    "desc": "サスペンション。594円。",
+    "date": "2026.10",
+    "series": "トミカシリーズ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_034_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810950936/"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカスポーツカースペシャルセレクション2",
+    "desc": "＜セット内容＞【アクション】。2,420円。",
+    "date": "2026.10",
+    "series": "ギフトセット",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_gift_sportscar_selection2_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810078005/"
+  },
+  {
+    "tag": "聯名",
+    "title": "TOMICA TUNES SINGLE PACKS We Love Pompompurin",
+    "desc": "サスペンション。1,320円。",
+    "date": "2026.10",
+    "series": "トミカチューンズ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_tunes_pompompurin_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810077848/"
+  },
+  {
+    "tag": "聯名",
+    "title": "TOMICA TUNES SINGLE PACKS Hard at Work Pompompurin",
+    "desc": "サスペンション。1,320円。",
+    "date": "2026.10",
+    "series": "トミカチューンズ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_tunes_pompompurin_work_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810077855/"
+  },
+  {
+    "tag": "新品",
+    "title": "15 トヨタ ハイエース",
+    "desc": "左右ドア開閉/後部ドア開閉。990円。",
+    "date": "2026.10",
+    "series": "トミカプレミアム",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_tp_15_toyota_hiace_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810072065/"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカプレミアムｕｎｌｉｍｉｔｅｄ 10 よろしくメカドック セリカ XX",
+    "desc": "リトラクタブルライト展開・収納。1,320円。",
+    "date": "2026.10",
+    "series": "トミカプレミアムｕｎｌｉｍｉｔｅｄ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_tpu_mechadoc_xx_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810096818/"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカＲＥＢＯＲＮ 三菱 パジェロ メタルトップ",
+    "desc": "サスペンション、左右ドア開閉。880円。",
+    "date": "2026.10",
+    "series": "トミカＲＥＢＯＲＮ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_reborn_mitsubishi_pajero_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810956563/"
+  },
+  {
+    "tag": "新品",
     "title": "No.59 三菱ふそう スーパーグレート",
     "desc": "594円。",
     "date": "2026.09",
     "series": "トミカシリーズ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_059_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_059_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810224099/"
   },
   {
     "tag": "新品",
@@ -17,7 +90,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション。594円。",
     "date": "2026.09",
     "series": "トミカシリーズ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_093_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_093_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810092360/"
   },
   {
     "tag": "新品",
@@ -25,7 +99,8 @@ export default async function handler(req, res) {
     "desc": "ブーム可動/ケージ可動/キャビン上下。1,100円。",
     "date": "2026.09",
     "series": "トミカシリーズ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_136_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_136_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810091905/"
   },
   {
     "tag": "新品",
@@ -33,7 +108,8 @@ export default async function handler(req, res) {
     "desc": "クリスマスまでの24日間を楽しくカウントダウン！1日ごとにカレンダーを開けよう！。5,280円。",
     "date": "2026.09",
     "series": "トミカワールド",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_world_adventcalender_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_world_adventcalender_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810189121/"
   },
   {
     "tag": "聯名",
@@ -41,7 +117,8 @@ export default async function handler(req, res) {
     "desc": "「特装合体ロボ ジョブレイバー」から新しい観光バスのジョブレイバー『トリップブレイバー はとバス 観光バス』が登場！。3,520円。",
     "date": "2026.09",
     "series": "ジョブレイバー",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_jr_tjb11_hatobus_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_jr_tjb11_hatobus_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g49048109937595/"
   },
   {
     "tag": "聯名",
@@ -49,7 +126,8 @@ export default async function handler(req, res) {
     "desc": "ドリームトミカに「マリオカート ワールド」からマリオが登場！ 「マリオカート ワールド」のスタンダードカートに乗ったマリ。990円。",
     "date": "2026.09",
     "series": "ドリームトミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_dream_164_mcw_mario_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_dream_164_mcw_mario_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810077688/"
   },
   {
     "tag": "聯名",
@@ -57,7 +135,8 @@ export default async function handler(req, res) {
     "desc": "ドリームトミカに「マリオカート ワールド」からヨッシーが登場！ 「マリオカート ワールド」のスタンダードカートに乗ったヨ。990円。",
     "date": "2026.09",
     "series": "ドリームトミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_dream_sp_mcw_yoshi_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_dream_sp_mcw_yoshi_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810077695/"
   },
   {
     "tag": "聯名",
@@ -65,7 +144,8 @@ export default async function handler(req, res) {
     "desc": "トミカをキュンキュン！チューンアップ！ 「TOMICA TUNES」にスティッチコレクションが登場！。1,320円。",
     "date": "2026.09",
     "series": "トミカチューンズ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tunes_vol3_stitch_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tunes_vol3_stitch_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g8000000207617/"
   },
   {
     "tag": "聯名",
@@ -73,7 +153,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション。1,320円。",
     "date": "2026.09",
     "series": "トミカチューンズ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tunes_tom_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tunes_tom_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810074595/"
   },
   {
     "tag": "聯名",
@@ -81,7 +162,8 @@ export default async function handler(req, res) {
     "desc": "「くまのプーさん」原作デビュー100周年を記念して、くまのプーさん＆フレンズセットが登場！。4,950円。",
     "date": "2026.09",
     "series": "ディズニートミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_disney_pooh_friends_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_disney_pooh_friends_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810077893/"
   },
   {
     "tag": "聯名",
@@ -89,7 +171,8 @@ export default async function handler(req, res) {
     "desc": "「くまのプーさん」原作デビュー100周年を記念して、グランドドリームキャリーが登場！。4,950円。",
     "date": "2026.09",
     "series": "ディズニートミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_disneymotores_gdc_pooh_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_disneymotores_gdc_pooh_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810075424/"
   },
   {
     "tag": "新品",
@@ -97,7 +180,8 @@ export default async function handler(req, res) {
     "desc": "【ライトニング・マックィーンデイ２０２６】を記念して、「ライトニング・マックィーン」とピストン・カップの優勝トロフィーが。2,200円。",
     "date": "2026.09",
     "series": "カーズ トミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_cars_lightningmcqueen_cup_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_cars_lightningmcqueen_cup_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810089094/"
   },
   {
     "tag": "新品",
@@ -105,7 +189,8 @@ export default async function handler(req, res) {
     "desc": "24日分のカレンダーを1日ごとに開けよう！ 2026年限定生産のカーズ トミカのアドベントカレンダーが登場！。5,280円。",
     "date": "2026.09",
     "series": "カーズ トミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_cars_adventcalender_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_cars_adventcalender_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810089131/"
   },
   {
     "tag": "新品",
@@ -113,7 +198,8 @@ export default async function handler(req, res) {
     "desc": "左右ドア開閉。990円。",
     "date": "2026.09",
     "series": "トミカプレミアム",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tp_13_toyota_corolla_levin_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tp_13_toyota_corolla_levin_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810078906/"
   },
   {
     "tag": "新品",
@@ -121,7 +207,8 @@ export default async function handler(req, res) {
     "desc": "飾るだけではなく「手に取って楽しめる」ことが特徴のカスタムカーシリーズです。 日本のトミカが世界の『JDM』好きに向けて。2,640円。",
     "date": "2026.09",
     "series": "tomica custom works",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tp_works_wh26_silvia_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tp_works_wh26_silvia_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810082002/"
   },
   {
     "tag": "新品",
@@ -129,7 +216,8 @@ export default async function handler(req, res) {
     "desc": "飾るだけではなく「手に取って楽しめる」ことが特徴のカスタムカーシリーズです。 日本のトミカが世界の『JDM』好きに向けて。2,640円。",
     "date": "2026.09",
     "series": "tomica custom works",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tp_works_tq26_silvia_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tp_works_tq26_silvia_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810082064/"
   },
   {
     "tag": "新品",
@@ -137,7 +225,8 @@ export default async function handler(req, res) {
     "desc": "飾るだけではなく「手に取って楽しめる」ことが特徴のカスタムカーシリーズです。 日本のトミカが世界の『JDM』好きに向けて。2,640円。",
     "date": "2026.09",
     "series": "tomica custom works",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tp_works_rd26_nsx_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tp_works_rd26_nsx_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810081593/"
   },
   {
     "tag": "新品",
@@ -145,7 +234,8 @@ export default async function handler(req, res) {
     "desc": "飾るだけではなく「手に取って楽しめる」ことが特徴のカスタムカーシリーズです。 日本のトミカが世界の『JDM』好きに向けて。2,640円。",
     "date": "2026.09",
     "series": "tomica custom works",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tp_works_bk26_nsx_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tp_works_bk26_nsx_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810081609/"
   },
   {
     "tag": "新品",
@@ -153,7 +243,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション、左右ドア開閉。1,430円。",
     "date": "2026.09",
     "series": "トミカプレミアムｕｎｌｉｍｉｔｅｄ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tpu_iniD_skylineGTR_bnr32_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tpu_iniD_skylineGTR_bnr32_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810994329/"
   },
   {
     "tag": "新品",
@@ -161,7 +252,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション、左右ドア開閉。1,430円。",
     "date": "2026.09",
     "series": "トミカプレミアムｕｎｌｉｍｉｔｅｄ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tpu_iniD_civic_sirII_eg6_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tpu_iniD_civic_sirII_eg6_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810994336/"
   },
   {
     "tag": "新品",
@@ -169,7 +261,8 @@ export default async function handler(req, res) {
     "desc": "ローラー回転。1,430円。",
     "date": "2026.09",
     "series": "トミカプレミアムｕｎｌｉｍｉｔｅｄ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tpu_letsgo_mini4_pse_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tpu_letsgo_mini4_pse_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810982371/"
   },
   {
     "tag": "新品",
@@ -177,7 +270,8 @@ export default async function handler(req, res) {
     "desc": "トミカプレミアムｕｎｌｉｍｉｔｅｄに 爆走兄弟レッツ＆ゴー!! ミニ四駆 スピンコブラ が登場！。1,430円。",
     "date": "2026.09",
     "series": "トミカプレミアムｕｎｌｉｍｉｔｅｄ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tpu_letsgo_mini4_spincobra_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tpu_letsgo_mini4_spincobra_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810990710/"
   },
   {
     "tag": "新品",
@@ -185,7 +279,8 @@ export default async function handler(req, res) {
     "desc": "トミカプレミアムRacingを積載できる「tomicaトランスポーター」が登場！ オリジナルトランスポーターにトミカプレ。3,300円。",
     "date": "2026.09",
     "series": "トミカプレミアムRacing",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_racing_transporter_hatsunemiku_amg2024_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_racing_transporter_hatsunemiku_amg2024_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810064657/"
   },
   {
     "tag": "新品",
@@ -193,7 +288,8 @@ export default async function handler(req, res) {
     "desc": "トミカ史上最高峰の立体駐車場が登場。トミカプレミアム1台付属。 出入庫時のメカニカルでありながら優雅なドア開閉、ステージ。41,800円。",
     "date": "2026.09",
     "series": "ｔｏｍｉｃａ＋",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tplus_parking_showroom_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tplus_parking_showroom_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810919063/"
   },
   {
     "tag": "限定",
@@ -201,7 +297,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション。1,210円。",
     "date": "2026.09",
     "series": "タカラトミーモールオリジナル",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_ttm_tp_volkswagen_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_ttm_tp_volkswagen_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810064534/"
   },
   {
     "tag": "新品",
@@ -209,7 +306,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション。594円。",
     "date": "2026.08",
     "series": "トミカシリーズ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_006_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_006_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810092391/"
   },
   {
     "tag": "新品",
@@ -217,7 +315,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション。594円。",
     "date": "2026.08",
     "series": "トミカシリーズ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_076_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_076_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810224112/"
   },
   {
     "tag": "新品",
@@ -225,7 +324,8 @@ export default async function handler(req, res) {
     "desc": "トミカギフトセットから「MUGEN」仕様の車両を含む3台セットが登場！。2,420円。",
     "date": "2026.08",
     "series": "ギフトセット",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_gift_mugencollection_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_gift_mugencollection_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810078074/"
   },
   {
     "tag": "聯名",
@@ -233,7 +333,8 @@ export default async function handler(req, res) {
     "desc": "初めてでも簡単で、トミカやプラレールといっしょに遊べる楽しいブロックが登場！ 全32パーツのブロックを使って、はしご消防。4,950円。",
     "date": "2026.08",
     "series": "トミカ・プラレールブロック",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_block_firerescueset_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_block_firerescueset_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810095965/"
   },
   {
     "tag": "聯名",
@@ -241,7 +342,8 @@ export default async function handler(req, res) {
     "desc": "ポリスブレイバーZEROと『デカライドアーマー 黒バイ』がセットになって登場！ 「ライジングポリスブレイバーZERO」が。8,800円。",
     "date": "2026.08",
     "series": "トミカ ジョブレイバー",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_jr_rpbzero_dra_bbdxset_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_jr_rpbzero_dra_bbdxset_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810944881/"
   },
   {
     "tag": "聯名",
@@ -249,7 +351,8 @@ export default async function handler(req, res) {
     "desc": "連結・切り離し。2,200円。",
     "date": "2026.08",
     "series": "トーマストミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_thomas_hajimete_thomasjames_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_thomas_hajimete_thomasjames_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810072171/"
   },
   {
     "tag": "新品",
@@ -257,7 +360,8 @@ export default async function handler(req, res) {
     "desc": "2026年は映画『カーズ』公開と「カーズ トミカ」の誕生から20周年のアニバーサリーイヤー！ 20周年を記念したデザイン。935円。",
     "date": "2026.08",
     "series": "カーズ トミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_cars_sp_jacksonstorm_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_cars_sp_jacksonstorm_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810088974/"
   },
   {
     "tag": "新品",
@@ -265,7 +369,8 @@ export default async function handler(req, res) {
     "desc": "2026年は映画『カーズ』公開と「カーズ トミカ」の誕生から20周年のアニバーサリーイヤー！ 20周年を記念したデザイン。935円。",
     "date": "2026.08",
     "series": "カーズ トミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_cars_sp_ramirez_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_cars_sp_ramirez_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810088981/"
   },
   {
     "tag": "新品",
@@ -273,7 +378,8 @@ export default async function handler(req, res) {
     "desc": "2026年は映画『カーズ』公開と「カーズ トミカ」の誕生から20周年のアニバーサリーイヤー！ カーズ トミカから、ライト。4,620円。",
     "date": "2026.08",
     "series": "カーズ トミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_cars_sp_deruderu_bucket_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_cars_sp_deruderu_bucket_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810088998/"
   },
   {
     "tag": "新品",
@@ -281,7 +387,8 @@ export default async function handler(req, res) {
     "desc": "左右ドア開閉、警光灯可動。990円。",
     "date": "2026.08",
     "series": "トミカプレミアム",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_tp_24_markx_fukumen_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_tp_24_markx_fukumen_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810092872/"
   },
   {
     "tag": "新品",
@@ -289,7 +396,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション、左右ドア開閉。1,320円。",
     "date": "2026.08",
     "series": "トミカプレミアムｕｎｌｉｍｉｔｅｄ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_tpu_14_subaru_brz_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_tpu_14_subaru_brz_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810079828/"
   },
   {
     "tag": "限定",
@@ -297,7 +405,8 @@ export default async function handler(req, res) {
     "desc": "【ライトニング・マックィーンデイ2026】を記念して、「ドッグ・ハドソン」とピストン・カップの優勝トロフィーのセットがカ。2,200円。",
     "date": "2026.08",
     "series": "タカラトミーモールオリジナル",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_ttmo_cars_dochudson_cup_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_ttmo_cars_dochudson_cup_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810089100/"
   },
   {
     "tag": "限定",
@@ -305,7 +414,8 @@ export default async function handler(req, res) {
     "desc": "左右ドア開閉、リトラクタブルライト可動。1,155円。",
     "date": "2026.08",
     "series": "タカラトミーモールオリジナル",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_ttmo_tp_sprinter_trueno_ae92_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_ttmo_tp_sprinter_trueno_ae92_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810072041/"
   },
   {
     "tag": "限定",
@@ -313,7 +423,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション、左右ドア開閉。880円。",
     "date": "2026.08",
     "series": "タカラトミーモールオリジナル",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_ttmo_reborn_supra_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_ttmo_reborn_supra_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810079880/"
   },
   {
     "tag": "限定",
@@ -321,7 +432,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション、左右ドア開閉。880円。",
     "date": "2026.08",
     "series": "販売店オリジナルトミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_so_edion_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_so_edion_01.webp",
+    "buyUrl": null
   },
   {
     "tag": "限定",
@@ -329,7 +441,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション。880円。",
     "date": "2026.08",
     "series": "販売店オリジナルトミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_so_apita_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_so_apita_01.webp",
+    "buyUrl": null
   },
   {
     "tag": "限定",
@@ -337,7 +450,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション。880円。",
     "date": "2026.08",
     "series": "販売店オリジナルトミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_so_tomiplashop_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_so_tomiplashop_01.webp",
+    "buyUrl": null
   },
   {
     "tag": "限定",
@@ -345,7 +459,8 @@ export default async function handler(req, res) {
     "desc": "トミカが本格的な寿司になった「寿司トミカ」シリーズにリラックマが登場！。1,320円。",
     "date": "2026.08",
     "series": "販売店オリジナルトミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_so_kiddyland_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2608/pic_so_kiddyland_01.webp",
+    "buyUrl": null
   },
   {
     "tag": "新品",
@@ -353,7 +468,8 @@ export default async function handler(req, res) {
     "desc": "ドア開閉/サイドタープ設営、収納/自転車積み下ろし。594円。",
     "date": "2026.07",
     "series": "トミカシリーズ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_024_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_024_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810092384/"
   },
   {
     "tag": "新品",
@@ -361,7 +477,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション。594円。",
     "date": "2026.07",
     "series": "トミカシリーズ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_052_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_052_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810917441/"
   },
   {
     "tag": "新品",
@@ -369,7 +486,8 @@ export default async function handler(req, res) {
     "desc": "電動回転駐車場！楽しい3つの出動遊び！サウンド満載！ トミカの出動遊びが楽しい警察署「スクランブルポリスステーション」が。9,350円。",
     "date": "2026.07",
     "series": "トミカワールド",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_tw_scramblepolicestation_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_tw_scramblepolicestation_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810074601/"
   },
   {
     "tag": "聯名",
@@ -377,7 +495,8 @@ export default async function handler(req, res) {
     "desc": "初めてでも簡単で、トミカやプラレールといっしょに遊べる楽しいブロックが登場！ 全24パーツのブロックを使って、パトロール。3,850円。",
     "date": "2026.07",
     "series": "トミカ・プラレールブロック",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_block_patrolset_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_block_patrolset_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810095958/"
   },
   {
     "tag": "聯名",
@@ -385,7 +504,8 @@ export default async function handler(req, res) {
     "desc": "「ハローキティ」と「ジョブレイバー」のハッピーオーラ満載のコラボレーション！。4,180円。",
     "date": "2026.07",
     "series": "トミカ ジョブレイバー",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_jr_tjbex_hellokitty_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_jr_tjbex_hellokitty_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810995487/"
   },
   {
     "tag": "聯名",
@@ -393,7 +513,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション。1,650円。",
     "date": "2026.07",
     "series": "ドリームトミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_dt_maizen_zenichi_maickey_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_dt_maizen_zenichi_maickey_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810077664/"
   },
   {
     "tag": "聯名",
@@ -401,7 +522,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション。880円。",
     "date": "2026.07",
     "series": "ドリームトミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_dt_tom_daisuki_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_dt_tom_daisuki_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810074564/"
   },
   {
     "tag": "聯名",
@@ -409,7 +531,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション。880円。",
     "date": "2026.07",
     "series": "ドリームトミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_dt_tom_kyoryu_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_dt_tom_kyoryu_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810074571/"
   },
   {
     "tag": "聯名",
@@ -417,7 +540,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション。880円。",
     "date": "2026.07",
     "series": "ドリームトミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_dt_tom_asobou_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_dt_tom_asobou_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810074588/"
   },
   {
     "tag": "聯名",
@@ -425,7 +549,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション。1,320円。",
     "date": "2026.07",
     "series": "トミカチューンズ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_tunes_toystory_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_tunes_toystory_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g8000000207552/"
   },
   {
     "tag": "聯名",
@@ -433,7 +558,8 @@ export default async function handler(req, res) {
     "desc": "キャラクターフィギュアとトミカがセットになった『ドリームトミカ ライドオン』シリーズからトイ・ストーリー トミカが収納で。4,400円。",
     "date": "2026.07",
     "series": "ディズニートミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_disney_toystory5_buzz_hightech_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_disney_toystory5_buzz_hightech_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810068280/"
   },
   {
     "tag": "聯名",
@@ -441,7 +567,8 @@ export default async function handler(req, res) {
     "desc": "連結・切り離し。825円。",
     "date": "2026.07",
     "series": "トーマストミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_thomas_08_henry_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_thomas_08_henry_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810072188/"
   },
   {
     "tag": "新品",
@@ -449,7 +576,8 @@ export default async function handler(req, res) {
     "desc": "前後カウル開閉。990円。",
     "date": "2026.07",
     "series": "トミカプレミアム",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_tp_05_lamborghini_miura_p400s_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_tp_05_lamborghini_miura_p400s_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810092889/"
   },
   {
     "tag": "新品",
@@ -457,7 +585,8 @@ export default async function handler(req, res) {
     "desc": "「Lamborghini」が3台セットになって登場！。3,520円。",
     "date": "2026.07",
     "series": "トミカプレミアム",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_tp_lamborghini_3models_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_tp_lamborghini_3models_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810077725/"
   },
   {
     "tag": "新品",
@@ -465,7 +594,8 @@ export default async function handler(req, res) {
     "desc": "カウル脱着。1,980円。",
     "date": "2026.07",
     "series": "トミカプレミアムＲａｃｉｎｇ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_racing_mazda_787b_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_racing_mazda_787b_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810097082/"
   },
   {
     "tag": "新品",
@@ -473,7 +603,8 @@ export default async function handler(req, res) {
     "desc": "カウル脱着。1,980円。",
     "date": "2026.07",
     "series": "トミカプレミアムＲａｃｉｎｇ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_racing_mazda_787b18_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_racing_mazda_787b18_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810097099/"
   },
   {
     "tag": "新品",
@@ -481,7 +612,8 @@ export default async function handler(req, res) {
     "desc": "ガレージをリモコン操作でスマートに開閉できる商品が登場。 付属のコントローラーで、従来の電動シャッターの開閉、室内の点灯。7,700円。",
     "date": "2026.07",
     "series": "ｔｏｍｉｃａ＋",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_garage_smartstone_se_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_garage_smartstone_se_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810080817/"
   },
   {
     "tag": "新品",
@@ -489,7 +621,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション、左右ドア開閉。880円。",
     "date": "2026.07",
     "series": "トミカＲＥＢＯＲＮ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_reborn_toyota_supra_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_reborn_toyota_supra_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810956570/"
   },
   {
     "tag": "限定",
@@ -497,7 +630,8 @@ export default async function handler(req, res) {
     "desc": "トミカプレミアムで、惜しまれながら生産が終了した車種から厳選して復刻いたします。 今回は「三菱 パジェロ」が登場です！。1,210円。",
     "date": "2026.07",
     "series": "タカラトミーモールオリジナル",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_ttmo_reprint_tp_pajero_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_ttmo_reprint_tp_pajero_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810079859/"
   },
   {
     "tag": "限定",
@@ -505,7 +639,8 @@ export default async function handler(req, res) {
     "desc": "「トミカ」と「タミヤ」の夢のコラボ！。3,300円。",
     "date": "2026.07",
     "series": "タカラトミーモールオリジナル",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_ttmo_tpu_letsgo_cyclone_sonic_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_ttmo_tpu_letsgo_cyclone_sonic_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810065272/"
   },
   {
     "tag": "限定",
@@ -513,7 +648,8 @@ export default async function handler(req, res) {
     "desc": "サスペンション。880円。",
     "date": "2026.07",
     "series": "販売店オリジナルトミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_so_aeon_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_so_aeon_01.webp",
+    "buyUrl": null
   },
   {
     "tag": "限定",
@@ -521,7 +657,8 @@ export default async function handler(req, res) {
     "desc": "TOYOTA GAZOO Racing トランスポーター がTCNオリジナルとして登場！。880円。",
     "date": "2026.07",
     "series": "販売店オリジナルトミカ",
-    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_so_tcn_01.webp"
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2607/pic_so_tcn_01.webp",
+    "buyUrl": null
   },
   {
     "tag": "新品",
@@ -1038,5 +1175,5 @@ export default async function handler(req, res) {
 ];
 
   res.setHeader('Cache-Control', 's-maxage=86400');
-  return res.status(200).json({ items: allItems, updatedAt: 1786014360276 });
+  return res.status(200).json({ items: allItems, updatedAt: 1786081523672 });
 }
