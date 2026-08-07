@@ -105,13 +105,22 @@ function parseMonthHtml(html, month) {
       const dateMatch = priceText.match(/(\d{4})年(\d{1,2})月/);
       const date = dateMatch ? `${dateMatch[1]}.${dateMatch[2].padStart(2, '0')}` : month.dateStr;
 
+      // 官網「購入する」按鈕會直接連到這個商品在 Takara Tomy Mall 的
+      // 購買頁（<a ... class="mallLink">，href 在真實頁面裡出現在 class
+      // 前面，用 [^>]* 讓比對不管屬性順序都抓得到），有找到就存起來給
+      // App 用；販售店限定款沒有這個按鈕，buyUrl 會是 null，前端會退回
+      // 顯示通用購買地點資訊
+      const buyLinkTag = block.match(/<a[^>]*class="mallLink"[^>]*>/);
+      const buyUrl = buyLinkTag ? (buyLinkTag[0].match(/href="([^"]+)"/) || [])[1] || null : null;
+
       items.push({
         tag: guessTag(seriesName, title + priceText),
         title,
         desc,
         date,
         series: seriesName,
-        image
+        image,
+        buyUrl
       });
     }
   }

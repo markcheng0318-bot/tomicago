@@ -685,12 +685,15 @@
     cursor: pointer;
   }
 
-  /* ── CAR DETAIL MODAL ── */
+  /* ── CAR DETAIL MODAL ──
+     故意不用 inset:0 蓋滿整個畫面，讓底部導覽列（z-index 100）永遠留在
+     畫面上，不會被詳細頁蓋住，可以隨時切換分頁不用先返回。 */
   .detail-modal {
     position: fixed;
-    inset: 0;
+    top: 0; left: 0; right: 0;
+    bottom: calc(var(--nav-h) + var(--safe-bottom));
     background: var(--bg);
-    z-index: 150;
+    z-index: 90;
     display: none;
     flex-direction: column;
     overflow-y: auto;
@@ -789,7 +792,6 @@
     display: flex;
     gap: 10px;
     padding: 16px 20px;
-    padding-bottom: calc(16px + var(--safe-bottom));
     border-top: 1px solid var(--border);
   }
 
@@ -1797,6 +1799,9 @@
     <div style="margin-top:12px">
       <a href="#" id="news-official-link" target="_blank" rel="noopener" style="font-size:13px;color:var(--text2);text-decoration:underline">查看官網原文 →</a>
     </div>
+
+    <a href="#" id="news-buy-btn" target="_blank" rel="noopener" class="btn-submit" style="display:none;margin-top:14px;text-decoration:none">🛒 前往購買</a>
+    <button id="news-buy-locations-btn" onclick="openPurchaseLocationsModal()" style="display:none;margin-top:14px;width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:13px;border-radius:var(--radius);font-size:14px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">🛒 查看購買地點</button>
 
     <div style="display:flex;gap:8px;padding:14px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-top:16px">
       <button class="btn-detail" id="news-like-btn" onclick="toggleNewsReaction('like')" style="display:flex;align-items:center;justify-content:center;gap:6px">
@@ -2899,6 +2904,17 @@ window.openNewsDetail = async (index, focusComments) => {
   document.getElementById('news-detail-series').textContent = n.series ? `📦 ${n.series}` : '';
   document.getElementById('news-official-link').href = buildNewsOfficialUrl(n.date);
 
+  const buyBtn = document.getElementById('news-buy-btn');
+  const buyLocationsBtn = document.getElementById('news-buy-locations-btn');
+  if (n.buyUrl) {
+    buyBtn.href = n.buyUrl;
+    buyBtn.style.display = 'flex';
+    buyLocationsBtn.style.display = 'none';
+  } else {
+    buyBtn.style.display = 'none';
+    buyLocationsBtn.style.display = 'block';
+  }
+
   const tagEl = document.getElementById('news-detail-tag');
   tagEl.textContent = n.tag;
   tagEl.style.display = 'inline-block';
@@ -3713,6 +3729,12 @@ window.likeShowroomCar = async (carId, ownerId, btn) => {
   }
 };
 window.goTo = (screen) => {
+  // 底部導覽列現在切換分頁時永遠看得到，但詳細頁（車輛/編輯/新聞）還是
+  // 蓋版式的 modal，切分頁時要順便關掉，不然背景換了、詳細頁還蓋在最上層
+  if (document.getElementById('detail-modal')?.classList.contains('open')) closeDetail();
+  if (document.getElementById('edit-modal')?.classList.contains('open')) closeEditModal();
+  if (document.getElementById('news-detail-modal')?.classList.contains('open')) closeNewsDetail();
+
   // 需要登入的頁面
   const protectedScreens = ['garage', 'upload', 'settings'];
   if (protectedScreens.includes(screen) && !currentUser) {
