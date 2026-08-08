@@ -1829,6 +1829,56 @@
   </div>
 </div>
 
+<!-- SHOWROOM DETAIL MODAL -->
+<div class="detail-modal" id="showroom-detail-modal">
+  <div class="detail-img" id="showroom-detail-img-area">
+    <span id="showroom-detail-img-placeholder" style="font-size:72px">🚗</span>
+    <img id="showroom-detail-img" src="" alt="" style="display:none">
+    <button class="detail-back" onclick="closeShowroomDetail()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </button>
+  </div>
+  <div class="detail-content">
+    <div class="detail-header">
+      <div id="showroom-detail-number-badge" class="detail-number" style="display:none"></div>
+      <div class="detail-name" id="showroom-detail-name"></div>
+      <div class="detail-year" id="showroom-detail-year"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+      <div style="width:26px;height:26px;border-radius:50%;background:var(--bg3);overflow:hidden;flex-shrink:0">
+        <img id="showroom-detail-owner-avatar" src="" style="width:100%;height:100%;object-fit:cover;display:none">
+        <div id="showroom-detail-owner-avatar-fallback" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:13px">👤</div>
+      </div>
+      <span style="font-size:12px;color:var(--text3)" id="showroom-detail-owner-name"></span>
+    </div>
+    <div id="showroom-detail-rows" style="margin-top:12px"></div>
+    <div id="showroom-detail-note-wrap" style="display:none">
+      <div class="detail-note" id="showroom-detail-note"></div>
+    </div>
+
+    <div style="display:flex;gap:8px;padding:14px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-top:16px">
+      <button class="btn-detail" id="showroom-like-btn" onclick="toggleShowroomDetailLike()" style="display:flex;align-items:center;justify-content:center;gap:6px">
+        <span>❤️</span><span id="showroom-like-count">0</span>
+      </button>
+      <button class="btn-detail" onclick="shareShowroomCar()" style="display:flex;align-items:center;justify-content:center;gap:6px">
+        <span>🔗</span><span>分享</span>
+      </button>
+    </div>
+
+    <div style="margin-top:20px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px">💬 留言 <span id="showroom-comment-count" style="color:var(--text3);font-weight:400">(0)</span></div>
+      <div id="showroom-comment-input-wrap" style="display:flex;gap:8px;margin-bottom:16px">
+        <input class="form-input" type="text" id="showroom-comment-text" placeholder="說點什麼..." style="flex:1" onkeydown="if(event.key==='Enter')submitShowroomComment()">
+        <button class="icon-btn" onclick="submitShowroomComment()" style="flex-shrink:0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+      <div id="showroom-comment-login-hint" style="display:none;font-size:12px;color:var(--text3);margin-bottom:16px;text-align:center;padding:12px;background:var(--bg3);border-radius:8px">登入後即可留言</div>
+      <div id="showroom-comment-list"></div>
+    </div>
+  </div>
+</div>
+
 <!-- RENAME MODAL -->
 <div class="modal-overlay" id="rename-modal" onclick="if(event.target===this)closeRenameModal()">
   <div style="width:100%;max-width:480px;padding:0 16px;position:absolute;top:50%;transform:translateY(-50%)">
@@ -3684,6 +3734,12 @@ async function loadShowroom() {
 
 window.renderShowroom = () => renderShowroomGrid(showroomCars);
 
+let renderedShowroomCars = [];
+let showroomEngagementCache = {}; // carId -> { likes, commentCount }
+let showroomReactionCache = {};   // carId -> 'like' | null（僅登入時有意義）
+let currentShowroomCar = null;
+let currentShowroomReaction = null; // 'like' | null
+
 function renderShowroomGrid(allCars) {
   const grid = document.getElementById('showroom-grid');
   const brandF = document.getElementById('showroom-brand-filter')?.value || '';
@@ -3695,13 +3751,15 @@ function renderShowroomGrid(allCars) {
   if (brandF) list = list.filter(c => c.brand === brandF);
   if (seriesF) list = list.filter(c => c.series === seriesF);
 
+  renderedShowroomCars = list;
+
   if (list.length === 0) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏛️</div><div class="empty-title">展示廳是空的</div><div class="empty-sub">成為第一個公開分享收藏的人！</div></div>`;
     return;
   }
 
   grid.innerHTML = list.map((car, i) => `
-    <div class="car-card ${car.status}" style="animation-delay:${i*0.04}s">
+    <div class="car-card ${car.status}" style="animation-delay:${i*0.04}s;cursor:pointer" onclick="openShowroomDetail(${i})">
       <div class="car-card-img">
         ${car.photoUrl ? `<img src="${car.photoUrl}" alt="${car.name}" loading="lazy">` : '<span>🚗</span>'}
         ${car.number ? `<div class="car-num-badge">${car.number}</div>` : ''}
@@ -3715,23 +3773,284 @@ function renderShowroomGrid(allCars) {
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
           <span style="font-size:10px;color:var(--text3)">${car.series || ''}</span>
-          <button onclick="likeShowroomCar('${car.id}','${car.ownerId}',this)" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:3px">
-            ❤️ ${car.likes || 0}
-          </button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="showroom-card-comment-count-${i}" style="font-size:12px;color:var(--text3);display:flex;align-items:center;gap:3px">💬 ${car.commentCount || 0}</span>
+            <button id="showroom-card-like-btn-${i}" onclick="quickToggleShowroomLike(event, ${i})" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:3px;padding:2px">
+              ❤️ <span id="showroom-card-like-count-${i}">${car.likes || 0}</span>
+            </button>
+          </div>
         </div>
+      </div>
+    </div>`).join('');
+
+  loadShowroomEngagementForList(list);
+}
+
+// 讚的核心邏輯，詳細頁跟列表卡片共用（跟最新資訊的讚/倒讚邏輯是同一套模式）
+async function applyShowroomReaction(carId, ownerId, prev) {
+  const reactionRef = doc(db, 'users', ownerId, 'cars', carId, 'reactions', currentUser.uid);
+  const carRef = doc(db, 'users', ownerId, 'cars', carId);
+  if (prev === 'like') {
+    await deleteDoc(reactionRef);
+    await updateDoc(carRef, { likes: increment(-1) });
+    return null;
+  }
+  await setDoc(reactionRef, { type: 'like', updatedAt: Date.now() });
+  await updateDoc(carRef, { likes: increment(1) });
+  return 'like';
+}
+
+// 列表卡片上的快速按讚（不用點進詳細頁）
+window.quickToggleShowroomLike = async (evt, index) => {
+  evt.stopPropagation();
+  if (!currentUser) { showToast('請先登入'); return; }
+  const car = renderedShowroomCars[index];
+  if (!car) return;
+  const prev = showroomReactionCache[car.id] ?? null;
+
+  try {
+    const next = await applyShowroomReaction(car.id, car.ownerId, prev);
+    showroomReactionCache[car.id] = next;
+
+    const agg = showroomEngagementCache[car.id] || { likes: car.likes || 0, commentCount: car.commentCount || 0 };
+    agg.likes = Math.max(0, (agg.likes || 0) + (next === 'like' ? 1 : -1));
+    showroomEngagementCache[car.id] = agg;
+    updateShowroomListCardUI(car.id);
+
+    if (currentShowroomCar && currentShowroomCar.id === car.id) { currentShowroomReaction = next; updateShowroomReactionButtons(); }
+  } catch(e) {
+    showToast('操作失敗：' + e.message);
+  }
+};
+
+// 依 carId 更新目前列表裡對應卡片的讚數／留言數／按鈕狀態
+function updateShowroomListCardUI(carId) {
+  const agg = showroomEngagementCache[carId] || {};
+  const reaction = showroomReactionCache[carId];
+  renderedShowroomCars.forEach((car, i) => {
+    if (car.id !== carId) return;
+    const likeCountEl = document.getElementById(`showroom-card-like-count-${i}`);
+    const commentCountEl = document.getElementById(`showroom-card-comment-count-${i}`);
+    const likeBtn = document.getElementById(`showroom-card-like-btn-${i}`);
+    if (likeCountEl) likeCountEl.textContent = agg.likes ?? (car.likes || 0);
+    if (commentCountEl) commentCountEl.innerHTML = `💬 ${agg.commentCount ?? (car.commentCount || 0)}`;
+    if (likeBtn) likeBtn.style.color = reaction === 'like' ? 'var(--red)' : '';
+  });
+}
+
+// 進入展示廳列表時，非同步把每台車的讚數／留言數（跟自己是否按過讚）補上去
+function loadShowroomEngagementForList(list) {
+  list.forEach(car => {
+    if (car.id in showroomEngagementCache) { updateShowroomListCardUI(car.id); return; }
+    (async () => {
+      try {
+        const tasks = [];
+        if (currentUser) tasks.push(getDoc(doc(db, 'users', car.ownerId, 'cars', car.id, 'reactions', currentUser.uid)));
+        const [reactionSnap] = await Promise.all(tasks);
+        showroomEngagementCache[car.id] = { likes: car.likes || 0, commentCount: car.commentCount || 0 };
+        if (reactionSnap) showroomReactionCache[car.id] = reactionSnap.exists() ? reactionSnap.data().type : null;
+        updateShowroomListCardUI(car.id);
+      } catch(e) {}
+    })();
+  });
+}
+
+function updateShowroomReactionButtons() {
+  const likeBtn = document.getElementById('showroom-like-btn');
+  if (!likeBtn) return;
+  likeBtn.style.background = currentShowroomReaction === 'like' ? 'var(--red)' : '';
+  likeBtn.style.color = currentShowroomReaction === 'like' ? 'white' : '';
+  likeBtn.style.borderColor = currentShowroomReaction === 'like' ? 'var(--red)' : '';
+}
+
+window.toggleShowroomDetailLike = async () => {
+  if (!currentUser) { showToast('請先登入'); return; }
+  if (!currentShowroomCar) return;
+  try {
+    currentShowroomReaction = await applyShowroomReaction(currentShowroomCar.id, currentShowroomCar.ownerId, currentShowroomReaction);
+    showroomReactionCache[currentShowroomCar.id] = currentShowroomReaction;
+    updateShowroomReactionButtons();
+  } catch(e) {
+    showToast('操作失敗：' + e.message);
+  }
+};
+
+window.openShowroomDetail = async (index) => {
+  const car = renderedShowroomCars[index];
+  if (!car) return;
+  currentShowroomCar = car;
+  currentShowroomReaction = currentUser ? (showroomReactionCache[car.id] ?? null) : null;
+
+  document.getElementById('showroom-detail-name').textContent = car.name;
+  document.getElementById('showroom-detail-year').textContent = car.release || '';
+
+  const numBadge = document.getElementById('showroom-detail-number-badge');
+  if (car.number) { numBadge.textContent = car.number; numBadge.style.display = 'inline-block'; }
+  else numBadge.style.display = 'none';
+
+  const img = document.getElementById('showroom-detail-img');
+  const placeholder = document.getElementById('showroom-detail-img-placeholder');
+  if (car.photoUrl) {
+    img.src = car.photoUrl;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    placeholder.style.display = 'flex';
+  }
+
+  const ownerAvatar = document.getElementById('showroom-detail-owner-avatar');
+  const ownerAvatarFallback = document.getElementById('showroom-detail-owner-avatar-fallback');
+  if (car.ownerPhoto) {
+    ownerAvatar.src = car.ownerPhoto;
+    ownerAvatar.style.display = 'block';
+    ownerAvatarFallback.style.display = 'none';
+  } else {
+    ownerAvatar.style.display = 'none';
+    ownerAvatarFallback.style.display = 'flex';
+  }
+  document.getElementById('showroom-detail-owner-name').textContent = car.ownerName ? `${car.ownerName} 的收藏` : '';
+
+  const rows = [];
+  if (car.brand) rows.push(['廠牌', car.brand]);
+  if (car.cartype) rows.push(['車型', car.cartype]);
+  if (car.series) rows.push(['系列', car.series]);
+  if (car.release) rows.push(['發行年月', car.release]);
+  if (car.price) rows.push(['參考售價', `¥${Number(car.price).toLocaleString()}`]);
+  rows.push(['狀態', car.status === 'owned' ? '✅ 已收藏' : '⭐ 願望清單']);
+  document.getElementById('showroom-detail-rows').innerHTML = rows.map(([l,v]) => `
+    <div class="detail-row">
+      <span class="detail-row-label">${l}</span>
+      <span class="detail-row-val">${v}</span>
+    </div>`).join('');
+
+  const noteWrap = document.getElementById('showroom-detail-note-wrap');
+  if (car.note) {
+    document.getElementById('showroom-detail-note').textContent = car.note;
+    noteWrap.style.display = 'block';
+  } else noteWrap.style.display = 'none';
+
+  document.getElementById('showroom-comment-input-wrap').style.display = currentUser ? 'flex' : 'none';
+  document.getElementById('showroom-comment-login-hint').style.display = currentUser ? 'none' : 'block';
+  document.getElementById('showroom-comment-text').value = '';
+
+  const modal = document.getElementById('showroom-detail-modal');
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('open'));
+
+  subscribeShowroomEngagement();
+  updateShowroomReactionButtons();
+
+  if (currentUser && !(car.id in showroomReactionCache)) {
+    try {
+      const reactionSnap = await getDoc(doc(db, 'users', car.ownerId, 'cars', car.id, 'reactions', currentUser.uid));
+      currentShowroomReaction = reactionSnap.exists() ? reactionSnap.data().type : null;
+      showroomReactionCache[car.id] = currentShowroomReaction;
+      updateShowroomReactionButtons();
+    } catch(e) {}
+  }
+};
+
+window.closeShowroomDetail = () => {
+  const modal = document.getElementById('showroom-detail-modal');
+  modal.classList.remove('open');
+  setTimeout(() => { modal.style.display = 'none'; }, 350);
+  if (showroomEngagementUnsub) { showroomEngagementUnsub(); showroomEngagementUnsub = null; }
+  if (showroomCommentsUnsub) { showroomCommentsUnsub(); showroomCommentsUnsub = null; }
+};
+
+let showroomEngagementUnsub = null;
+let showroomCommentsUnsub = null;
+
+function subscribeShowroomEngagement() {
+  if (showroomEngagementUnsub) showroomEngagementUnsub();
+  if (showroomCommentsUnsub) showroomCommentsUnsub();
+
+  const car = currentShowroomCar;
+  showroomEngagementUnsub = onSnapshot(doc(db, 'users', car.ownerId, 'cars', car.id), snap => {
+    const data = snap.data() || {};
+    document.getElementById('showroom-like-count').textContent = data.likes || 0;
+    document.getElementById('showroom-comment-count').textContent = `(${data.commentCount || 0})`;
+    showroomEngagementCache[car.id] = { likes: data.likes || 0, commentCount: data.commentCount || 0 };
+    updateShowroomListCardUI(car.id);
+  });
+
+  const q = query(collection(db, 'users', car.ownerId, 'cars', car.id, 'comments'), orderBy('createdAt', 'desc'), limit(50));
+  showroomCommentsUnsub = onSnapshot(q, snap => {
+    renderShowroomComments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  });
+}
+
+function renderShowroomComments(comments) {
+  const wrap = document.getElementById('showroom-comment-list');
+  if (comments.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">還沒有留言，來當第一個吧！</div>`;
+    return;
+  }
+  wrap.innerHTML = comments.map(c => `
+    <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--bg3);overflow:hidden;flex-shrink:0">
+        ${c.userPhoto ? `<img src="${c.userPhoto}" style="width:100%;height:100%;object-fit:cover">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px">👤</div>'}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div style="font-size:12px;font-weight:600;color:var(--text)">${c.userName || '匿名'}</div>
+          ${currentUser && (currentUser.uid === c.userId || currentUser.uid === currentShowroomCar?.ownerId) ? `<button onclick="deleteShowroomComment('${c.id}')" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;flex-shrink:0">刪除</button>` : ''}
+        </div>
+        <div style="font-size:13px;color:var(--text2);margin-top:2px;line-height:1.5;white-space:pre-wrap;word-break:break-word">${c.text}</div>
       </div>
     </div>`).join('');
 }
 
-window.likeShowroomCar = async (carId, ownerId, btn) => {
+window.submitShowroomComment = async () => {
+  if (!currentUser) { showToast('請先登入'); return; }
+  if (!currentShowroomCar) return;
+  const input = document.getElementById('showroom-comment-text');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const car = currentShowroomCar;
   try {
-    const { doc, updateDoc, increment } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    await updateDoc(doc(db, 'users', ownerId, 'cars', carId), { likes: increment(1) });
-    const current = parseInt(btn.textContent.replace('❤️','').trim()) || 0;
-    btn.innerHTML = `❤️ ${current + 1}`;
-    btn.style.color = 'var(--red)';
+    await addDoc(collection(db, 'users', car.ownerId, 'cars', car.id, 'comments'), {
+      userId: currentUser.uid,
+      userName: currentUser.displayName || '匿名使用者',
+      userPhoto: currentUser.photoURL || '',
+      text,
+      createdAt: Date.now()
+    });
+    await updateDoc(doc(db, 'users', car.ownerId, 'cars', car.id), { commentCount: increment(1) });
+    input.value = '';
   } catch(e) {
-    showToast('按讚失敗');
+    showToast('留言失敗：' + e.message);
+  }
+};
+
+window.deleteShowroomComment = async (commentId) => {
+  if (!confirm('確定要刪除這則留言嗎？')) return;
+  if (!currentShowroomCar) return;
+  const car = currentShowroomCar;
+  try {
+    await deleteDoc(doc(db, 'users', car.ownerId, 'cars', car.id, 'comments', commentId));
+    await updateDoc(doc(db, 'users', car.ownerId, 'cars', car.id), { commentCount: increment(-1) });
+  } catch(e) {
+    showToast('刪除失敗：' + e.message);
+  }
+};
+
+window.shareShowroomCar = async () => {
+  const car = currentShowroomCar;
+  if (!car) return;
+  const shareData = { title: `TomicaGo - ${car.name}`, text: `來看看${car.ownerName ? car.ownerName + '的' : ''}收藏：${car.name}`, url: 'https://tomicago.com' };
+
+  if (navigator.share) {
+    try { await navigator.share(shareData); } catch(e) {}
+  } else {
+    try {
+      await navigator.clipboard.writeText(`${car.name}\nhttps://tomicago.com`);
+      showToast('✅ 連結已複製');
+    } catch(e) {
+      showToast('分享失敗');
+    }
   }
 };
 window.goTo = (screen) => {
@@ -3740,6 +4059,7 @@ window.goTo = (screen) => {
   if (document.getElementById('detail-modal')?.classList.contains('open')) closeDetail();
   if (document.getElementById('edit-modal')?.classList.contains('open')) closeEditModal();
   if (document.getElementById('news-detail-modal')?.classList.contains('open')) closeNewsDetail();
+  if (document.getElementById('showroom-detail-modal')?.classList.contains('open')) closeShowroomDetail();
 
   // 需要登入的頁面
   const protectedScreens = ['garage', 'upload', 'settings'];
