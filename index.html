@@ -2881,17 +2881,39 @@ window.selectDropdown = (inputId, listId, value) => {
   document.getElementById(listId).classList.remove('open');
 };
 
+// 收藏上限的真正判斷邏輯放在後端（api/check-car-limit.js），用 Firestore
+// count() 聚合查詢算出真實的已收藏數量，並且方案過期也會即時反映成免費方案，
+// 不會因為前端快取的 cars 陣列是舊的、或使用者繞過前端直接寫入而誤判
+async function checkCarLimit() {
+  try {
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch('/api/check-car-limit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` }
+    });
+    if (!res.ok) throw new Error('後端檢查失敗');
+    return await res.json();
+  } catch (e) {
+    // 連不到後端就退回用本地已載入的資料做基本判斷，避免網路問題讓使用者完全卡住
+    const owned = cars.filter(c => c.status === 'owned').length;
+    const limit = PLAN_LIMITS[currentUserPlan] || PLAN_LIMITS.free;
+    return { owned, limit, canAdd: owned < limit };
+  }
+}
+
 // ── SUBMIT CAR ──
 window.submitCar = async () => {
   const name = document.getElementById('f-name').value.trim();
   if (!name) { showToast('請輸入車名'); return; }
 
-  const owned = cars.filter(c => c.status === 'owned').length;
   const isWishlist = document.getElementById('toggle-wishlist').classList.contains('on');
-  if (!isWishlist && owned >= (PLAN_LIMITS[currentUserPlan] || PLAN_LIMITS.free)) {
-    showToast('已達收藏上限，請升級方案');
-    showPlanModal();
-    return;
+  if (!isWishlist) {
+    const limitCheck = await checkCarLimit();
+    if (!limitCheck.canAdd) {
+      showToast(`已達收藏上限（${limitCheck.owned}/${limitCheck.limit}），請升級方案`);
+      showPlanModal();
+      return;
+    }
   }
 
   const btn = document.getElementById('btn-submit');

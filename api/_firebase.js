@@ -22,3 +22,22 @@ export function getMessagingAdmin() {
   getFirestoreDb(); // 確保 admin app 已經初始化
   return admin.messaging();
 }
+
+export function getAuthAdmin() {
+  getFirestoreDb(); // 確保 admin app 已經初始化
+  return admin.auth();
+}
+
+// 從 Authorization: Bearer <idToken> 驗證出真正的使用者 uid，不能被前端偽造，
+// 這樣才能拿來做「後台」的方案額度判斷
+export async function verifyUid(req) {
+  const authHeader = req.headers.authorization || '';
+  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!idToken) return null;
+  try {
+    const decoded = await getAuthAdmin().verifyIdToken(idToken);
+    return decoded.uid;
+  } catch (e) {
+    return null;
+  }
+}
