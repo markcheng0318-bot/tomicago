@@ -37,6 +37,10 @@ export default async function handler(req, res) {
       await db.collection('users').doc(order.uid).update({
         plan: order.plan,
         planExpiry,
+        // 換了新的到期日，到期提醒（30/10/0天前）要跟著重新起算，
+        // 不然這次到期不會再收到提醒（因為 forExpiry 對不上新值才會重發，
+        // 但這裡直接清空最保險，不用等下次 cron 自己判斷）
+        planReminders: { forExpiry: planExpiry, sent: [] },
       });
       await orderRef.update({
         status: 'paid',

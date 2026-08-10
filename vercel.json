@@ -8,5 +8,11 @@
         { "key": "Access-Control-Allow-Headers", "value": "*" }
       ]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron-plan-expiry",
+      "schedule": "0 1 * * *"
+    }
   ]
 }

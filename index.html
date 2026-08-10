@@ -1566,6 +1566,7 @@
           <div class="plan-progress-fill" id="plan-progress" style="width:0%"></div>
         </div>
         <div class="plan-progress-text" id="plan-progress-text">點擊查看升級方案</div>
+        <div id="plan-expiry-warning" style="display:none;font-size:12px;margin-top:6px;font-weight:600"></div>
       </div>
 
       <div class="settings-list">
@@ -2451,6 +2452,21 @@ function updatePlanCard() {
   document.getElementById('plan-progress').style.width = pct + '%';
   document.getElementById('plan-progress-text').textContent = owned >= limit ? '已達上限，點此升級 →' : `還可收藏 ${limit - owned} 台`;
   document.getElementById('upgrade-banner').style.display = owned >= limit ? 'flex' : 'none';
+
+  const warningEl = document.getElementById('plan-expiry-warning');
+  if (currentUserPlan !== 'free' && currentUserPlanExpiry) {
+    const daysLeft = Math.ceil((currentUserPlanExpiry - Date.now()) / 86400000);
+    if (daysLeft <= 30) {
+      const dateStr = new Date(currentUserPlanExpiry).toLocaleDateString('zh-TW');
+      warningEl.textContent = daysLeft <= 0 ? `⚠️ 方案已到期（${dateStr}）` : `⚠️ 還有 ${daysLeft} 天到期（${dateStr}）`;
+      warningEl.style.color = daysLeft <= 10 ? 'var(--red)' : 'var(--gold)';
+      warningEl.style.display = 'block';
+    } else {
+      warningEl.style.display = 'none';
+    }
+  } else {
+    warningEl.style.display = 'none';
+  }
 }
 
 // ── CAR DETAIL ──
