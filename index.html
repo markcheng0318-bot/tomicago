@@ -1291,6 +1291,11 @@
     <div class="screen active" id="screen-news">
       <div class="page-header">
         <div class="page-title">最新<span>資訊</span></div>
+        <div class="header-actions">
+          <div class="icon-btn" onclick="showPlanModal()" title="訂閱方案與定價">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 8.5 12 22 22 8.5 12 2Z"/><path d="M2 8.5h20M12 2v20"/></svg>
+          </div>
+        </div>
       </div>
       <!-- 搜尋列 -->
       <div class="search-bar" style="margin:8px 16px 4px">
@@ -1800,7 +1805,7 @@
       <a href="#" id="news-official-link" target="_blank" rel="noopener" style="font-size:13px;color:var(--text2);text-decoration:underline">查看官網原文 →</a>
     </div>
 
-    <a href="#" id="news-buy-btn" target="_blank" rel="noopener" class="btn-submit" style="display:none;margin-top:14px;text-decoration:none">🛒 前往購買</a>
+    <a href="#" id="news-buy-btn" target="_blank" rel="noopener" class="btn-submit" style="display:none;margin-top:14px;text-decoration:none">🛒 前往官方通路購買（將離開 TomicaGo）</a>
     <button id="news-buy-locations-btn" onclick="openPurchaseLocationsModal()" style="display:none;margin-top:14px;width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:13px;border-radius:var(--radius);font-size:14px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">🛒 查看購買地點</button>
 
     <div style="display:flex;gap:8px;padding:14px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-top:16px">
@@ -1917,6 +1922,7 @@
         <div class="plan-option-desc">收藏上限 3,000 台 · 照片上傳 · 雲端同步備份 · 優先取得新功能</div>
       </div>
       <div class="plan-note">點選方案後會跳轉到綠界金流付款頁<br>付款完成後方案會自動生效（可能需要幾分鐘）</div>
+      <div class="plan-note" style="margin-top:8px">客服信箱：black80416@gmail.com</div>
       <button class="btn-submit" style="margin-top:12px" onclick="closePlanModal()">暫時不用</button>
     </div>
   </div>
