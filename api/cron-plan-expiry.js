@@ -50,8 +50,11 @@ export default async function handler(req, res) {
       if (alreadySent) continue;
 
       const tokensSnap = await userDoc.ref.collection('pushTokens').get();
-      if (!tokensSnap.empty) {
-        const tokens = tokensSnap.docs.map(d => d.id);
+      // notifyPlanExpiry 欄位是後來才加的，舊的訂閱者（本來就有開新品通知）
+      // 這個欄位是 undefined，預設當作有開啟，只有明確設成 false 才排除
+      const expiryTokenDocs = tokensSnap.docs.filter(d => d.data().notifyPlanExpiry !== false);
+      if (expiryTokenDocs.length > 0) {
+        const tokens = expiryTokenDocs.map(d => d.id);
         const planLabel = PLAN_LABELS[data.plan] || data.plan;
         const body = buildMessage(planLabel, daysLeft, data.planExpiry);
 

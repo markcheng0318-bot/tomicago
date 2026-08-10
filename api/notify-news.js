@@ -35,10 +35,13 @@ export default async function handler(req, res) {
     const messaging = getMessagingAdmin();
 
     const tokensSnap = await db.collectionGroup('pushTokens').get();
-    if (tokensSnap.empty) {
+    // notifyNews 欄位是後來才加的，舊的訂閱者這個欄位是 undefined，
+    // 預設當作有開啟（沿用他們原本啟用時的行為），只有明確設成 false 才排除
+    const newsTokenDocs = tokensSnap.docs.filter(d => d.data().notifyNews !== false);
+    if (newsTokenDocs.length === 0) {
       return res.status(200).json({ sent: 0, message: '沒有訂閱者' });
     }
-    const tokens = tokensSnap.docs.map(d => d.id);
+    const tokens = newsTokenDocs.map(d => d.id);
 
     const title = 'TomicaGo 新品通知';
     const body = buildNotificationBody(items);

@@ -1634,6 +1634,14 @@
             </div>
           </div>
 
+          <div class="settings-subitem" id="notify-expiry-item" onclick="toggleExpiryNotifications()">
+            <div class="settings-icon">⏰</div>
+            <div class="settings-text">
+              <div class="settings-label">方案到期提醒</div>
+              <div class="settings-desc" id="notify-expiry-desc">開啟後方案快到期會提前通知你</div>
+            </div>
+          </div>
+
           <div class="settings-subitem" id="install-item" style="display:none" onclick="installApp()">
             <div class="settings-icon">📲</div>
             <div class="settings-text">
@@ -4581,9 +4589,22 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// ── 新品通知（Firebase Cloud Messaging）──
+// ── 推播通知（Firebase Cloud Messaging）──
+// 新品通知／方案到期提醒共用同一個瀏覽器 FCM token，用 token 文件上的
+// notifyNews／notifyPlanExpiry 兩個獨立布林欄位分開控制，這樣使用者才能
+// 只開其中一種、不用兩種都收
 let messaging = null;
 let messagingReady = false;
+
+// 這兩種通知本來共用同一把 localStorage 開關（tg-notify-enabled），
+// 舊使用者升級後直接視為兩種都已經開啟，不用重新設定一次
+(() => {
+  if (localStorage.getItem('tg-notify-enabled') === '1') {
+    if (!localStorage.getItem('tg-notify-news-enabled')) localStorage.setItem('tg-notify-news-enabled', '1');
+    if (!localStorage.getItem('tg-notify-expiry-enabled')) localStorage.setItem('tg-notify-expiry-enabled', '1');
+    localStorage.removeItem('tg-notify-enabled');
+  }
+})();
 
 (async () => {
   try {
@@ -4592,7 +4613,7 @@ let messagingReady = false;
     messagingReady = true;
     onMessage(messaging, payload => {
       const { title, body } = payload.notification || {};
-      showToast(`🔔 ${title || '新品通知'}：${body || ''}`);
+      showToast(`🔔 ${title || 'TomicaGo'}：${body || ''}`);
     });
   } catch (e) {} finally {
     updateNotifyUI();
@@ -4600,71 +4621,85 @@ let messagingReady = false;
 })();
 
 function updateNotifyUI() {
-  const desc = document.getElementById('notify-desc');
+  updateNotifyToggleUI('notify-desc', 'tg-notify-news-enabled', '有新品上架');
+  updateNotifyToggleUI('notify-expiry-desc', 'tg-notify-expiry-enabled', '方案快到期');
+}
+
+function updateNotifyToggleUI(descId, storageKey, label) {
+  const desc = document.getElementById(descId);
   if (!desc) return;
   if (!messagingReady) { desc.textContent = '此瀏覽器不支援推播通知'; return; }
   if (Notification.permission === 'denied') { desc.textContent = '已被瀏覽器封鎖，請至瀏覽器設定開啟'; return; }
-  desc.textContent = (Notification.permission === 'granted' && localStorage.getItem('tg-notify-enabled') === '1')
-    ? '✅ 已開啟，有新品會通知你'
-    : '開啟後有新品上架會通知你';
+  desc.textContent = (Notification.permission === 'granted' && localStorage.getItem(storageKey) === '1')
+    ? `✅ 已開啟，${label}會通知你`
+    : `開啟後${label}會通知你`;
 }
 
 window.toggleNewsNotifications = async () => {
   if (!currentUser) { showToast('請先登入'); return; }
   if (!messagingReady) { showToast('此瀏覽器不支援推播通知'); return; }
-
-  const enabled = localStorage.getItem('tg-notify-enabled') === '1';
-  if (enabled) {
-    await disableNewsNotifications();
-  } else {
-    await enableNewsNotifications();
-  }
+  const enabled = localStorage.getItem('tg-notify-news-enabled') === '1';
+  await setNotifyPreference('notifyNews', 'tg-notify-news-enabled', !enabled, '新品通知');
 };
 
-async function enableNewsNotifications() {
+window.toggleExpiryNotifications = async () => {
+  if (!currentUser) { showToast('請先登入'); return; }
+  if (!messagingReady) { showToast('此瀏覽器不支援推播通知'); return; }
+  const enabled = localStorage.getItem('tg-notify-expiry-enabled') === '1';
+  await setNotifyPreference('notifyPlanExpiry', 'tg-notify-expiry-enabled', !enabled, '方案到期提醒');
+};
+
+async function setNotifyPreference(field, storageKey, nextEnabled, label) {
   try {
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      showToast('沒有允許通知權限，無法開啟');
+    if (nextEnabled) {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        showToast('沒有允許通知權限，無法開啟');
+        updateNotifyUI();
+        return;
+      }
+      const registration = await navigator.serviceWorker.ready;
+      const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration });
+      if (!token) { showToast('無法取得推播權杖'); return; }
+
+      await setDoc(doc(db, 'users', currentUser.uid, 'pushTokens', token), {
+        [field]: true,
+        createdAt: Date.now(),
+        userAgent: navigator.userAgent.slice(0, 200),
+      }, { merge: true });
+      localStorage.setItem(storageKey, '1');
       updateNotifyUI();
-      return;
+
+      if (field === 'notifyNews') {
+        // 發一則測試推播，讓使用者馬上看到系統通知確認真的有訂閱成功
+        fetch('/api/send-test-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        }).catch(() => {});
+      }
+      showToast(`🔔 ${label}已開啟`);
+    } else {
+      const registration = await navigator.serviceWorker.ready;
+      const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration }).catch(() => null);
+      if (token) {
+        const otherStorageKey = field === 'notifyNews' ? 'tg-notify-expiry-enabled' : 'tg-notify-news-enabled';
+        const otherEnabled = localStorage.getItem(otherStorageKey) === '1';
+        if (otherEnabled) {
+          // 另一種通知還開著，只關掉這一項對應的欄位，token 繼續留著
+          await setDoc(doc(db, 'users', currentUser.uid, 'pushTokens', token), { [field]: false }, { merge: true });
+        } else {
+          // 兩種通知都關了，整個取消訂閱
+          await deleteDoc(doc(db, 'users', currentUser.uid, 'pushTokens', token)).catch(() => {});
+          await deleteToken(messaging).catch(() => {});
+        }
+      }
+      localStorage.removeItem(storageKey);
+      updateNotifyUI();
+      showToast(`已關閉${label}`);
     }
-    const registration = await navigator.serviceWorker.ready;
-    const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration });
-    if (!token) { showToast('無法取得推播權杖'); return; }
-
-    await setDoc(doc(db, 'users', currentUser.uid, 'pushTokens', token), {
-      createdAt: Date.now(),
-      userAgent: navigator.userAgent.slice(0, 200),
-    });
-    localStorage.setItem('tg-notify-enabled', '1');
-    updateNotifyUI();
-
-    // 發一則測試推播，讓使用者馬上看到系統通知確認真的有訂閱成功
-    fetch('/api/send-test-notification', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token })
-    }).catch(() => {});
-    showToast('🔔 新品通知已開啟');
   } catch (e) {
-    showToast('開啟失敗：' + e.message);
-  }
-}
-
-async function disableNewsNotifications() {
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration }).catch(() => null);
-    if (token) {
-      await deleteDoc(doc(db, 'users', currentUser.uid, 'pushTokens', token)).catch(() => {});
-    }
-    await deleteToken(messaging).catch(() => {});
-    localStorage.removeItem('tg-notify-enabled');
-    updateNotifyUI();
-    showToast('已關閉新品通知');
-  } catch (e) {
-    showToast('關閉失敗：' + e.message);
+    showToast('操作失敗：' + e.message);
   }
 }
 
