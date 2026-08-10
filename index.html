@@ -1907,6 +1907,13 @@
     <div class="plan-modal">
       <div class="plan-modal-title">升級方案</div>
       <div id="plan-modal-current-status" style="display:none;font-size:12px;color:var(--gold);margin:-8px 0 16px"></div>
+      <div class="plan-option" id="plan-option-free">
+        <div class="plan-option-header">
+          <div class="plan-option-name">🆓 免費方案</div>
+          <div class="plan-option-price" data-original-price="NT$0">NT$0</div>
+        </div>
+        <div class="plan-option-desc">收藏上限 80 台</div>
+      </div>
       <div class="plan-option" id="plan-option-standard">
         <div class="plan-option-header">
           <div class="plan-option-name">🥈 標準版</div>
@@ -4175,25 +4182,33 @@ function updatePlanModalOptions() {
       ? new Date(currentUserPlanExpiry).toLocaleDateString('zh-TW')
       : '';
     statusEl.textContent = `目前方案：${PLAN_LABELS[currentUserPlan]}${expiryStr ? '，到期日 ' + expiryStr : ''}`;
-    statusEl.style.display = 'block';
   } else {
-    statusEl.style.display = 'none';
+    statusEl.textContent = `目前方案：${PLAN_LABELS.free}`;
   }
+  statusEl.style.display = 'block';
 
-  ['standard', 'pro'].forEach(plan => {
+  ['free', 'standard', 'pro'].forEach(plan => {
     const el = document.getElementById(`plan-option-${plan}`);
     const priceEl = el.querySelector('.plan-option-price');
-    const alreadyOwned = tier >= PLAN_TIER[plan];
+    // 只有「真正目前所在」的那個方案才打勾，較低階的方案只是不能再購買，
+    // 不代表那也是目前方案（例如進階版使用者，標準版不該也顯示打勾）
+    const isCurrent = plan === currentUserPlan;
+    const isPurchasable = plan !== 'free' && PLAN_TIER[plan] > tier;
 
-    if (alreadyOwned) {
+    if (isCurrent) {
       el.onclick = null;
-      el.style.opacity = '0.45';
+      el.style.opacity = '0.55';
       el.style.cursor = 'default';
       priceEl.textContent = '✓ 目前方案';
-    } else {
+    } else if (isPurchasable) {
       el.onclick = () => initiateUpgrade(plan);
       el.style.opacity = '1';
       el.style.cursor = 'pointer';
+      priceEl.textContent = priceEl.dataset.originalPrice;
+    } else {
+      el.onclick = null;
+      el.style.opacity = '0.45';
+      el.style.cursor = 'default';
       priceEl.textContent = priceEl.dataset.originalPrice;
     }
   });
