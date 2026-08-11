@@ -163,19 +163,11 @@ function findNewItems(existing, freshByMonth) {
   return fresh.filter(item => !existingKeys.has(itemKey(item)));
 }
 
-function notifyNewItems(items) {
+function postNotify(path, secret, body) {
   return new Promise((resolve) => {
-    const secret = process.env.NOTIFY_SECRET;
-    if (!secret) {
-      console.log('沒有設定 NOTIFY_SECRET，略過推播通知');
-      resolve();
-      return;
-    }
-
-    const body = JSON.stringify({ items: items.map(i => ({ title: i.title, tag: i.tag, date: i.date })) });
     const options = {
       hostname: 'www.tomicago.com',
-      path: '/api/notify-news',
+      path,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -188,14 +180,28 @@ function notifyNewItems(items) {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
-        console.log(`推播通知結果（HTTP ${res.statusCode}）:`, data);
+        console.log(`${path}（HTTP ${res.statusCode}）:`, data);
         resolve();
       });
     });
-    req.on('error', (e) => { console.error('推播通知失敗:', e.message); resolve(); });
+    req.on('error', (e) => { console.error(`${path} 失敗:`, e.message); resolve(); });
     req.write(body);
     req.end();
   });
+}
+
+// 兩支推播各自獨立：新品通知是廣播給所有訂閱者，願望清單通知是比對每個
+// 使用者自己的願望清單，任一支失敗都不影響另一支繼續執行
+async function notifyNewItems(items) {
+  const secret = process.env.NOTIFY_SECRET;
+  if (!secret) {
+    console.log('沒有設定 NOTIFY_SECRET，略過推播通知');
+    return;
+  }
+
+  const body = JSON.stringify({ items: items.map(i => ({ title: i.title, tag: i.tag, date: i.date })) });
+  await postNotify('/api/notify-news', secret, body);
+  await postNotify('/api/notify-wishlist-matches', secret, body);
 }
 
 // 合併策略：以「月份」為單位整批取代——這次有實際抓到資料的月份，

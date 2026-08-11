@@ -1599,6 +1599,31 @@
             </div>
           </div>
 
+          <div class="settings-subitem" onclick="exportToCSV()">
+            <div class="settings-icon">📑</div>
+            <div class="settings-text">
+              <div class="settings-label">匯出 CSV 備份</div>
+              <div class="settings-desc">可攜式資料備份，方便換裝置或還原</div>
+            </div>
+          </div>
+
+          <div class="settings-subitem" onclick="document.getElementById('csv-import-input').click()">
+            <div class="settings-icon">📥</div>
+            <div class="settings-text">
+              <div class="settings-label">從 CSV 匯入</div>
+              <div class="settings-desc">匯入備份檔或其他來源的收藏資料</div>
+            </div>
+          </div>
+          <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCSVImport(event)">
+
+          <div class="settings-subitem" onclick="openAchievementsModal()">
+            <div class="settings-icon">🏆</div>
+            <div class="settings-text">
+              <div class="settings-label">收藏成就</div>
+              <div class="settings-desc" id="achievements-progress-desc">解鎖你的收藏里程碑</div>
+            </div>
+          </div>
+
           <div class="settings-subitem" onclick="openPurchaseLocationsModal()">
             <div class="settings-icon">🛒</div>
             <div class="settings-text">
@@ -1639,6 +1664,14 @@
             <div class="settings-text">
               <div class="settings-label">方案到期提醒</div>
               <div class="settings-desc" id="notify-expiry-desc">開啟後方案快到期會提前通知你</div>
+            </div>
+          </div>
+
+          <div class="settings-subitem" id="notify-wishlist-item" onclick="toggleWishlistNotifications()">
+            <div class="settings-icon">🌠</div>
+            <div class="settings-text">
+              <div class="settings-label">願望清單上市通知</div>
+              <div class="settings-desc" id="notify-wishlist-desc">開啟後願望清單的車上市會通知你</div>
             </div>
           </div>
 
@@ -1955,6 +1988,21 @@
         </div>
       </div>
       <div id="changelog-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS MODAL -->
+<div class="modal-overlay" id="achievements-modal" onclick="if(event.target===this)closeAchievementsModal()">
+  <div style="width:100%;max-width:480px;padding:0 16px;max-height:80vh">
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-top:3px solid var(--gold);border-radius:var(--radius);padding:24px;max-height:80vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px">收藏成就</div>
+        <div class="icon-btn" onclick="closeAchievementsModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </div>
+      </div>
+      <div id="achievements-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
     </div>
   </div>
 </div>
@@ -2475,6 +2523,8 @@ function updatePlanCard() {
   } else {
     warningEl.style.display = 'none';
   }
+
+  updateAchievementsProgressDesc();
 }
 
 // ── CAR DETAIL ──
@@ -3689,6 +3739,176 @@ window.exportToPDF = () => {
   showToast('✅ 已下載！用瀏覽器開啟後列印成 PDF');
 };
 
+// ── CSV 匯出／匯入（可攜式備份，跟 PDF 不同，可以再匯入回來）──
+function csvEscape(v) {
+  const s = (v ?? '').toString();
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+window.exportToCSV = () => {
+  const headerLabels = ['車名','廠牌','車型','編號','系列','發行年月','價格','備註','狀態','最愛','公開展示'];
+  const lines = [headerLabels.map(csvEscape).join(',')];
+  cars.forEach(c => {
+    lines.push([
+      csvEscape(c.name),
+      csvEscape(c.brand),
+      csvEscape(c.cartype),
+      csvEscape(c.number),
+      csvEscape(c.series),
+      csvEscape(c.release),
+      csvEscape(c.price),
+      csvEscape(c.note),
+      csvEscape(c.status === 'owned' ? '已收藏' : '願望清單'),
+      csvEscape(c.favorite ? '是' : '否'),
+      csvEscape(c.isPublic ? '是' : '否'),
+    ].join(','));
+  });
+  // 開頭加 BOM，Excel 開啟中文才不會亂碼
+  const csv = String.fromCharCode(0xFEFF) + lines.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `TomicaGo_備份_${dateStr}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ CSV 已下載');
+};
+
+// 簡單但正確處理引號跟逗號的 CSV parser，不依賴外部套件
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else if (c === '"') inQuotes = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\r') { /* 忽略，交給 \n 收尾 */ }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else field += c;
+  }
+  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(v => v !== ''));
+}
+
+window.handleCSVImport = async (event) => {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  if (!currentUser) { showToast('請先登入'); return; }
+
+  try {
+    const rawText = await file.text();
+    const text = rawText.charCodeAt(0) === 0xFEFF ? rawText.slice(1) : rawText;
+    const rows = parseCSV(text);
+    if (rows.length < 2) { showToast('CSV 檔案內容是空的'); return; }
+
+    const header = rows[0];
+    const idx = {
+      name: header.indexOf('車名'), brand: header.indexOf('廠牌'), cartype: header.indexOf('車型'),
+      number: header.indexOf('編號'), series: header.indexOf('系列'), release: header.indexOf('發行年月'),
+      price: header.indexOf('價格'), note: header.indexOf('備註'), status: header.indexOf('狀態'),
+    };
+    if (idx.name === -1) { showToast('CSV 格式不正確，找不到「車名」欄位'); return; }
+
+    const parsedRows = rows.slice(1).map(r => ({
+      name: (r[idx.name] || '').trim(),
+      brand: idx.brand > -1 ? (r[idx.brand] || '').trim() : '',
+      cartype: idx.cartype > -1 ? (r[idx.cartype] || '').trim() : '',
+      number: idx.number > -1 ? (r[idx.number] || '').trim() : '',
+      series: idx.series > -1 ? (r[idx.series] || '').trim() : '',
+      release: idx.release > -1 ? (r[idx.release] || '').trim() : '',
+      price: idx.price > -1 ? (parseInt(r[idx.price]) || 0) : 0,
+      note: idx.note > -1 ? (r[idx.note] || '').trim() : '',
+      status: idx.status > -1 && (r[idx.status] || '').includes('願望') ? 'wishlist' : 'owned',
+    })).filter(r => r.name);
+
+    if (parsedRows.length === 0) { showToast('沒有讀到任何有效資料'); return; }
+
+    const ownedRows = parsedRows.filter(r => r.status === 'owned');
+    const wishlistRows = parsedRows.filter(r => r.status === 'wishlist');
+
+    // 匯入一樣要照方案上限來，不然免費使用者匯入一份 500 筆的備份就整個超過限制
+    const limitCheck = await checkCarLimit();
+    const remaining = Math.max(0, limitCheck.limit - limitCheck.owned);
+    const ownedToImport = ownedRows.slice(0, remaining);
+    const skippedCount = ownedRows.length - ownedToImport.length;
+    const toImport = [...ownedToImport, ...wishlistRows];
+
+    if (toImport.length === 0) {
+      showToast('已達收藏上限，無法匯入任何已收藏車輛');
+      return;
+    }
+
+    showToast(`匯入中...（共 ${toImport.length} 筆）`);
+    let success = 0;
+    for (const r of toImport) {
+      try {
+        await addDoc(collection(db, 'users', currentUser.uid, 'cars'), {
+          brand: r.brand, cartype: r.cartype, number: r.number, name: r.name,
+          release: r.release, series: r.series, price: r.price, note: r.note,
+          status: r.status, favorite: false, isPublic: false,
+          ownerName: currentUser.displayName || '匿名收藏家',
+          ownerPhoto: currentUser.photoURL || '',
+          likes: 0, photoUrl: null, photoPath: null, addedAt: Date.now(),
+        });
+        success++;
+      } catch (e) { /* 單筆失敗不中斷整批匯入 */ }
+    }
+
+    showToast(`✅ 已匯入 ${success} 台${skippedCount > 0 ? `，${skippedCount} 台因超過方案上限未匯入` : ''}`);
+  } catch (e) {
+    showToast('匯入失敗：' + e.message);
+  }
+};
+
+// ── 收藏成就（純前端計算，不需要額外的 Firestore 資料）──
+const ACHIEVEMENTS = [
+  { id: 'first', icon: '🚗', name: '收藏家新手', desc: '收藏第 1 台車', check: cs => cs.filter(c => c.status === 'owned').length >= 1 },
+  { id: 'ten', icon: '🏅', name: '入門收藏家', desc: '收藏滿 10 台', check: cs => cs.filter(c => c.status === 'owned').length >= 10 },
+  { id: 'fifty', icon: '🥈', name: '資深收藏家', desc: '收藏滿 50 台', check: cs => cs.filter(c => c.status === 'owned').length >= 50 },
+  { id: 'hundred', icon: '🥇', name: '收藏大師', desc: '收藏滿 100 台', check: cs => cs.filter(c => c.status === 'owned').length >= 100 },
+  { id: 'fivehundred', icon: '👑', name: '收藏王者', desc: '收藏滿 500 台', check: cs => cs.filter(c => c.status === 'owned').length >= 500 },
+  { id: 'favorite', icon: '⭐', name: '心頭好', desc: '標記第一台最愛', check: cs => cs.some(c => c.favorite) },
+  { id: 'public', icon: '🏛️', name: '樂於分享', desc: '公開第一台車到展示廳', check: cs => cs.some(c => c.isPublic) },
+  { id: 'wishlist', icon: '🌠', name: '許願成功', desc: '新增第一台願望清單', check: cs => cs.some(c => c.status === 'wishlist') },
+  { id: 'brands', icon: '🎨', name: '博覽群車', desc: '收藏涵蓋 5 種不同廠牌', check: cs => new Set(cs.filter(c => c.status === 'owned').map(c => c.brand).filter(Boolean)).size >= 5 },
+];
+
+function updateAchievementsProgressDesc() {
+  const el = document.getElementById('achievements-progress-desc');
+  if (!el) return;
+  const unlockedCount = ACHIEVEMENTS.filter(a => a.check(cars)).length;
+  el.textContent = `已解鎖 ${unlockedCount} / ${ACHIEVEMENTS.length} 項`;
+}
+
+function renderAchievements() {
+  const grid = document.getElementById('achievements-grid');
+  grid.innerHTML = ACHIEVEMENTS.map(a => {
+    const unlocked = a.check(cars);
+    return `
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;text-align:center;opacity:${unlocked ? '1' : '0.35'}">
+      <div style="font-size:32px">${unlocked ? a.icon : '🔒'}</div>
+      <div style="font-size:13px;font-weight:600;margin-top:6px">${a.name}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">${a.desc}</div>
+    </div>`;
+  }).join('');
+  updateAchievementsProgressDesc();
+}
+
+window.openAchievementsModal = () => {
+  renderAchievements();
+  document.getElementById('achievements-modal').classList.add('open');
+};
+window.closeAchievementsModal = () => document.getElementById('achievements-modal').classList.remove('open');
+
 // ── 展示廳排行榜 ──
 let showroomViewMode = 'gallery'; // 'gallery' | 'leaderboard'
 
@@ -4642,9 +4862,20 @@ let messagingReady = false;
   }
 })();
 
+// 三種推播共用同一個瀏覽器 FCM token，欄位/storageKey 對照表集中放這裡，
+// 之後如果還要再加新的通知類型，只要在這裡加一筆就好
+const NOTIFY_TYPES = {
+  notifyNews: { storageKey: 'tg-notify-news-enabled', descId: 'notify-desc', label: '有新品上架' },
+  notifyPlanExpiry: { storageKey: 'tg-notify-expiry-enabled', descId: 'notify-expiry-desc', label: '方案快到期' },
+  notifyWishlistMatch: { storageKey: 'tg-notify-wishlist-enabled', descId: 'notify-wishlist-desc', label: '願望清單上市' },
+};
+
 function updateNotifyUI() {
-  updateNotifyToggleUI('notify-desc', 'tg-notify-news-enabled', '有新品上架');
-  updateNotifyToggleUI('notify-expiry-desc', 'tg-notify-expiry-enabled', '方案快到期');
+  Object.values(NOTIFY_TYPES).forEach(t => updateNotifyToggleUI(t.descId, t.storageKey, t.label));
+}
+
+function anyOtherNotifyEnabled(excludeField) {
+  return Object.entries(NOTIFY_TYPES).some(([field, t]) => field !== excludeField && localStorage.getItem(t.storageKey) === '1');
 }
 
 function updateNotifyToggleUI(descId, storageKey, label) {
@@ -4669,6 +4900,13 @@ window.toggleExpiryNotifications = async () => {
   if (!messagingReady) { showToast('此瀏覽器不支援推播通知'); return; }
   const enabled = localStorage.getItem('tg-notify-expiry-enabled') === '1';
   await setNotifyPreference('notifyPlanExpiry', 'tg-notify-expiry-enabled', !enabled, '方案到期提醒');
+};
+
+window.toggleWishlistNotifications = async () => {
+  if (!currentUser) { showToast('請先登入'); return; }
+  if (!messagingReady) { showToast('此瀏覽器不支援推播通知'); return; }
+  const enabled = localStorage.getItem('tg-notify-wishlist-enabled') === '1';
+  await setNotifyPreference('notifyWishlistMatch', 'tg-notify-wishlist-enabled', !enabled, '願望清單上市通知');
 };
 
 async function setNotifyPreference(field, storageKey, nextEnabled, label) {
@@ -4705,13 +4943,11 @@ async function setNotifyPreference(field, storageKey, nextEnabled, label) {
       const registration = await navigator.serviceWorker.ready;
       const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration }).catch(() => null);
       if (token) {
-        const otherStorageKey = field === 'notifyNews' ? 'tg-notify-expiry-enabled' : 'tg-notify-news-enabled';
-        const otherEnabled = localStorage.getItem(otherStorageKey) === '1';
-        if (otherEnabled) {
-          // 另一種通知還開著，只關掉這一項對應的欄位，token 繼續留著
+        if (anyOtherNotifyEnabled(field)) {
+          // 其他種類的通知還開著，只關掉這一項對應的欄位，token 繼續留著
           await setDoc(doc(db, 'users', currentUser.uid, 'pushTokens', token), { [field]: false }, { merge: true });
         } else {
-          // 兩種通知都關了，整個取消訂閱
+          // 全部通知都關了，整個取消訂閱
           await deleteDoc(doc(db, 'users', currentUser.uid, 'pushTokens', token)).catch(() => {});
           await deleteToken(messaging).catch(() => {});
         }
