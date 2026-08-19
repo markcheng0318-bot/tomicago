@@ -1471,6 +1471,17 @@
         </div>
         <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoSelect(event)">
 
+        <button type="button" id="ocr-scan-btn" onclick="triggerOcrScan()" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:12px;border-radius:var(--radius);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px;font-family:'Noto Sans TC',sans-serif">
+          📷 拍照辨識盒裝文字（自動填入編號/價格）
+        </button>
+        <input type="file" id="ocr-input" accept="image/*" capture="environment" style="display:none" onchange="handleOcrScan(event)">
+
+        <div id="ocr-result-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:14px;font-size:12px;color:var(--text2);white-space:pre-wrap;max-height:120px;overflow-y:auto;position:relative">
+          <button type="button" onclick="document.getElementById('ocr-result-box').style.display='none'" style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px">✕</button>
+          <div style="font-weight:600;margin-bottom:4px;color:var(--text)">辨識到的文字（車名請自行參考複製）：</div>
+          <div id="ocr-result-text"></div>
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">廠牌</label>
@@ -2929,6 +2940,68 @@ window.filterDropdown = (inputId, listId) => {
 window.selectDropdown = (inputId, listId, value) => {
   document.getElementById(inputId).value = value;
   document.getElementById(listId).classList.remove('open');
+};
+
+// ── 拍照辨識盒裝文字（Tesseract.js，純前端 OCR，不用付費 AI API）──
+// 完全在瀏覽器裡跑，第一次使用會下載辨識引擎跟日文語言包（有點大，要等一下），
+// 之後同一個分頁內都會重複使用同一個 worker，不用每次重新下載
+let ocrWorker = null;
+let ocrWorkerLoading = null;
+
+window.triggerOcrScan = () => {
+  document.getElementById('ocr-input').click();
+};
+
+window.handleOcrScan = async (event) => {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+
+  const btn = document.getElementById('ocr-scan-btn');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+
+  try {
+    if (!ocrWorker) {
+      btn.textContent = '首次使用需下載辨識引擎，請稍候...';
+      if (!ocrWorkerLoading) {
+        ocrWorkerLoading = (async () => {
+          const mod = await import('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.esm.min.js');
+          return mod.default.createWorker(['jpn', 'eng']);
+        })();
+      }
+      ocrWorker = await ocrWorkerLoading;
+    }
+
+    btn.textContent = '辨識中...';
+    const { data: { text } } = await ocrWorker.recognize(file);
+
+    const numberMatch = text.match(/No\.?\s*(\d+)/i);
+    const priceMatch = text.match(/([\d,]{2,})\s*円/);
+
+    if (numberMatch) document.getElementById('f-number').value = numberMatch[1];
+    if (priceMatch) document.getElementById('f-price').value = priceMatch[1].replace(/,/g, '');
+
+    const resultBox = document.getElementById('ocr-result-box');
+    const resultText = document.getElementById('ocr-result-text');
+    const cleanText = text.trim();
+    resultText.textContent = cleanText || '（沒有辨識到文字，請確認照片清晰、光線充足）';
+    resultBox.style.display = 'block';
+
+    if (numberMatch || priceMatch) {
+      const filled = [numberMatch ? '編號' : null, priceMatch ? '價格' : null].filter(Boolean).join('、');
+      showToast(`✅ 已自動填入${filled}，車名請參考下方文字手動輸入`);
+    } else {
+      showToast(cleanText ? '沒有自動抓到編號或價格，請參考下方文字手動輸入' : '沒有辨識到文字，請換張清晰一點的照片再試');
+    }
+  } catch (e) {
+    showToast('辨識失敗：' + e.message);
+    ocrWorker = null;
+    ocrWorkerLoading = null;
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = originalText;
 };
 
 // 收藏上限的真正判斷邏輯放在後端（api/check-car-limit.js），用 Firestore
