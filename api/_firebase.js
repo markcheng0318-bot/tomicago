@@ -28,6 +28,10 @@ export function getAuthAdmin() {
   return admin.auth();
 }
 
+export function increment(n) {
+  return admin.firestore.FieldValue.increment(n);
+}
+
 // 從 Authorization: Bearer <idToken> 驗證出真正的使用者 uid，不能被前端偽造，
 // 這樣才能拿來做「後台」的方案額度判斷
 export async function verifyUid(req) {

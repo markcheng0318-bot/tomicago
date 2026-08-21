@@ -1981,6 +1981,12 @@
         </div>
         <div class="plan-option-desc">收藏上限 3,000 台 · 照片上傳 · 雲端同步備份 · 優先取得新功能</div>
       </div>
+      <div style="display:flex;gap:8px;margin:14px 0 4px">
+        <input class="form-input" type="text" id="promo-code-input" placeholder="優惠碼（選填）" style="flex:1;text-transform:uppercase" onkeydown="if(event.key==='Enter'){event.preventDefault();applyPromoCode();}">
+        <button type="button" onclick="applyPromoCode()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:0 16px;border-radius:var(--radius);font-size:13px;cursor:pointer;white-space:nowrap;font-family:'Noto Sans TC',sans-serif">套用</button>
+      </div>
+      <div id="promo-code-status" style="display:none;font-size:12px;margin:0 0 8px"></div>
+
       <div class="plan-note">點選方案後會跳轉到綠界金流付款頁<br>付款完成後方案會自動生效（可能需要幾分鐘）</div>
       <div class="plan-note" style="margin-top:8px">客服信箱：black80416@gmail.com</div>
       <button class="btn-submit" style="margin-top:12px" onclick="closePlanModal()">暫時不用</button>
@@ -4512,6 +4518,15 @@ window.saveDisplayName = async () => {
 // ── PLAN MODAL ──
 // 已經擁有的方案（或更高階的）不能再顯示成可購買，不然使用者會誤按
 // 重複付款，或花錢「升級」到比目前還低階的方案
+let appliedPromoCode = null; // { code, type, value, applicablePlans } | null
+
+function computeDiscountedPrice(originalPrice, promo) {
+  const amount = promo.type === 'percent'
+    ? originalPrice * (1 - promo.value / 100)
+    : originalPrice - promo.value;
+  return Math.max(1, Math.round(amount));
+}
+
 function updatePlanModalOptions() {
   const tier = PLAN_TIER[currentUserPlan] ?? 0;
   const statusEl = document.getElementById('plan-modal-current-status');
@@ -4543,7 +4558,15 @@ function updatePlanModalOptions() {
       el.onclick = () => initiateUpgrade(plan);
       el.style.opacity = '1';
       el.style.cursor = 'pointer';
-      priceEl.textContent = priceEl.dataset.originalPrice;
+
+      const promoApplies = appliedPromoCode && (!appliedPromoCode.applicablePlans || appliedPromoCode.applicablePlans.includes(plan));
+      if (promoApplies) {
+        const original = parseInt(priceEl.dataset.originalPrice.replace(/[^\d]/g, ''), 10);
+        const discounted = computeDiscountedPrice(original, appliedPromoCode);
+        priceEl.innerHTML = `<span style="text-decoration:line-through;color:var(--text3);font-size:11px;margin-right:4px">NT$${original}</span>NT$${discounted} / 年`;
+      } else {
+        priceEl.textContent = priceEl.dataset.originalPrice;
+      }
     } else {
       el.onclick = null;
       el.style.opacity = '0.45';
@@ -4553,7 +4576,52 @@ function updatePlanModalOptions() {
   });
 }
 
+window.applyPromoCode = async () => {
+  const input = document.getElementById('promo-code-input');
+  const statusEl = document.getElementById('promo-code-status');
+  const code = input.value.trim().toUpperCase();
+
+  if (!code) {
+    appliedPromoCode = null;
+    statusEl.style.display = 'none';
+    updatePlanModalOptions();
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/validate-promo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    const data = await res.json();
+
+    if (!data.valid) {
+      appliedPromoCode = null;
+      statusEl.textContent = `❌ ${data.error || '優惠碼無效'}`;
+      statusEl.style.color = 'var(--red)';
+      statusEl.style.display = 'block';
+      updatePlanModalOptions();
+      return;
+    }
+
+    appliedPromoCode = { code, type: data.type, value: data.value, applicablePlans: data.applicablePlans };
+    statusEl.textContent = `✅ 優惠碼已套用：${data.type === 'percent' ? data.value + '% off' : 'NT$' + data.value + ' off'}`;
+    statusEl.style.color = 'var(--gold)';
+    statusEl.style.display = 'block';
+    updatePlanModalOptions();
+  } catch (e) {
+    appliedPromoCode = null;
+    statusEl.textContent = '驗證失敗，請稍後再試';
+    statusEl.style.color = 'var(--red)';
+    statusEl.style.display = 'block';
+  }
+};
+
 window.showPlanModal = () => {
+  appliedPromoCode = null;
+  document.getElementById('promo-code-input').value = '';
+  document.getElementById('promo-code-status').style.display = 'none';
   updatePlanModalOptions();
   document.getElementById('plan-modal').classList.add('open');
 };
@@ -4569,7 +4637,7 @@ window.initiateUpgrade = async (plan) => {
     const res = await fetch('/api/checkout-create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid: currentUser.uid, plan })
+      body: JSON.stringify({ uid: currentUser.uid, plan, promoCode: appliedPromoCode?.code || null })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '建立訂單失敗');

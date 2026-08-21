@@ -1,5 +1,5 @@
 import { generateCheckMacValue, getEcpayConfig } from './_ecpay.js';
-import { getFirestoreDb } from './_firebase.js';
+import { getFirestoreDb, increment } from './_firebase.js';
 
 // 綠界的付款結果通知（Server 對 Server），一定要驗證 CheckMacValue，
 // 否則任何人都能直接對這支 API POST 假的「付款成功」訊息來偷升級方案。
@@ -42,6 +42,11 @@ export default async function handler(req, res) {
         // 但這裡直接清空最保險，不用等下次 cron 自己判斷）
         planReminders: { forExpiry: planExpiry, sent: [] },
       });
+      // 優惠碼的使用次數要到「真的付款成功」才真正扣，不能在剛建立訂單
+      // 時就扣，不然使用者點了結帳卻沒付錢，會平白浪費掉一次限量名額
+      if (order.promoCode) {
+        await db.collection('promoCodes').doc(order.promoCode).update({ usedCount: increment(1) }).catch(() => {});
+      }
       await orderRef.update({
         status: 'paid',
         paidAt: Date.now(),
