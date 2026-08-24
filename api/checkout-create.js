@@ -1,5 +1,5 @@
 import { generateCheckMacValue, getEcpayConfig, PLAN_PRICES, PLAN_TIER } from './_ecpay.js';
-import { getFirestoreDb } from './_firebase.js';
+import { getFirestoreDb, verifyUid } from './_firebase.js';
 import { computeDiscountedAmount, validatePromoDoc } from './_promo.js';
 
 function pad(n) { return String(n).padStart(2, '0'); }
@@ -22,6 +22,13 @@ export default async function handler(req, res) {
     const planInfo = PLAN_PRICES[plan];
     if (!uid || !planInfo) {
       return res.status(400).json({ error: '缺少必要參數' });
+    }
+
+    // uid 一定要跟呼叫者身份驗證後的結果一致，不能只信前端傳來的字串，
+    // 不然任何人都能拿別人的 uid 建立訂單、把付款結果導去別人的帳號
+    const verifiedUid = await verifyUid(req);
+    if (!verifiedUid || verifiedUid !== uid) {
+      return res.status(401).json({ error: '請先登入' });
     }
 
     const db = getFirestoreDb();

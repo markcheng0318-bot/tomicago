@@ -2211,6 +2211,14 @@ const provider = new GoogleAuthProvider();
 // 要去 Firebase Console → 專案設定 → Cloud Messaging → 產生 Web Push 憑證 取得
 const FCM_VAPID_KEY = 'BJ7O8bHWKEYdMuTdu1ItVkwjdbCDJo3fFcIkdNCsBnFi1r7YIYNVZRGtVb1YS8GL3kAbyTq4cg7Q2a1PTkXhsws';
 
+// 任何會用 innerHTML 插入「使用者輸入或跟使用者相關」的文字（車名、備註、
+// 留言、暱稱...）都一定要先過這個函式，不然惡意使用者可以把 <img
+// onerror=...> 這類東西存進 Firestore，讓其他人瀏覽到時直接執行任意 JS
+// （儲存型 XSS）。純靜態文案／自己寫死的資料不需要，但只要有疑慮就用。
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 // ── STATE ──
 let currentUser = null;
 let cars = [];
@@ -2472,15 +2480,15 @@ window.renderGarage = () => {
     <div class="car-card ${car.status}" style="animation-delay:${i * 0.04}s${isSelected?';border-color:var(--red);background:var(--red-dim)':''}" onclick="${multiSelectMode ? `toggleCarSelect('${car.id}')` : `openDetail('${car.id}')`}">
       ${multiSelectMode ? `<div style="position:absolute;top:8px;left:8px;width:22px;height:22px;border-radius:50%;background:${isSelected?'var(--red)':'rgba(0,0,0,0.5)'};border:2px solid ${isSelected?'var(--red)':'rgba(255,255,255,0.7)'};display:flex;align-items:center;justify-content:center;z-index:3">${isSelected?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>` : ''}
       <div class="car-card-img">
-        ${car.photoUrl ? `<img src="${car.photoUrl}" alt="${car.name}" loading="lazy">` : `<span>🚗</span>`}
+        ${car.photoUrl ? `<img src="${car.photoUrl}" alt="${escapeHtml(car.name)}" loading="lazy">` : `<span>🚗</span>`}
         ${car.status === 'wishlist' ? '<div class="wishlist-badge">願望</div>' : ''}
-        ${car.number ? `<div class="car-num-badge">${car.number}</div>` : ''}
+        ${car.number ? `<div class="car-num-badge">${escapeHtml(car.number)}</div>` : ''}
         ${!multiSelectMode ? `<button class="car-fav-btn" onclick="event.stopPropagation();toggleFav('${car.id}')">${car.favorite ? '⭐' : '☆'}</button>` : ''}
       </div>
       <div class="car-card-info">
-        <div class="car-card-name">${car.name}</div>
+        <div class="car-card-name">${escapeHtml(car.name)}</div>
         <div class="car-card-meta">
-          <span>${car.brand || car.year || ''}</span>
+          <span>${escapeHtml(car.brand || car.year || '')}</span>
           ${car.price ? `<span class="car-price">¥${Number(car.price).toLocaleString()}</span>` : ''}
         </div>
       </div>
@@ -2582,7 +2590,7 @@ window.openDetail = (id) => {
   document.getElementById('detail-rows').innerHTML = rows.map(([l,v]) => `
     <div class="detail-row">
       <span class="detail-row-label">${l}</span>
-      <span class="detail-row-val">${v}</span>
+      <span class="detail-row-val">${escapeHtml(v)}</span>
     </div>`).join('');
 
   const noteWrap = document.getElementById('detail-note-wrap');
@@ -3153,7 +3161,8 @@ window.openNewsDetail = async (index, focusComments) => {
 
   const buyBtn = document.getElementById('news-buy-btn');
   const buyLocationsBtn = document.getElementById('news-buy-locations-btn');
-  if (n.buyUrl) {
+  // 只允許 http/https，避免爬蟲資料萬一被污染成 javascript: 之類的連結
+  if (n.buyUrl && /^https?:\/\//i.test(n.buyUrl)) {
     buyBtn.href = n.buyUrl;
     buyBtn.style.display = 'flex';
     buyLocationsBtn.style.display = 'none';
@@ -3241,14 +3250,14 @@ function renderNewsComments(comments) {
   wrap.innerHTML = comments.map(c => `
     <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="width:32px;height:32px;border-radius:50%;background:var(--bg3);overflow:hidden;flex-shrink:0">
-        ${c.userPhoto ? `<img src="${c.userPhoto}" style="width:100%;height:100%;object-fit:cover">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px">👤</div>'}
+        ${c.userPhoto ? `<img src="${escapeHtml(c.userPhoto)}" style="width:100%;height:100%;object-fit:cover">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px">👤</div>'}
       </div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <div style="font-size:12px;font-weight:600;color:var(--text)">${c.userName || '匿名'}</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text)">${escapeHtml(c.userName || '匿名')}</div>
           ${currentUser && currentUser.uid === c.userId ? `<button onclick="deleteNewsComment('${c.id}')" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;flex-shrink:0">刪除</button>` : ''}
         </div>
-        <div style="font-size:13px;color:var(--text2);margin-top:2px;line-height:1.5;white-space:pre-wrap;word-break:break-word">${c.text}</div>
+        <div style="font-size:13px;color:var(--text2);margin-top:2px;line-height:1.5;white-space:pre-wrap;word-break:break-word">${escapeHtml(c.text)}</div>
       </div>
     </div>`).join('');
 }
@@ -3467,17 +3476,17 @@ function renderNewsList(items) {
       <div class="news-card" onclick="openNewsDetail(${i})" style="cursor:pointer">
         <div class="news-card-img" style="${n.image ? '' : 'font-size:48px'}" data-icon="${tagIcons[n.tag]||'🚗'}">
           ${n.image
-            ? `<img src="/api/img?url=${encodeURIComponent(n.image)}" alt="${n.title}" style="width:100%;height:100%;object-fit:cover" onerror="var p=this.parentElement;if(p){p.innerHTML='<span style=\\'font-size:48px\\'>'+(p.dataset.icon||'🚗')+'</span>';}">`
+            ? `<img src="/api/img?url=${encodeURIComponent(n.image)}" alt="${escapeHtml(n.title)}" style="width:100%;height:100%;object-fit:cover" onerror="var p=this.parentElement;if(p){p.innerHTML='<span style=\\'font-size:48px\\'>'+(p.dataset.icon||'🚗')+'</span>';}">`
             : `<span style="font-size:48px">${tagIcons[n.tag] || '🚗'}</span>`}
         </div>
         <div class="news-card-body">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-            <div class="news-tag" style="background:rgba(0,0,0,0.06);color:${tagColors[n.tag]||'var(--red)'};border-color:${tagColors[n.tag]||'var(--red)'}30;margin-bottom:0">${n.tag}</div>
-            <div style="font-size:10px;color:var(--text3)">${n.date}</div>
+            <div class="news-tag" style="background:rgba(0,0,0,0.06);color:${tagColors[n.tag]||'var(--red)'};border-color:${tagColors[n.tag]||'var(--red)'}30;margin-bottom:0">${escapeHtml(n.tag)}</div>
+            <div style="font-size:10px;color:var(--text3)">${escapeHtml(n.date)}</div>
           </div>
-          <div class="news-title">${n.title}</div>
-          ${n.desc ? `<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5">${n.desc}</div>` : ''}
-          ${n.series ? `<div style="font-size:11px;color:var(--text3);margin-top:6px">📦 ${n.series}</div>` : ''}
+          <div class="news-title">${escapeHtml(n.title)}</div>
+          ${n.desc ? `<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5">${escapeHtml(n.desc)}</div>` : ''}
+          ${n.series ? `<div style="font-size:11px;color:var(--text3);margin-top:6px">📦 ${escapeHtml(n.series)}</div>` : ''}
           <div style="display:flex;align-items:center;gap:16px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)" onclick="event.stopPropagation()">
             <button id="news-card-like-btn-${i}" onclick="quickToggleNewsLike(event, ${i})" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;padding:2px">
               <span>❤️</span><span id="news-card-like-count-${i}">-</span>
@@ -3579,15 +3588,15 @@ function populateFilterOptions() {
 
   const brandSel = document.getElementById('filter-brand');
   const current = brandSel.value;
-  brandSel.innerHTML = '<option value="">全部廠牌</option>' + brands.map(b => `<option value="${b}" ${b===current?'selected':''}>${b}</option>`).join('');
+  brandSel.innerHTML = '<option value="">全部廠牌</option>' + brands.map(b => `<option value="${escapeHtml(b)}" ${b===current?'selected':''}>${escapeHtml(b)}</option>`).join('');
 
   const cartypeSel = document.getElementById('filter-cartype');
   const currentCT = cartypeSel.value;
-  cartypeSel.innerHTML = '<option value="">全部車型</option>' + cartypes.map(b => `<option value="${b}" ${b===currentCT?'selected':''}>${b}</option>`).join('');
+  cartypeSel.innerHTML = '<option value="">全部車型</option>' + cartypes.map(b => `<option value="${escapeHtml(b)}" ${b===currentCT?'selected':''}>${escapeHtml(b)}</option>`).join('');
 
   const seriesSel = document.getElementById('filter-series');
   const currentS = seriesSel.value;
-  seriesSel.innerHTML = '<option value="">全部系列</option>' + series.map(b => `<option value="${b}" ${b===currentS?'selected':''}>${b}</option>`).join('');
+  seriesSel.innerHTML = '<option value="">全部系列</option>' + series.map(b => `<option value="${escapeHtml(b)}" ${b===currentS?'selected':''}>${escapeHtml(b)}</option>`).join('');
 }
 
 window.clearAdvFilter = () => {
@@ -3695,7 +3704,7 @@ function renderStatsPanel() {
       ${topBrands.map(([brand, count], i) => `
         <div style="margin-bottom:6px">
           <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-            <span style="color:var(--text)">${brand}</span>
+            <span style="color:var(--text)">${escapeHtml(brand)}</span>
             <span style="color:var(--text2)">${count} 台</span>
           </div>
           <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
@@ -3710,7 +3719,7 @@ function renderStatsPanel() {
       ${topSeries.map(([series, count], i) => `
         <div style="margin-bottom:6px">
           <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-            <span style="color:var(--text)">${series}</span>
+            <span style="color:var(--text)">${escapeHtml(series)}</span>
             <span style="color:var(--text2)">${count} 台</span>
           </div>
           <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
@@ -3725,7 +3734,7 @@ function renderStatsPanel() {
       ${top5.map((car, i) => `
         <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);${i===top5.length-1?'border:none':''}">
           <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:${colors[i]};min-width:20px">${i+1}</div>
-          <div style="flex:1;font-size:13px;color:var(--text)">${car.name}</div>
+          <div style="flex:1;font-size:13px;color:var(--text)">${escapeHtml(car.name)}</div>
           <div style="font-size:13px;color:var(--gold);font-weight:600">¥${Number(car.price).toLocaleString()}</div>
         </div>`).join('')}
     </div>` : ''}
@@ -3770,13 +3779,13 @@ window.exportToPDF = () => {
       <tbody>
         ${list.map((c,i) => `
           <tr style="background:${i%2===0?'white':'#fafafa'}">
-            <td style="border:1px solid #ddd;padding:6px 8px">${c.number||'-'}</td>
-            <td style="border:1px solid #ddd;padding:6px 8px;font-weight:500">${c.name}</td>
-            <td style="border:1px solid #ddd;padding:6px 8px">${c.brand||'-'}</td>
-            <td style="border:1px solid #ddd;padding:6px 8px">${c.series||'-'}</td>
-            <td style="border:1px solid #ddd;padding:6px 8px">${c.release||'-'}</td>
+            <td style="border:1px solid #ddd;padding:6px 8px">${escapeHtml(c.number)||'-'}</td>
+            <td style="border:1px solid #ddd;padding:6px 8px;font-weight:500">${escapeHtml(c.name)}</td>
+            <td style="border:1px solid #ddd;padding:6px 8px">${escapeHtml(c.brand)||'-'}</td>
+            <td style="border:1px solid #ddd;padding:6px 8px">${escapeHtml(c.series)||'-'}</td>
+            <td style="border:1px solid #ddd;padding:6px 8px">${escapeHtml(c.release)||'-'}</td>
             <td style="border:1px solid #ddd;padding:6px 8px;text-align:right">${c.price?'¥'+Number(c.price).toLocaleString():'-'}</td>
-            <td style="border:1px solid #ddd;padding:6px 8px">${c.note||''}</td>
+            <td style="border:1px solid #ddd;padding:6px 8px">${escapeHtml(c.note)}</td>
           </tr>`).join('')}
       </tbody>
     </table>`;
@@ -4031,10 +4040,10 @@ async function loadLeaderboard() {
         <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px${i<3?';border-left:3px solid var(--gold)':''}">
           <div style="font-size:${i<3?'24px':'16px'};min-width:32px;text-align:center">${medals[i]||`#${i+1}`}</div>
           <div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);overflow:hidden;flex-shrink:0">
-            ${u.photoURL ? `<img src="${u.photoURL}" style="width:100%;height:100%;object-fit:cover">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:16px">👤</div>'}
+            ${u.photoURL ? `<img src="${escapeHtml(u.photoURL)}" style="width:100%;height:100%;object-fit:cover">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:16px">👤</div>'}
           </div>
           <div style="flex:1">
-            <div style="font-size:14px;font-weight:600;color:var(--text)">${u.name}</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text)">${escapeHtml(u.name)}</div>
           </div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--red)">${u.total}<span style="font-size:12px;color:var(--text3);margin-left:2px">台</span></div>
         </div>`).join('')}
@@ -4066,11 +4075,11 @@ function populateShowroomFilterOptions() {
 
   const brandSel = document.getElementById('showroom-brand-filter');
   const curBrand = brandSel.value;
-  brandSel.innerHTML = '<option value="">全部廠牌</option>' + brands.map(b => `<option value="${b}" ${b===curBrand?'selected':''}>${b}</option>`).join('');
+  brandSel.innerHTML = '<option value="">全部廠牌</option>' + brands.map(b => `<option value="${escapeHtml(b)}" ${b===curBrand?'selected':''}>${escapeHtml(b)}</option>`).join('');
 
   const seriesSel = document.getElementById('showroom-series-filter');
   const curSeries = seriesSel.value;
-  seriesSel.innerHTML = '<option value="">全部系列</option>' + series.map(s => `<option value="${s}" ${s===curSeries?'selected':''}>${s}</option>`).join('');
+  seriesSel.innerHTML = '<option value="">全部系列</option>' + series.map(s => `<option value="${escapeHtml(s)}" ${s===curSeries?'selected':''}>${escapeHtml(s)}</option>`).join('');
 }
 
 async function loadShowroom() {
@@ -4124,18 +4133,18 @@ function renderShowroomGrid(allCars) {
   grid.innerHTML = list.map((car, i) => `
     <div class="car-card ${car.status}" style="animation-delay:${i*0.04}s;cursor:pointer" onclick="openShowroomDetail(${i})">
       <div class="car-card-img">
-        ${car.photoUrl ? `<img src="${car.photoUrl}" alt="${car.name}" loading="lazy">` : '<span>🚗</span>'}
-        ${car.number ? `<div class="car-num-badge">${car.number}</div>` : ''}
+        ${car.photoUrl ? `<img src="${car.photoUrl}" alt="${escapeHtml(car.name)}" loading="lazy">` : '<span>🚗</span>'}
+        ${car.number ? `<div class="car-num-badge">${escapeHtml(car.number)}</div>` : ''}
         ${car.status === 'wishlist' ? '<div class="wishlist-badge">願望</div>' : ''}
       </div>
       <div class="car-card-info">
-        <div class="car-card-name">${car.name}</div>
+        <div class="car-card-name">${escapeHtml(car.name)}</div>
         <div class="car-card-meta">
-          <span style="font-size:10px">${car.brand || ''}</span>
+          <span style="font-size:10px">${escapeHtml(car.brand || '')}</span>
           ${car.price ? `<span class="car-price">¥${Number(car.price).toLocaleString()}</span>` : ''}
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
-          <span style="font-size:10px;color:var(--text3)">${car.series || ''}</span>
+          <span style="font-size:10px;color:var(--text3)">${escapeHtml(car.series || '')}</span>
           <div style="display:flex;align-items:center;gap:8px">
             <span id="showroom-card-comment-count-${i}" style="font-size:12px;color:var(--text3);display:flex;align-items:center;gap:3px">💬 ${car.commentCount || 0}</span>
             <button id="showroom-card-like-btn-${i}" onclick="quickToggleShowroomLike(event, ${i})" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:3px;padding:2px">
@@ -4285,7 +4294,7 @@ window.openShowroomDetail = async (index) => {
   document.getElementById('showroom-detail-rows').innerHTML = rows.map(([l,v]) => `
     <div class="detail-row">
       <span class="detail-row-label">${l}</span>
-      <span class="detail-row-val">${v}</span>
+      <span class="detail-row-val">${escapeHtml(v)}</span>
     </div>`).join('');
 
   const noteWrap = document.getElementById('showroom-detail-note-wrap');
@@ -4354,14 +4363,14 @@ function renderShowroomComments(comments) {
   wrap.innerHTML = comments.map(c => `
     <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="width:32px;height:32px;border-radius:50%;background:var(--bg3);overflow:hidden;flex-shrink:0">
-        ${c.userPhoto ? `<img src="${c.userPhoto}" style="width:100%;height:100%;object-fit:cover">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px">👤</div>'}
+        ${c.userPhoto ? `<img src="${escapeHtml(c.userPhoto)}" style="width:100%;height:100%;object-fit:cover">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px">👤</div>'}
       </div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <div style="font-size:12px;font-weight:600;color:var(--text)">${c.userName || '匿名'}</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text)">${escapeHtml(c.userName || '匿名')}</div>
           ${currentUser && (currentUser.uid === c.userId || currentUser.uid === currentShowroomCar?.ownerId) ? `<button onclick="deleteShowroomComment('${c.id}')" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;flex-shrink:0">刪除</button>` : ''}
         </div>
-        <div style="font-size:13px;color:var(--text2);margin-top:2px;line-height:1.5;white-space:pre-wrap;word-break:break-word">${c.text}</div>
+        <div style="font-size:13px;color:var(--text2);margin-top:2px;line-height:1.5;white-space:pre-wrap;word-break:break-word">${escapeHtml(c.text)}</div>
       </div>
     </div>`).join('');
 }
@@ -4640,9 +4649,10 @@ window.initiateUpgrade = async (plan) => {
   }
 
   try {
+    const idToken = await currentUser.getIdToken();
     const res = await fetch('/api/checkout-create', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
       body: JSON.stringify({ uid: currentUser.uid, plan, promoCode: appliedPromoCode?.code || null })
     });
     const data = await res.json();
