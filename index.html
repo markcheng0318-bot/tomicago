@@ -3334,7 +3334,9 @@ function updateNewsListCardUI(nid) {
     if (likeCountEl) likeCountEl.textContent = agg.likes || 0;
     if (commentCountEl) commentCountEl.textContent = agg.commentCount || 0;
     if (likeBtn) {
-      likeBtn.style.color = reaction === 'like' ? 'var(--red)' : '';
+      // 這裡不能重設成空字串——清空 inline style 會讓瀏覽器退回預設的黑色文字，
+      // 在深色模式下數字會整個看不到，一定要明確指回原本的 --text3
+      likeBtn.style.color = reaction === 'like' ? 'var(--red)' : 'var(--text3)';
     }
   });
 }
@@ -4195,7 +4197,8 @@ function updateShowroomListCardUI(carId) {
     const likeBtn = document.getElementById(`showroom-card-like-btn-${i}`);
     if (likeCountEl) likeCountEl.textContent = agg.likes ?? (car.likes || 0);
     if (commentCountEl) commentCountEl.innerHTML = `💬 ${agg.commentCount ?? (car.commentCount || 0)}`;
-    if (likeBtn) likeBtn.style.color = reaction === 'like' ? 'var(--red)' : '';
+    // 不能重設成空字串，會退回瀏覽器預設黑色文字，深色模式下看不到
+    if (likeBtn) likeBtn.style.color = reaction === 'like' ? 'var(--red)' : 'var(--text3)';
   });
 }
 
