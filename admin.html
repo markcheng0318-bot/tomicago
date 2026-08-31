@@ -469,11 +469,12 @@
       </div>
     </div>
 
-    <!-- PROMO CODES TABLE -->
+    <!-- PROMO CODES / REFERRAL LINK TABLE -->
     <div class="section-title">
-      優惠碼
+      優惠碼與推廣連結
       <span class="count" id="promo-count">載入中...</span>
-      <button class="action-btn gold" style="margin-left:auto" onclick="openAddPromoModal()">＋ 新增優惠碼</button>
+      <button class="action-btn" style="margin-left:auto" onclick="exportPromoStatsCSV()">匯出 CSV</button>
+      <button class="action-btn gold" onclick="openAddPromoModal()">＋ 新增優惠碼</button>
     </div>
 
     <div class="table-wrap">
@@ -482,16 +483,19 @@
           <thead>
             <tr>
               <th>代碼</th>
+              <th>合作對象</th>
               <th>折扣</th>
-              <th>適用方案</th>
-              <th>使用次數</th>
+              <th>點擊數</th>
+              <th>轉換數</th>
+              <th>轉換率</th>
+              <th>營收</th>
               <th>到期日</th>
               <th>狀態</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody id="promo-tbody">
-            <tr><td colspan="7" class="loading"><div class="spinner"></div>載入中...</td></tr>
+            <tr><td colspan="10" class="loading"><div class="spinner"></div>載入中...</td></tr>
           </tbody>
         </table>
       </div>
@@ -560,7 +564,9 @@
     <div class="modal-title" id="promo-modal-title">新增優惠碼</div>
     <input type="hidden" id="promo-original-code">
     <div class="modal-label">代碼</div>
-    <input type="text" class="modal-select" id="promo-code" placeholder="例如 WELCOME10" style="text-transform:uppercase;font-family:monospace">
+    <input type="text" class="modal-select" id="promo-code" placeholder="例如 WELCOME10" style="text-transform:uppercase;font-family:monospace" oninput="updatePromoLinkHint()">
+    <div class="modal-label">合作對象名稱（網紅/推廣夥伴，留空＝一般優惠碼）</div>
+    <input type="text" class="modal-select" id="promo-partner" placeholder="例如 小明開箱">
     <div class="modal-label">折扣類型</div>
     <select class="modal-select" id="promo-type">
       <option value="percent">百分比折扣（%）</option>
@@ -578,6 +584,7 @@
     <input type="number" class="modal-select" id="promo-max-uses" placeholder="例如 100" min="1">
     <div class="modal-label">到期日（留空 = 不過期）</div>
     <input type="date" class="modal-select" id="promo-expires">
+    <div id="promo-link-hint" style="font-size:11px;color:var(--text3);margin-bottom:16px;line-height:1.6;display:none"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeAddPromoModal()">取消</button>
       <button class="btn-save" onclick="savePromoCode()">儲存</button>
@@ -660,6 +667,7 @@ onAuthStateChanged(auth, async user => {
   loadDashboard();
   loadFeedback();
   loadPromoCodes();
+  loadPartnerStats();
 });
 
 function escapeHtml(str) {
@@ -759,8 +767,9 @@ window.deleteFeedbackItem = async (id) => {
   }
 };
 
-// ── 優惠碼管理 ──
+// ── 優惠碼與推廣連結管理 ──
 let allPromoCodes = [];
+let partnerStatsByCode = {}; // code -> { totalOrders, conversions, revenue }（來自 orders，伺服器端算）
 
 async function loadPromoCodes() {
   try {
@@ -770,7 +779,26 @@ async function loadPromoCodes() {
     renderPromoCodes();
   } catch(e) {
     document.getElementById('promo-tbody').innerHTML =
-      `<tr><td colspan="7" style="text-align:center;padding:24px;color:#ef4444">載入失敗：${escapeHtml(e.message)}</td></tr>`;
+      `<tr><td colspan="10" style="text-align:center;padding:24px;color:#ef4444">載入失敗：${escapeHtml(e.message)}</td></tr>`;
+  }
+}
+
+// 轉換數／營收需要查 orders，orders 對任何前端 SDK 都是完全鎖死的
+// （allow read,write: if false），所以另外呼叫伺服器端的 API 用
+// Admin SDK 讀取，不開放前端直接查詢付款細節
+async function loadPartnerStats() {
+  try {
+    const idToken = await auth.currentUser.getIdToken();
+    const res = await fetch('/api/admin-partner-stats', {
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '載入失敗');
+    partnerStatsByCode = {};
+    (data.stats || []).forEach(s => { partnerStatsByCode[s.code] = s; });
+    renderPromoCodes();
+  } catch(e) {
+    console.error('載入轉換數據失敗:', e.message);
   }
 }
 
@@ -779,14 +807,12 @@ function renderPromoCodes() {
 
   if (allPromoCodes.length === 0) {
     document.getElementById('promo-tbody').innerHTML =
-      `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3)">尚無優惠碼</td></tr>`;
+      `<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--text3)">尚無優惠碼</td></tr>`;
     return;
   }
 
   document.getElementById('promo-tbody').innerHTML = allPromoCodes.map(p => {
     const discountStr = p.type === 'percent' ? `${p.value}% off` : `NT$${p.value} off`;
-    const plansStr = p.applicablePlans ? p.applicablePlans.map(pl => pl === 'standard' ? '標準版' : '進階版').join('、') : '全部方案';
-    const usedStr = p.maxUses != null ? `${p.usedCount || 0} / ${p.maxUses}` : `${p.usedCount || 0} / 不限`;
     const expiresStr = p.expiresAt ? new Date(p.expiresAt).toLocaleDateString('zh-TW') : '不過期';
     const isExpired = p.expiresAt && p.expiresAt < Date.now();
     const isMaxed = p.maxUses != null && (p.usedCount || 0) >= p.maxUses;
@@ -795,14 +821,24 @@ function renderPromoCodes() {
       : (isExpired ? '<span class="badge badge-suspended">已過期</span>'
         : (isMaxed ? '<span class="badge badge-suspended">已額滿</span>' : '<span class="badge badge-active">生效中</span>'));
 
+    const clicks = p.clickCount || 0;
+    const stats = partnerStatsByCode[p.code];
+    const conversions = stats ? stats.conversions : '-';
+    const revenueStr = stats ? `NT$${stats.revenue.toLocaleString()}` : '-';
+    const convRate = (stats && clicks > 0) ? `${((stats.conversions / clicks) * 100).toFixed(1)}%` : '-';
+
     return `<tr>
       <td style="font-family:monospace;font-weight:600">${escapeHtml(p.code)}</td>
+      <td style="color:var(--text2)">${escapeHtml(p.partnerName || '-')}</td>
       <td>${discountStr}</td>
-      <td style="color:var(--text2)">${plansStr}</td>
-      <td>${usedStr}</td>
+      <td>${clicks}</td>
+      <td>${conversions}</td>
+      <td>${convRate}</td>
+      <td style="color:var(--gold);font-weight:600">${revenueStr}</td>
       <td style="color:var(--text3)">${expiresStr}</td>
       <td>${statusBadge}</td>
       <td style="white-space:nowrap">
+        <button class="action-btn" onclick="openEditPromoModal('${p.code}')">編輯</button>
         ${p.active === false
           ? `<button class="action-btn green" onclick="togglePromoActive('${p.code}', true)">啟用</button>`
           : `<button class="action-btn" onclick="togglePromoActive('${p.code}', false)">停用</button>`}
@@ -812,25 +848,88 @@ function renderPromoCodes() {
   }).join('');
 }
 
+window.exportPromoStatsCSV = () => {
+  const csvEscape = (v) => {
+    const s = (v ?? '').toString();
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const headers = ['代碼','合作對象','折扣類型','折扣數值','點擊數','轉換數','轉換率','營收(NT$)','到期日','狀態'];
+  const lines = [headers.map(csvEscape).join(',')];
+  allPromoCodes.forEach(p => {
+    const clicks = p.clickCount || 0;
+    const stats = partnerStatsByCode[p.code];
+    const conversions = stats ? stats.conversions : 0;
+    const revenue = stats ? stats.revenue : 0;
+    const convRate = clicks > 0 ? `${((conversions / clicks) * 100).toFixed(1)}%` : '-';
+    const expiresStr = p.expiresAt ? new Date(p.expiresAt).toLocaleDateString('zh-TW') : '不過期';
+    const statusStr = p.active === false ? '已停用' : '生效中';
+    lines.push([
+      p.code, p.partnerName || '', p.type === 'percent' ? '百分比' : '固定金額', p.value,
+      clicks, conversions, convRate, revenue, expiresStr, statusStr
+    ].map(csvEscape).join(','));
+  });
+  const csv = String.fromCharCode(0xFEFF) + lines.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `TomicaGo_優惠碼數據_${dateStr}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ CSV 已下載');
+};
+
+function updatePromoLinkHint() {
+  const code = document.getElementById('promo-code').value.trim().toUpperCase();
+  const hint = document.getElementById('promo-link-hint');
+  if (!code) { hint.style.display = 'none'; return; }
+  hint.innerHTML = `推廣連結：<span style="color:var(--text2);font-family:monospace">https://tomicago.com/?ref=${code}</span><br>對方點這個連結進站，方案彈窗會自動套用這組代碼；也可以直接把代碼「${code}」給對方手動輸入。`;
+  hint.style.display = 'block';
+}
+
 window.openAddPromoModal = () => {
   document.getElementById('promo-modal-title').textContent = '新增優惠碼';
   document.getElementById('promo-original-code').value = '';
   document.getElementById('promo-code').value = '';
   document.getElementById('promo-code').disabled = false;
+  document.getElementById('promo-partner').value = '';
   document.getElementById('promo-type').value = 'percent';
   document.getElementById('promo-value').value = '';
   document.getElementById('promo-plans').value = '';
   document.getElementById('promo-max-uses').value = '';
   document.getElementById('promo-expires').value = '';
+  document.getElementById('promo-link-hint').style.display = 'none';
+  document.getElementById('add-promo-modal').classList.add('open');
+};
+
+window.openEditPromoModal = (code) => {
+  const p = allPromoCodes.find(x => x.code === code);
+  if (!p) return;
+  document.getElementById('promo-modal-title').textContent = '編輯優惠碼';
+  document.getElementById('promo-original-code').value = p.code;
+  document.getElementById('promo-code').value = p.code;
+  document.getElementById('promo-code').disabled = true;
+  document.getElementById('promo-partner').value = p.partnerName || '';
+  document.getElementById('promo-type').value = p.type;
+  document.getElementById('promo-value').value = p.value;
+  document.getElementById('promo-plans').value = p.applicablePlans ? p.applicablePlans[0] : '';
+  document.getElementById('promo-max-uses').value = p.maxUses != null ? p.maxUses : '';
+  document.getElementById('promo-expires').value = p.expiresAt ? new Date(p.expiresAt).toISOString().slice(0,10) : '';
+  updatePromoLinkHint();
   document.getElementById('add-promo-modal').classList.add('open');
 };
 
 window.closeAddPromoModal = () => {
   document.getElementById('add-promo-modal').classList.remove('open');
+  document.getElementById('promo-code').disabled = false;
 };
 
 window.savePromoCode = async () => {
-  const code = document.getElementById('promo-code').value.trim().toUpperCase();
+  const originalCode = document.getElementById('promo-original-code').value;
+  const code = (originalCode || document.getElementById('promo-code').value.trim().toUpperCase());
+  const partnerName = document.getElementById('promo-partner').value.trim();
   const type = document.getElementById('promo-type').value;
   const value = parseInt(document.getElementById('promo-value').value, 10);
   const plansVal = document.getElementById('promo-plans').value;
@@ -845,9 +944,11 @@ window.savePromoCode = async () => {
   const data = {
     type,
     value,
+    partnerName: partnerName || null,
     applicablePlans: plansVal ? [plansVal] : null,
     maxUses: maxUsesVal ? parseInt(maxUsesVal, 10) : null,
     usedCount: existing ? (existing.usedCount || 0) : 0,
+    clickCount: existing ? (existing.clickCount || 0) : 0,
     expiresAt: expiresVal ? new Date(expiresVal + 'T23:59:59').getTime() : null,
     active: existing ? existing.active !== false : true,
     createdAt: existing ? (existing.createdAt || Date.now()) : Date.now(),

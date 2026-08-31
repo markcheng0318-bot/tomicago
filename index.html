@@ -2220,6 +2220,27 @@ function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// ── 網紅／推廣夥伴導流連結（tomicago.com/?ref=代碼）──
+// 記住這個代碼，之後開升級方案彈窗時會自動幫忙套用，使用者不用自己再打一次；
+// 點擊數只在同一個瀏覽器session第一次進站時記一次，重複整理頁面不會洗數字
+(function() {
+  const params = new URLSearchParams(location.search);
+  const ref = params.get('ref');
+  if (!ref || !ref.trim()) return;
+  const code = ref.trim().toUpperCase();
+  localStorage.setItem('tg-referral-code', code);
+
+  const trackedKey = `tg-ref-tracked-${code}`;
+  if (!sessionStorage.getItem(trackedKey)) {
+    sessionStorage.setItem(trackedKey, '1');
+    fetch('/api/track-click', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    }).catch(() => {});
+  }
+})();
+
 // ── STATE ──
 let currentUser = null;
 let cars = [];
@@ -4640,6 +4661,13 @@ window.showPlanModal = () => {
   document.getElementById('promo-code-status').style.display = 'none';
   updatePlanModalOptions();
   document.getElementById('plan-modal').classList.add('open');
+
+  // 透過網紅／推廣連結進站的話，直接幫使用者自動套用代碼，不用自己再打一次
+  const storedRef = localStorage.getItem('tg-referral-code');
+  if (storedRef) {
+    document.getElementById('promo-code-input').value = storedRef;
+    applyPromoCode();
+  }
 };
 window.closePlanModal = () => document.getElementById('plan-modal').classList.remove('open');
 window.initiateUpgrade = async (plan) => {
