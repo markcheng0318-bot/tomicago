@@ -5,6 +5,195 @@ export default async function handler(req, res) {
   const allItems = [
   {
     "tag": "新品",
+    "title": "No.85 スバル フォレスター",
+    "desc": "サスペンション。594円。",
+    "date": "2026.11",
+    "series": "トミカシリーズ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_085_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810092421/"
+  },
+  {
+    "tag": "新品",
+    "title": "No.114 植木屋さんトラック",
+    "desc": "サスペンション/後ろアオリ開閉/合板・剪定枝・梯子積み下ろし。594円。",
+    "date": "2026.11",
+    "series": "トミカシリーズ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_114_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810224082/"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカ クロスレスキュー クロスレスキュー ドラゴン＆タイガーチーム トミカセット",
+    "desc": "クロスブレイバー： ブーム展開 クロスアーム： はしご伸縮・上下・旋回 クロスラダー： アーム展開。2,860円。",
+    "date": "2026.11",
+    "series": "クロスレスキュー",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_cr_dragontiger_tomica_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810062479/"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカ クロスレスキュー クロスレスキュー タイガーチーム トミカセット",
+    "desc": "クロスブロアー： スロープ可動、大型ファン可動、自走式大量噴霧放水大型ブロアー車積み下ろし クロスユニオン： コンテナ積。3,465円。",
+    "date": "2026.11",
+    "series": "クロスレスキュー",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_cr_tiger_tomica_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810062387/"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカ クロスレスキュー クロスコプター",
+    "desc": "左側ドア開閉、ローター回転。715円。",
+    "date": "2026.11",
+    "series": "クロスレスキュー",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_cr_coputa_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810062318/"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカ クロスレスキュー クロスグリッター",
+    "desc": "照明装置可動。715円。",
+    "date": "2026.11",
+    "series": "クロスレスキュー",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_cr_glitter_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810062059/"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカ クロスレスキュー クロスドクター",
+    "desc": "傷病者室左右拡幅。715円。",
+    "date": "2026.11",
+    "series": "クロスレスキュー",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_cr_doctor_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810062042/"
+  },
+  {
+    "tag": "聯名",
+    "title": "トミカ・プラレールブロック フリースタイル ショベルカーセット",
+    "desc": "全70パーツ、ショベルカーがテーマの商品です。。7,150円。",
+    "date": "2026.11",
+    "series": "トミカ・プラレールブロック",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_tpblock_fs_excavatorset_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810080206/"
+  },
+  {
+    "tag": "聯名",
+    "title": "トミカ・プラレールブロック フリースタイル モンスタートラックセット",
+    "desc": "全25パーツ、モンスタートラックがテーマの商品です。。3,520円。",
+    "date": "2026.11",
+    "series": "トミカ・プラレールブロック",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_tpblock_fs_monstertruckset_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810059929/"
+  },
+  {
+    "tag": "聯名",
+    "title": "トミカ・プラレールブロック フリースタイル エアプレインセット",
+    "desc": "全26パーツ、エアプレインがテーマの商品です。。3,520円。",
+    "date": "2026.11",
+    "series": "トミカ・プラレールブロック",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_tpblock_fs_airplaneset_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810059912/"
+  },
+  {
+    "tag": "聯名",
+    "title": "ディズニートミカパレード SP ミッキーマウス（クリスマスエディション2026）",
+    "desc": "おうちにディズニートミカパレードがやってくる！夢の世界をつなげよう！。1,100円。",
+    "date": "2026.11",
+    "series": "ディズニートミカ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_disney_sp_mickey_xmas2026_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810067757/"
+  },
+  {
+    "tag": "聯名",
+    "title": "ディズニートミカパレード SP ドナルドダック（クリスマスエディション2026）",
+    "desc": "おうちにディズニートミカパレードがやってくる！夢の世界をつなげよう！。1,100円。",
+    "date": "2026.11",
+    "series": "ディズニートミカ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_disney_sp_donald_xmas2026_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810067764/"
+  },
+  {
+    "tag": "聯名",
+    "title": "トーマストミカ えほんパーシー",
+    "desc": "トーマストミカから原作絵本をイメージしたパーシーが登場。 パーシーの顔、車体のカラーリング、客車も絵本仕様の特別なカラー。2,200円。",
+    "date": "2026.11",
+    "series": "トーマストミカ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_thomas_ehon_percy_2026_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810072102/"
+  },
+  {
+    "tag": "新品",
+    "title": "カーズ トミカ 洗車場",
+    "desc": "カーズ トミカと遊べる洗車場が登場！。2,640円。",
+    "date": "2026.11",
+    "series": "カーズ トミカ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_cars_carwash_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810086215/"
+  },
+  {
+    "tag": "新品",
+    "title": "29 ホンダ S660",
+    "desc": "サスペンション/左右ドア開閉。990円。",
+    "date": "2026.11",
+    "series": "トミカプレミアム",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_tp_29_honda_s660_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810072072/"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカプレミアムＲａｃｉｎｇ #23 MOTUL AUTECH GT-R",
+    "desc": "左右ドア開閉。1,980円。",
+    "date": "2026.11",
+    "series": "トミカプレミアムＲａｃｉｎｇ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_tpracing_23_motul_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810070795/"
+  },
+  {
+    "tag": "新品",
+    "title": "ｔｏｍｉｃａトランスポーター レイブリッグ NSX-GT",
+    "desc": "トミカプレミアムを積載できる「tomicaトランスポーター」が登場！。3,300円。",
+    "date": "2026.11",
+    "series": "トミカプレミアムＲａｃｉｎｇ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_tp_tp_raybrig_nsxgt_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810058007/"
+  },
+  {
+    "tag": "限定",
+    "title": "クリスマスギフトセット",
+    "desc": "トミカギフトセットからクリスマスをテーマにした商品が登場！。2,420円。",
+    "date": "2026.11",
+    "series": "タカラトミーモールオリジナル",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_mall_xmasgiftset2026_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810077992/"
+  },
+  {
+    "tag": "限定",
+    "title": "タカラトミーモールオリジナル 復刻版 トミカプレミアム 日産 スカイライン 2000 ターボ GT-E·S",
+    "desc": "サスペンション、左右ドア開閉。1,210円。",
+    "date": "2026.11",
+    "series": "タカラトミーモールオリジナル",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_mall_tp_skyline_200turbo_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810064527/"
+  },
+  {
+    "tag": "限定",
+    "title": "トミカプレミアムＲａｃｉｎｇ #3 CRAFTSPORTS MOTUL GT-R",
+    "desc": "左右ドア開閉。1,980円。",
+    "date": "2026.11",
+    "series": "タカラトミーモールオリジナル",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_mall_tpracing_craft_motul_gtr_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810070788/"
+  },
+  {
+    "tag": "限定",
+    "title": "トミカＲＥＢＯＲＮ 三菱 パジェロ メタルトップ",
+    "desc": "サスペンション、左右ドア開閉。880円。",
+    "date": "2026.11",
+    "series": "タカラトミーモールオリジナル",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_mall_reborn_pajero_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810079262/"
+  },
+  {
+    "tag": "新品",
     "title": "No.30 三菱 デリカミニ",
     "desc": "サスペンション。594円。",
     "date": "2026.10",
@@ -29,6 +218,78 @@ export default async function handler(req, res) {
     "series": "ギフトセット",
     "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_gift_sportscar_selection2_01.webp",
     "buyUrl": "https://takaratomymall.jp/shop/g/g4904810078005/"
+  },
+  {
+    "tag": "新品",
+    "title": "変形出動！スクランブルデカパトロールカー",
+    "desc": "警察署に変形可能なサウンド付きのデッカいパトロールカーが新登場！ トミカ最大12台積載可能なドデカいパトロールカー！ さ。7,700円。",
+    "date": "2026.10",
+    "series": "トミカワールド",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_world_scramble_deka_patrolcar_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810089353/"
+  },
+  {
+    "tag": "新品",
+    "title": "スクランブルポリスパーキング30 スペシャルセット（トミカ4台付き）",
+    "desc": "パトロールカー仕様のスペシャルトミカ4台付き！ トミカを駐車して、屋上スロープから出動！ 遊んだあとはケースにおかたづけ。6,050円。",
+    "date": "2026.10",
+    "series": "トミカワールド",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_world_scramble_policeparking_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810057543/"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカ クロスレスキュー XR01 クロスレスキュードラゴン",
+    "desc": "・トミカ「クロスホバー(スペシャルVer.)」が1台付属！。4,950円。",
+    "date": "2026.10",
+    "series": "クロスレスキュー",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_cr_xr01_dragon_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810062387/"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカ クロスレスキュー XR02 クロスレスキュータイガー",
+    "desc": "・トミカ「クロスキャノン(スペシャルVer.)」が1台付属！。4,950円。",
+    "date": "2026.10",
+    "series": "クロスレスキュー",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_cr_xr02_tiger_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810064053/"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカ クロスレスキュー クロスレスキュードラゴン＆タイガー DXセット",
+    "desc": "・トミカ「クロスホバー(スペシャルVer.)」が1台付属！ クロスレスキュードラゴン、クロスレスキュータイガーがセットに。9,130円。",
+    "date": "2026.10",
+    "series": "クロスレスキュー",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_cr_dragontiger_dx_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810064046/"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカ クロスレスキュー クロスホバー",
+    "desc": "左右ウイング展開。715円。",
+    "date": "2026.10",
+    "series": "クロスレスキュー",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_cr_crosshover_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810062004/"
+  },
+  {
+    "tag": "新品",
+    "title": "トミカ クロスレスキュー クロスレーザー",
+    "desc": "キャノピー回転。715円。",
+    "date": "2026.10",
+    "series": "クロスレスキュー",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_cr_crosslazer_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810061984/"
+  },
+  {
+    "tag": "聯名",
+    "title": "トミカ ジョブレイバー ＴＪＢＤＸ ＤＸ スカイブレイバー ＪＡＬ ジェット旅客機",
+    "desc": "アーマービークル「JAL ジェット旅客機」がパイロットジョブロイドとCAジョブロイド合体し、ジェット旅客機のロボット『ス。9,350円。",
+    "date": "2026.10",
+    "series": "ジョブレイバー",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_jr_tjbdx_jal_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810993735/"
   },
   {
     "tag": "聯名",
@@ -76,6 +337,33 @@ export default async function handler(req, res) {
     "buyUrl": "https://takaratomymall.jp/shop/g/g4904810956563/"
   },
   {
+    "tag": "限定",
+    "title": "ヤマダデンキ オリジナル トヨタ GR 86",
+    "desc": "サスペンション。880円。",
+    "date": "2026.10",
+    "series": "販売店オリジナルトミカ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_so_yamada_01.webp",
+    "buyUrl": null
+  },
+  {
+    "tag": "限定",
+    "title": "ローソンオリジナルトミカ トヨタ MR2",
+    "desc": "サスペンション。880円。",
+    "date": "2026.10",
+    "series": "販売店オリジナルトミカ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_so_lawson_01.webp",
+    "buyUrl": null
+  },
+  {
+    "tag": "限定",
+    "title": "トミカショップオリジナル トヨタ 2000GT",
+    "desc": "サスペンション/左右ドア開閉。880円。",
+    "date": "2026.10",
+    "series": "販売店オリジナルトミカ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2610/pic_so_tomiplashop_01.webp",
+    "buyUrl": null
+  },
+  {
     "tag": "新品",
     "title": "No.59 三菱ふそう スーパーグレート",
     "desc": "594円。",
@@ -118,7 +406,7 @@ export default async function handler(req, res) {
     "date": "2026.09",
     "series": "ジョブレイバー",
     "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_jr_tjb11_hatobus_01.webp",
-    "buyUrl": "https://takaratomymall.jp/shop/g/g49048109937595/"
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810993759/"
   },
   {
     "tag": "聯名",
@@ -299,6 +587,24 @@ export default async function handler(req, res) {
     "series": "タカラトミーモールオリジナル",
     "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_ttm_tp_volkswagen_01.webp",
     "buyUrl": "https://takaratomymall.jp/shop/g/g4904810064534/"
+  },
+  {
+    "tag": "限定",
+    "title": "AEON NO.88 テスラ モデル３ ドバイ警察パトロールカーデザイン仕様",
+    "desc": "サスペンション。880円。",
+    "date": "2026.09",
+    "series": "販売店オリジナルトミカ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_so_aeon_01.webp",
+    "buyUrl": null
+  },
+  {
+    "tag": "限定",
+    "title": "AEONオリジナル トミカプレミアム トヨタ セリカ 2000GT-FOUR",
+    "desc": "サスペンション/左右ドア開閉。1,155円。",
+    "date": "2026.09",
+    "series": "販売店オリジナルトミカ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_so_aeon_02.webp",
+    "buyUrl": null
   },
   {
     "tag": "新品",
@@ -1175,5 +1481,5 @@ export default async function handler(req, res) {
 ];
 
   res.setHeader('Cache-Control', 's-maxage=86400');
-  return res.status(200).json({ items: allItems, updatedAt: 1786081523672 });
+  return res.status(200).json({ items: allItems, updatedAt: 1788298174139 });
 }
