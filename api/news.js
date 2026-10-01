@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   {
     "tag": "新品",
     "title": "トミカ クロスレスキュー クロスレスキュー ドラゴン＆タイガーチーム トミカセット",
-    "desc": "クロスブレイバー： ブーム展開 クロスアーム： はしご伸縮・上下・旋回 クロスラダー： アーム展開。2,860円。",
+    "desc": "クロスブレイバー： ブーム展開 クロスアーム： アーム展開 クロスラダー： はしご伸縮・上下・旋回。2,860円。",
     "date": "2026.11",
     "series": "クロスレスキュー",
     "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_cr_dragontiger_tomica_01.webp",
@@ -149,6 +149,15 @@ export default async function handler(req, res) {
   },
   {
     "tag": "新品",
+    "title": "トミカプレミアムＲａｃｉｎｇ カストロール トムス スープラ 36号車",
+    "desc": "左右ドア開閉。1,980円。",
+    "date": "2026.11",
+    "series": "トミカプレミアムＲａｃｉｎｇ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_tpracing_castrol_toms_supra36_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810097815/"
+  },
+  {
+    "tag": "新品",
     "title": "ｔｏｍｉｃａトランスポーター レイブリッグ NSX-GT",
     "desc": "トミカプレミアムを積載できる「tomicaトランスポーター」が登場！。3,300円。",
     "date": "2026.11",
@@ -191,6 +200,24 @@ export default async function handler(req, res) {
     "series": "タカラトミーモールオリジナル",
     "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_mall_reborn_pajero_01.webp",
     "buyUrl": "https://takaratomymall.jp/shop/g/g4904810079262/"
+  },
+  {
+    "tag": "限定",
+    "title": "エディオンオリジナル 日産 シルビア（S15）",
+    "desc": "サスペンション ※本商品はエディオンのおもちゃ取り扱い店、および、エディオンECサイトのみで販売するオリジナル商品で、一。880円。",
+    "date": "2026.11",
+    "series": "販売店オリジナルトミカ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_so_edion_01.webp",
+    "buyUrl": null
+  },
+  {
+    "tag": "限定",
+    "title": "ジョーシンオリジナル トヨタ プリウスPHV GR SPORT",
+    "desc": "サスペンション 取り扱い…Joshinキッズランド各店（一部取扱いの無い店舗がございます。） ジョーシン公式家電通販サイ。880円。",
+    "date": "2026.11",
+    "series": "販売店オリジナルトミカ",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2611/pic_so_joshin_01.webp",
+    "buyUrl": null
   },
   {
     "tag": "新品",
@@ -578,6 +605,33 @@ export default async function handler(req, res) {
     "series": "ｔｏｍｉｃａ＋",
     "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_tplus_parking_showroom_01.webp",
     "buyUrl": "https://takaratomymall.jp/shop/g/g4904810919063/"
+  },
+  {
+    "tag": "新品",
+    "title": "踊る大捜査線 N.E.W. トミカ アポロタクシー トヨタ クラウン アスリート",
+    "desc": "サスペンション。880円。",
+    "date": "2026.09",
+    "series": "トミカその他",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_others_odoru_taxi_crown_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810058250/"
+  },
+  {
+    "tag": "新品",
+    "title": "踊る大捜査線 N.E.W. トミカ 覆面パトロールカー 日産 フーガ",
+    "desc": "サスペンション。880円。",
+    "date": "2026.09",
+    "series": "トミカその他",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_others_odoru_patrolcar_fuga_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810056485/"
+  },
+  {
+    "tag": "新品",
+    "title": "踊る大捜査線 N.E.W. トミカ カエル急便 ディープブルー",
+    "desc": "サスペンション。880円。",
+    "date": "2026.09",
+    "series": "トミカその他",
+    "image": "https://www.takaratomy.co.jp/products/tomica/new/images/2609/pic_others_odoru_cargo_deepblue_01.webp",
+    "buyUrl": "https://takaratomymall.jp/shop/g/g4904810056492/"
   },
   {
     "tag": "限定",
@@ -1481,5 +1535,5 @@ export default async function handler(req, res) {
 ];
 
   res.setHeader('Cache-Control', 's-maxage=86400');
-  return res.status(200).json({ items: allItems, updatedAt: 1788298174139 });
+  return res.status(200).json({ items: allItems, updatedAt: 1790895428213 });
 }
