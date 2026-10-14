@@ -1292,6 +1292,9 @@
       <div class="page-header">
         <div class="page-title">最新<span>資訊</span></div>
         <div class="header-actions">
+          <div class="icon-btn" onclick="openGame()" title="Tomica 飆速小遊戲">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg>
+          </div>
           <div class="icon-btn" onclick="showPlanModal()" title="訂閱方案與定價">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 8.5 12 22 22 8.5 12 2Z"/><path d="M2 8.5h20M12 2v20"/></svg>
           </div>
@@ -1631,7 +1634,7 @@
           <div class="settings-subitem" onclick="openAchievementsModal()">
             <div class="settings-icon">🏆</div>
             <div class="settings-text">
-              <div class="settings-label">收藏成就</div>
+              <div class="settings-label">成就徽章</div>
               <div class="settings-desc" id="achievements-progress-desc">解鎖你的收藏里程碑</div>
             </div>
           </div>
@@ -1888,6 +1891,22 @@
   </div>
 </div>
 
+<!-- GAME MODAL -->
+<div class="detail-modal" id="game-modal" style="background:#0a0a0a;overflow:hidden">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;flex-shrink:0">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px">TOMICA<span style="color:var(--red)"> 飆速</span></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="font-size:12px;color:var(--text3)">最高分 <span id="game-best-label" style="color:var(--gold);font-weight:700">0</span></div>
+      <div class="icon-btn" onclick="closeGame()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </div>
+    </div>
+  </div>
+  <div id="game-wrap" style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center">
+    <canvas id="game-canvas" style="touch-action:none;border-radius:14px;border:1px solid var(--border);background:#111"></canvas>
+  </div>
+</div>
+
 <!-- SHOWROOM DETAIL MODAL -->
 <div class="detail-modal" id="showroom-detail-modal">
   <div class="detail-img" id="showroom-detail-img-area">
@@ -2015,7 +2034,7 @@
   <div style="width:100%;max-width:480px;padding:0 16px;max-height:80vh">
     <div style="background:var(--bg2);border:1px solid var(--border2);border-top:3px solid var(--gold);border-radius:var(--radius);padding:24px;max-height:80vh;overflow-y:auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px">收藏成就</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px">成就徽章</div>
         <div class="icon-btn" onclick="closeAchievementsModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </div>
@@ -2420,6 +2439,16 @@ function loadUserPlan() {
   userPlanUnsub = onSnapshot(userRef, snap => {
     if (!snap.exists()) return;
     const data = snap.data();
+
+    // 小遊戲成績跟雲端合併（各取較高者），本機比雲端高的話再補寫回去
+    const remoteBest = data.gameBestScore || 0, remotePlays = data.gamePlays || 0;
+    if (remoteBest > gameStats.bestScore || remotePlays > gameStats.plays) {
+      gameStats.bestScore = Math.max(gameStats.bestScore, remoteBest);
+      gameStats.plays = Math.max(gameStats.plays, remotePlays);
+      try { localStorage.setItem(GAME_STATS_KEY, JSON.stringify(gameStats)); } catch (e) {}
+      updateAchievementsProgressDesc();
+    }
+    if (gameStats.bestScore > remoteBest || gameStats.plays > remotePlays) saveGameStats();
 
     // 升級方案有效期限過了就自動打回免費版，不然付一次錢就變成終身升級
     if (data.planExpiry && data.planExpiry < Date.now() && data.plan !== 'free') {
@@ -3984,7 +4013,18 @@ window.handleCSVImport = async (event) => {
   }
 };
 
-// ── 收藏成就（純前端計算，不需要額外的 Firestore 資料）──
+// 小遊戲成績：本機一定會存，登入後會跟 users/{uid} 上的 gameBestScore／gamePlays
+// 合併（取較高者），這樣換裝置玩過的徽章也還在。這只是虛擬榮譽（徽章），
+// 沒有任何金流或權限掛在上面，所以成績直接由前端寫入，不另外做伺服器驗證。
+const GAME_STATS_KEY = 'tg-game-stats';
+let gameStats = (() => {
+  try {
+    const s = JSON.parse(localStorage.getItem(GAME_STATS_KEY) || '{}');
+    return { bestScore: Number(s.bestScore) || 0, plays: Number(s.plays) || 0 };
+  } catch (e) { return { bestScore: 0, plays: 0 }; }
+})();
+
+// ── 成就徽章（純前端計算，不需要額外的 Firestore 資料）──
 const ACHIEVEMENTS = [
   { id: 'first', icon: '🚗', name: '收藏家新手', desc: '收藏第 1 台車', check: cs => cs.filter(c => c.status === 'owned').length >= 1 },
   { id: 'ten', icon: '🏅', name: '入門收藏家', desc: '收藏滿 10 台', check: cs => cs.filter(c => c.status === 'owned').length >= 10 },
@@ -3995,6 +4035,11 @@ const ACHIEVEMENTS = [
   { id: 'public', icon: '🏛️', name: '樂於分享', desc: '公開第一台車到展示廳', check: cs => cs.some(c => c.isPublic) },
   { id: 'wishlist', icon: '🌠', name: '許願成功', desc: '新增第一台願望清單', check: cs => cs.some(c => c.status === 'wishlist') },
   { id: 'brands', icon: '🎨', name: '博覽群車', desc: '收藏涵蓋 5 種不同廠牌', check: cs => new Set(cs.filter(c => c.status === 'owned').map(c => c.brand).filter(Boolean)).size >= 5 },
+  // 小遊戲「Tomica 飆速」徽章
+  { id: 'game-first', icon: '🏁', name: '新手車手', desc: '完成第一場飆速小遊戲', check: () => gameStats.plays >= 1 },
+  { id: 'game-150', icon: '🚦', name: '飆速入門', desc: '飆速遊戲最高分達 150', check: () => gameStats.bestScore >= 150 },
+  { id: 'game-400', icon: '🏎️', name: '賽道老手', desc: '飆速遊戲最高分達 400', check: () => gameStats.bestScore >= 400 },
+  { id: 'game-900', icon: '🏆', name: '傳奇車手', desc: '飆速遊戲最高分達 900', check: () => gameStats.bestScore >= 900 },
 ];
 
 function updateAchievementsProgressDesc() {
@@ -4023,6 +4068,249 @@ window.openAchievementsModal = () => {
   document.getElementById('achievements-modal').classList.add('open');
 };
 window.closeAchievementsModal = () => document.getElementById('achievements-modal').classList.remove('open');
+
+// ── 小遊戲：Tomica 飆速（Canvas 三車道躲障礙）──
+// 點畫面左半邊／右半邊（或鍵盤 ←→、A／D）換車道，躲開路障、撿星星加分，
+// 速度會隨時間越來越快。障礙物是照「安全車道」一路排下去的（相鄰兩排的
+// 安全車道最多差一格，排與排之間的距離也跟速度成正比），所以任何時候
+// 都一定有辦法閃過，不會出現無解的排列。
+const GAME_W = 360, GAME_H = 560, GAME_ROAD_X = 30, GAME_LANE_W = 100, GAME_LANES = 3, GAME_PLAYER_Y = 450;
+const GAME_OBSTACLES = ['cone', 'car', 'barrier'];
+const GAME_CAR_COLORS = ['#3b82f6', '#22C55E', '#a855f7', '#f59e0b', '#e5e7eb'];
+const gm = { state: 'ready', raf: 0, last: 0, t: 0, speed: 200, dist: 0, coins: 0, score: 0, lane: 1, px: 0, rows: [], sinceRow: 0, safeLane: 1, scroll: 0, overAt: 0, newBest: false };
+let gameCanvas = null, gameCtx = null;
+
+function gameLaneX(l) { return GAME_ROAD_X + GAME_LANE_W * l + GAME_LANE_W / 2; }
+
+function saveGameStats() {
+  try { localStorage.setItem(GAME_STATS_KEY, JSON.stringify(gameStats)); } catch (e) {}
+  if (currentUser) {
+    updateDoc(doc(db, 'users', currentUser.uid), { gameBestScore: gameStats.bestScore, gamePlays: gameStats.plays }).catch(() => {});
+  }
+}
+
+function resetGame() {
+  Object.assign(gm, { state: 'ready', t: 0, speed: 200, dist: 0, coins: 0, score: 0, lane: 1, px: gameLaneX(1), rows: [], sinceRow: 120, safeLane: 1, newBest: false });
+}
+
+function spawnGameRow() {
+  const opts = [gm.safeLane - 1, gm.safeLane, gm.safeLane + 1].filter(l => l >= 0 && l < GAME_LANES);
+  const safe = opts[Math.floor(Math.random() * opts.length)];
+  gm.safeLane = safe;
+  const items = [];
+  for (let l = 0; l < GAME_LANES; l++) {
+    if (l === safe) {
+      if (Math.random() < 0.35) items.push({ lane: l, type: 'coin' });
+    } else if (Math.random() < 0.75) {
+      const type = GAME_OBSTACLES[Math.floor(Math.random() * GAME_OBSTACLES.length)];
+      items.push({ lane: l, type, color: GAME_CAR_COLORS[Math.floor(Math.random() * GAME_CAR_COLORS.length)] });
+    }
+  }
+  gm.rows.push({ y: -70, items });
+}
+
+function updateGame(dt) {
+  gm.t += dt;
+  gm.speed = Math.min(480, 200 + gm.t * 5);
+  const move = gm.speed * dt;
+  gm.dist += move;
+  gm.scroll = (gm.scroll + move) % 40;
+  gm.px += (gameLaneX(gm.lane) - gm.px) * Math.min(1, dt * 18);
+
+  gm.sinceRow += move;
+  if (gm.sinceRow >= Math.max(170, gm.speed * 0.55)) { gm.sinceRow = 0; spawnGameRow(); }
+
+  for (const row of gm.rows) row.y += move;
+  gm.rows = gm.rows.filter(r => r.y < GAME_H + 80);
+
+  const pl = gm.px - 18, pr = gm.px + 18, pt = GAME_PLAYER_Y - 30, pb = GAME_PLAYER_Y + 30;
+  for (const row of gm.rows) {
+    for (const it of row.items) {
+      if (it.taken) continue;
+      const cx = gameLaneX(it.lane);
+      const isCoin = it.type === 'coin';
+      const halfW = isCoin ? 14 : 24, halfH = isCoin ? 14 : 28;
+      if (pr > cx - halfW && pl < cx + halfW && pb > row.y - halfH && pt < row.y + halfH) {
+        if (isCoin) { it.taken = true; gm.coins++; }
+        else { endGame(); return; }
+      }
+    }
+  }
+  gm.score = Math.floor(gm.dist / 40) + gm.coins * 10;
+}
+
+function endGame() {
+  gm.state = 'over';
+  gm.overAt = performance.now();
+  const before = new Set(ACHIEVEMENTS.filter(a => a.check(cars)).map(a => a.id));
+  gm.newBest = gm.score > gameStats.bestScore;
+  gameStats.plays++;
+  if (gm.newBest) gameStats.bestScore = gm.score;
+  saveGameStats();
+  document.getElementById('game-best-label').textContent = gameStats.bestScore;
+  updateAchievementsProgressDesc();
+  ACHIEVEMENTS.filter(a => a.check(cars) && !before.has(a.id))
+    .forEach((a, i) => setTimeout(() => showToast(`🏆 解鎖成就：${a.name}`), 700 + i * 1800));
+  try { navigator.vibrate && navigator.vibrate(120); } catch (e) {}
+}
+
+function gameAction(dir) {
+  if (gm.state === 'ready' || gm.state === 'paused') { gm.state = 'playing'; return; }
+  if (gm.state === 'over') {
+    // 剛撞車的瞬間手指通常還在連點，等半秒才吃「再玩一次」，避免誤觸直接跳過結算畫面
+    if (performance.now() - gm.overAt > 500) { resetGame(); gm.state = 'playing'; }
+    return;
+  }
+  if (gm.state === 'playing' && dir) gm.lane = Math.max(0, Math.min(GAME_LANES - 1, gm.lane + dir));
+}
+
+function gameRR(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+function drawGameItem(c, it, x, y) {
+  if (it.type === 'coin') {
+    c.beginPath(); c.arc(x, y, 13, 0, Math.PI * 2);
+    c.fillStyle = '#D4A843'; c.fill();
+    c.lineWidth = 2; c.strokeStyle = '#fff3b0'; c.stroke();
+    c.fillStyle = '#7a5a12'; c.font = "700 15px 'Noto Sans TC', sans-serif";
+    c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('★', x, y + 1);
+  } else if (it.type === 'cone') {
+    c.fillStyle = '#f97316';
+    c.beginPath(); c.moveTo(x, y - 26); c.lineTo(x + 17, y + 18); c.lineTo(x - 17, y + 18); c.closePath(); c.fill();
+    c.fillStyle = '#fff'; c.fillRect(x - 9, y - 2, 18, 6);
+    c.fillStyle = '#9a3412'; gameRR(c, x - 22, y + 16, 44, 10, 3); c.fill();
+  } else if (it.type === 'car') {
+    c.fillStyle = it.color; gameRR(c, x - 20, y - 30, 40, 60, 8); c.fill();
+    c.fillStyle = 'rgba(0,0,0,0.6)'; gameRR(c, x - 14, y + 2, 28, 16, 4); c.fill();
+    c.fillStyle = '#fde68a'; c.fillRect(x - 16, y + 25, 8, 4); c.fillRect(x + 8, y + 25, 8, 4);
+  } else {
+    c.fillStyle = '#dc2626'; gameRR(c, x - 26, y - 13, 52, 26, 4); c.fill();
+    c.fillStyle = '#fff';
+    for (let i = 0; i < 4; i++) c.fillRect(x - 24 + i * 13, y - 11, 6, 22);
+  }
+}
+
+function drawGameOverlay(c, title, lines, big) {
+  c.fillStyle = 'rgba(0,0,0,0.62)'; c.fillRect(0, 0, GAME_W, GAME_H);
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillStyle = '#fff'; c.font = "700 30px 'Noto Sans TC', sans-serif";
+  c.fillText(title, GAME_W / 2, 190);
+  let y = 245;
+  if (big != null) {
+    c.fillStyle = '#D4A843'; c.font = "700 54px 'Bebas Neue', 'Noto Sans TC', sans-serif";
+    c.fillText(String(big), GAME_W / 2, y); y += 52;
+  }
+  c.fillStyle = '#d4d4d4'; c.font = "500 16px 'Noto Sans TC', sans-serif";
+  lines.forEach(l => { c.fillText(l, GAME_W / 2, y); y += 30; });
+}
+
+function drawGame() {
+  const c = gameCtx;
+  if (!c) return;
+  c.clearRect(0, 0, GAME_W, GAME_H);
+  c.fillStyle = '#0f1f14'; c.fillRect(0, 0, GAME_W, GAME_H);
+  c.fillStyle = '#2b2b2b'; c.fillRect(GAME_ROAD_X, 0, GAME_LANE_W * GAME_LANES, GAME_H);
+
+  // 路緣紅白條跟車道虛線，用 scroll 偏移量做出往下捲動的感覺
+  const roadRight = GAME_ROAD_X + GAME_LANE_W * GAME_LANES;
+  for (let y = gm.scroll - 40; y < GAME_H; y += 40) {
+    c.fillStyle = '#E8001D'; c.fillRect(GAME_ROAD_X - 8, y, 8, 20); c.fillRect(roadRight, y, 8, 20);
+    c.fillStyle = '#f5f5f5'; c.fillRect(GAME_ROAD_X - 8, y + 20, 8, 20); c.fillRect(roadRight, y + 20, 8, 20);
+    c.fillStyle = 'rgba(255,255,255,0.45)';
+    for (let i = 1; i < GAME_LANES; i++) c.fillRect(GAME_ROAD_X + GAME_LANE_W * i - 2, y, 4, 22);
+  }
+
+  for (const row of gm.rows) for (const it of row.items) if (!it.taken) drawGameItem(c, it, gameLaneX(it.lane), row.y);
+
+  // 玩家的車（紅色，車頭朝上）
+  const px = gm.px, py = GAME_PLAYER_Y;
+  c.fillStyle = '#111'; c.fillRect(px - 22, py - 24, 5, 16); c.fillRect(px + 17, py - 24, 5, 16); c.fillRect(px - 22, py + 10, 5, 16); c.fillRect(px + 17, py + 10, 5, 16);
+  c.fillStyle = '#E8001D'; gameRR(c, px - 18, py - 32, 36, 64, 9); c.fill();
+  c.fillStyle = 'rgba(255,255,255,0.85)'; c.fillRect(px - 2, py - 32, 4, 64);
+  c.fillStyle = 'rgba(10,10,10,0.85)'; gameRR(c, px - 12, py - 14, 24, 18, 4); c.fill();
+  c.fillStyle = '#fde68a'; c.fillRect(px - 14, py - 32, 8, 4); c.fillRect(px + 6, py - 32, 8, 4);
+
+  c.textBaseline = 'alphabetic'; c.fillStyle = '#fff'; c.font = "700 20px 'Noto Sans TC', sans-serif";
+  c.textAlign = 'left'; c.fillText(`分數 ${gm.score}`, 14, 30);
+  c.textAlign = 'right'; c.fillText(`⭐ ${gm.coins}`, GAME_W - 14, 30);
+
+  if (gm.state === 'ready') drawGameOverlay(c, 'TOMICA 飆速', ['點畫面開始', '點左半邊 ← 往左換車道', '點右半邊 → 往右換車道', '躲開路障、撿星星加分'], null);
+  else if (gm.state === 'paused') drawGameOverlay(c, '已暫停', ['點畫面繼續'], null);
+  else if (gm.state === 'over') {
+    drawGameOverlay(c, '遊戲結束', [gm.newBest ? '🎉 新紀錄！' : `最高分 ${gameStats.bestScore}`, `⭐ 撿到 ${gm.coins} 顆星星`, performance.now() - gm.overAt > 500 ? '點畫面再玩一次' : ''], gm.score);
+  }
+}
+
+function gameLoop(ts) {
+  gm.raf = requestAnimationFrame(gameLoop);
+  const dt = Math.min(0.05, (ts - gm.last) / 1000) || 0;
+  gm.last = ts;
+  if (gm.state === 'playing') updateGame(dt);
+  else if (gm.state === 'ready') gm.scroll = (gm.scroll + 40 * dt) % 40;
+  drawGame();
+}
+
+function sizeGameCanvas() {
+  const wrap = document.getElementById('game-wrap');
+  if (!wrap || !gameCanvas) return;
+  const s = Math.min((wrap.clientWidth - 24) / GAME_W, (wrap.clientHeight - 12) / GAME_H, 1.4);
+  if (s <= 0) return;
+  gameCanvas.style.width = Math.floor(GAME_W * s) + 'px';
+  gameCanvas.style.height = Math.floor(GAME_H * s) + 'px';
+}
+
+function setupGameCanvas() {
+  gameCanvas = document.getElementById('game-canvas');
+  if (gameCanvas.dataset.ready) return;
+  gameCanvas.dataset.ready = '1';
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  gameCanvas.width = GAME_W * dpr;
+  gameCanvas.height = GAME_H * dpr;
+  gameCtx = gameCanvas.getContext('2d');
+  gameCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  gameCanvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    const rect = gameCanvas.getBoundingClientRect();
+    gameAction(e.clientX - rect.left < rect.width / 2 ? -1 : 1);
+  });
+}
+
+window.openGame = () => {
+  const modal = document.getElementById('game-modal');
+  setupGameCanvas();
+  resetGame();
+  document.getElementById('game-best-label').textContent = gameStats.bestScore;
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('open'));
+  sizeGameCanvas();
+  gm.last = performance.now();
+  if (!gm.raf) gm.raf = requestAnimationFrame(gameLoop);
+};
+
+window.closeGame = () => {
+  const modal = document.getElementById('game-modal');
+  modal.classList.remove('open');
+  setTimeout(() => { if (!modal.classList.contains('open')) modal.style.display = 'none'; }, 350);
+  if (gm.raf) { cancelAnimationFrame(gm.raf); gm.raf = 0; }
+};
+
+window.addEventListener('resize', sizeGameCanvas);
+document.addEventListener('visibilitychange', () => { if (document.hidden && gm.state === 'playing') gm.state = 'paused'; });
+window.addEventListener('keydown', e => {
+  if (!document.getElementById('game-modal')?.classList.contains('open')) return;
+  const k = e.key;
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') { gameAction(-1); e.preventDefault(); }
+  else if (k === 'ArrowRight' || k === 'd' || k === 'D') { gameAction(1); e.preventDefault(); }
+  else if (k === ' ' || k === 'Enter') { gameAction(0); e.preventDefault(); }
+  else if (k === 'Escape') closeGame();
+});
 
 // ── 展示廳排行榜 ──
 let showroomViewMode = 'gallery'; // 'gallery' | 'leaderboard'
@@ -4455,6 +4743,7 @@ window.goTo = (screen) => {
   if (document.getElementById('edit-modal')?.classList.contains('open')) closeEditModal();
   if (document.getElementById('news-detail-modal')?.classList.contains('open')) closeNewsDetail();
   if (document.getElementById('showroom-detail-modal')?.classList.contains('open')) closeShowroomDetail();
+  if (document.getElementById('game-modal')?.classList.contains('open')) closeGame();
 
   // 需要登入的頁面
   const protectedScreens = ['garage', 'upload', 'settings'];
