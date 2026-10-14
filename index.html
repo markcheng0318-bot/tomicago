@@ -4076,6 +4076,14 @@ window.closeAchievementsModal = () => document.getElementById('achievements-moda
 // 都一定有辦法閃過，不會出現無解的排列。
 const GAME_W = 360, GAME_H = 560, GAME_ROAD_X = 30, GAME_LANE_W = 100, GAME_LANES = 3, GAME_PLAYER_Y = 450;
 const GAME_OBSTACLES = ['cone', 'car', 'barrier'];
+// 難度隨「遊戲時間」慢慢爬升，不是一開始就最難：
+//  - 速度：150 起跳，每秒 +4.5，上限 430（約 62 秒到頂）
+//  - 反應時間：前一排障礙物通過後，到下一排撞上來之間留給玩家換車道的秒數，
+//    從 1.1 秒慢慢縮到 0.36 秒（約 100 秒後到底。排距＝碰撞帶高度＋速度×反應時間，
+//    所以不管速度多快，玩家可用的反應時間都有保底）
+//  - 障礙密度：每條非安全車道有障礙的機率從 30% 慢慢升到 75%
+const GAME_START_SPEED = 150, GAME_MAX_SPEED = 430, GAME_ACCEL = 4.5;
+const GAME_THREAT_H = 104; // 玩家碰撞範圍 52 + 障礙物碰撞範圍 52：一排障礙物「會撞到玩家」的垂直範圍
 const GAME_CAR_COLORS = ['#3b82f6', '#22C55E', '#a855f7', '#f59e0b', '#e5e7eb'];
 const gm = { state: 'ready', raf: 0, last: 0, t: 0, speed: 200, dist: 0, coins: 0, score: 0, lane: 1, px: 0, rows: [], sinceRow: 0, safeLane: 1, scroll: 0, overAt: 0, newBest: false };
 let gameCanvas = null, gameCtx = null;
@@ -4090,46 +4098,67 @@ function saveGameStats() {
 }
 
 function resetGame() {
-  Object.assign(gm, { state: 'ready', t: 0, speed: 200, dist: 0, coins: 0, score: 0, lane: 1, px: gameLaneX(1), rows: [], sinceRow: 120, safeLane: 1, newBest: false });
+  Object.assign(gm, { state: 'ready', t: 0, speed: 200, dist: 0, coins: 0, score: 0, lane: 1, px: gameLaneX(1), rows: [], sinceRow: 140, safeLane: 1, newBest: false });
 }
 
 function spawnGameRow() {
-  const opts = [gm.safeLane - 1, gm.safeLane, gm.safeLane + 1].filter(l => l >= 0 && l < GAME_LANES);
-  const safe = opts[Math.floor(Math.random() * opts.length)];
+  // 前期安全車道多半維持原位（不用一直換車道），越後面越常需要換
+  const stayProb = Math.max(0.34, 0.55 - gm.t * 0.005);
+  let safe = gm.safeLane;
+  if (Math.random() >= stayProb) {
+    const moves = [gm.safeLane - 1, gm.safeLane + 1].filter(l => l >= 0 && l < GAME_LANES);
+    safe = moves[Math.floor(Math.random() * moves.length)];
+  }
   gm.safeLane = safe;
+
+  const density = Math.min(0.75, 0.3 + gm.t * 0.01);
   const items = [];
+  const others = [];
   for (let l = 0; l < GAME_LANES; l++) {
     if (l === safe) {
       if (Math.random() < 0.35) items.push({ lane: l, type: 'coin' });
-    } else if (Math.random() < 0.75) {
-      const type = GAME_OBSTACLES[Math.floor(Math.random() * GAME_OBSTACLES.length)];
-      items.push({ lane: l, type, color: GAME_CAR_COLORS[Math.floor(Math.random() * GAME_CAR_COLORS.length)] });
+    } else {
+      others.push(l);
+      if (Math.random() < density) items.push(newGameObstacle(l));
     }
   }
+  // 每一排至少要有一個障礙物，不然前期整片空路太無聊
+  if (!items.some(i => i.type !== 'coin')) items.push(newGameObstacle(others[Math.floor(Math.random() * others.length)]));
   gm.rows.push({ y: -70, items });
+}
+
+function newGameObstacle(lane) {
+  return {
+    lane,
+    type: GAME_OBSTACLES[Math.floor(Math.random() * GAME_OBSTACLES.length)],
+    color: GAME_CAR_COLORS[Math.floor(Math.random() * GAME_CAR_COLORS.length)],
+  };
 }
 
 function updateGame(dt) {
   gm.t += dt;
-  gm.speed = Math.min(480, 200 + gm.t * 5);
+  gm.speed = Math.min(GAME_MAX_SPEED, GAME_START_SPEED + gm.t * GAME_ACCEL);
   const move = gm.speed * dt;
   gm.dist += move;
   gm.scroll = (gm.scroll + move) % 40;
-  gm.px += (gameLaneX(gm.lane) - gm.px) * Math.min(1, dt * 18);
+  // 換車道的跟手度：每秒趨近目標位置 30 倍，約 0.1 秒就到位（原本 18 倍會有點黏）
+  gm.px += (gameLaneX(gm.lane) - gm.px) * Math.min(1, dt * 30);
 
   gm.sinceRow += move;
-  if (gm.sinceRow >= Math.max(170, gm.speed * 0.55)) { gm.sinceRow = 0; spawnGameRow(); }
+  const reactSec = Math.max(0.36, 1.1 - gm.t * 0.0075);
+  if (gm.sinceRow >= GAME_THREAT_H + gm.speed * reactSec) { gm.sinceRow = 0; spawnGameRow(); }
 
   for (const row of gm.rows) row.y += move;
   gm.rows = gm.rows.filter(r => r.y < GAME_H + 80);
 
-  const pl = gm.px - 18, pr = gm.px + 18, pt = GAME_PLAYER_Y - 30, pb = GAME_PLAYER_Y + 30;
+  // 碰撞範圍比外觀小一點（寬容判定），擦邊而過不會死
+  const pl = gm.px - 14, pr = gm.px + 14, pt = GAME_PLAYER_Y - 26, pb = GAME_PLAYER_Y + 26;
   for (const row of gm.rows) {
     for (const it of row.items) {
       if (it.taken) continue;
       const cx = gameLaneX(it.lane);
       const isCoin = it.type === 'coin';
-      const halfW = isCoin ? 14 : 24, halfH = isCoin ? 14 : 28;
+      const halfW = isCoin ? 16 : 22, halfH = isCoin ? 16 : 26;
       if (pr > cx - halfW && pl < cx + halfW && pb > row.y - halfH && pt < row.y + halfH) {
         if (isCoin) { it.taken = true; gm.coins++; }
         else { endGame(); return; }
@@ -4239,6 +4268,9 @@ function drawGame() {
 
   c.textBaseline = 'alphabetic'; c.fillStyle = '#fff'; c.font = "700 20px 'Noto Sans TC', sans-serif";
   c.textAlign = 'left'; c.fillText(`分數 ${gm.score}`, 14, 30);
+  c.textAlign = 'center'; c.fillStyle = '#a3a3a3'; c.font = "700 13px 'Noto Sans TC', sans-serif";
+  c.fillText(`LV ${1 + Math.floor(gm.t / 15)}`, GAME_W / 2, 30);
+  c.fillStyle = '#fff'; c.font = "700 20px 'Noto Sans TC', sans-serif";
   c.textAlign = 'right'; c.fillText(`⭐ ${gm.coins}`, GAME_W - 14, 30);
 
   if (gm.state === 'ready') drawGameOverlay(c, 'TOMICA 飆速', ['點畫面開始', '點左半邊 ← 往左換車道', '點右半邊 → 往右換車道', '躲開路障、撿星星加分'], null);
