@@ -4743,211 +4743,296 @@ function rcPoly(c, x1, y1, x2, y2, x3, y3, x4, y4, color) {
 }
 function rcBlob(c, x, y, r, color) { c.fillStyle = color; c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill(); }
 
-// ── 畫車子（從後上方看，帶一點 3D 側面）：玩家、對手、選單預覽共用 ──
-// opt.side（像素，正＝看得到右側、負＝看得到左側）、opt.sk（遠端縮小比例）、opt.sup（遠端往上抬的像素）
-// 這三個值讓車子不是一張平貼的圖：偏離中線的車會露出面向賽道中央的那一側車身，有透視感
-const RACER_SHAPES = {
-  sedan: { pw: 0.47, top: 0.47, trunk: 0.085, cb: 0.40, ct: 0.295, ch: 0.21 },
-  hatch: { pw: 0.47, top: 0.47, trunk: 0.02,  cb: 0.425, ct: 0.33, ch: 0.27 },
-  coupe: { pw: 0.48, top: 0.44, trunk: 0.055, cb: 0.405, ct: 0.275, ch: 0.175 },
+// ── 畫車子：真正的 3D 車模 ──
+// 車身用「沿車長切成一圈一圈的剖面」連成面（車頂、玻璃、引擎蓋、側面、後保險桿…），再加上輪胎、尾翼、後照鏡、燈具。
+// 每一幀用偏航（yaw：車頭朝向）和俯角（pitch：從上往下看的角度）把所有頂點轉過去、投影、背面剔除、由遠到近畫出來，
+// 所以不管車在畫面哪裡、轉成什麼角度，結構都是對的，不會有貼圖錯位的問題。玩家、對手、選單預覽共用。
+// 座標：x 向右、y 向上、z 向車頭；車寬約 1，車長 2，後保險桿中心貼地處是 (0,0,0)
+const RACER_PROFILES = {
+  // [z, 頂面高度 y, 頂面半寬, 這一段（從上一圈到這一圈）的種類]
+  sedan: [[0, 0.47, 0.44, ''], [0.05, 0.49, 0.45, 'deck'], [0.5, 0.5, 0.44, 'deck'], [0.8, 0.87, 0.34, 'rear'], [1.0, 0.89, 0.33, 'roof'], [1.06, 0.89, 0.33, 'pillar'],
+    [1.28, 0.89, 0.33, 'roof'], [1.62, 0.54, 0.42, 'front'], [1.72, 0.51, 0.45, 'deck'], [1.94, 0.44, 0.44, 'hood'], [2.0, 0.37, 0.41, 'hood']],
+  hatch: [[0, 0.5, 0.44, ''], [0.06, 0.55, 0.44, 'deck'], [0.18, 0.6, 0.43, 'deck'], [0.62, 0.9, 0.35, 'rear'], [0.98, 0.92, 0.34, 'roof'], [1.04, 0.92, 0.34, 'pillar'],
+    [1.3, 0.92, 0.34, 'roof'], [1.64, 0.54, 0.42, 'front'], [1.74, 0.51, 0.45, 'deck'], [1.94, 0.43, 0.44, 'hood'], [2.0, 0.36, 0.41, 'hood']],
+  coupe: [[0, 0.45, 0.44, ''], [0.05, 0.47, 0.45, 'deck'], [0.4, 0.48, 0.44, 'deck'], [0.95, 0.78, 0.34, 'rear'], [1.12, 0.8, 0.33, 'roof'], [1.18, 0.8, 0.33, 'pillar'],
+    [1.3, 0.8, 0.33, 'roof'], [1.62, 0.47, 0.42, 'front'], [1.72, 0.45, 0.45, 'deck'], [1.95, 0.39, 0.44, 'hood'], [2.0, 0.33, 0.41, 'hood']],
 };
-function rcQuad(c, a, b, d, e, fill) {
-  c.fillStyle = fill; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(d[0], d[1]); c.lineTo(e[0], e[1]); c.closePath(); c.fill();
+const RACER_WHEELS = { sedan: [0.42, 1.55], hatch: [0.4, 1.52], coupe: [0.4, 1.58] };
+const RC_BODY_C = [0, 0.45, 1];
+function rcCross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+function rcFaceN(vs, outHint) {
+  const a = vs[0], b = vs[1], d = vs[2];
+  const n = rcCross([b[0] - a[0], b[1] - a[1], b[2] - a[2]], [d[0] - a[0], d[1] - a[1], d[2] - a[2]]);
+  const l = Math.hypot(n[0], n[1], n[2]);
+  if (l < 1e-7) return null;
+  n[0] /= l; n[1] /= l; n[2] /= l;
+  const cx = vs.reduce((s, p) => s + p[0], 0) / vs.length, cy = vs.reduce((s, p) => s + p[1], 0) / vs.length, cz = vs.reduce((s, p) => s + p[2], 0) / vs.length;
+  const h = outHint || [cx - RC_BODY_C[0], cy - RC_BODY_C[1], cz - RC_BODY_C[2]];
+  if (n[0] * h[0] + n[1] * h[1] + n[2] * h[2] < 0) { n[0] = -n[0]; n[1] = -n[1]; n[2] = -n[2]; }
+  return n;
 }
-function rcVGrad(c, y0, y1, stops) {
-  const g = c.createLinearGradient(0, y0, 0, y1);
-  stops.forEach(s => g.addColorStop(s[0], s[1]));
-  return g;
+const racerModelCache = {};
+function racerCarModel(shape, spoiler, stripe) {
+  const key = `${shape}|${spoiler ? 1 : 0}|${stripe ? 1 : 0}`;
+  if (racerModelCache[key]) return racerModelCache[key];
+  const prof = RACER_PROFILES[shape] || RACER_PROFILES.sedan;
+  const faces = [], extra = [];
+  const add = (list, vs, kind, hint, extraInfo) => { const n = rcFaceN(vs, hint); if (n) list.push({ v: vs, n, kind, ...(extraInfo || {}) }); };
+  // 每個剖面是 8 個點：左下、左側下、左腰線、左頂、右頂、右腰線、右側下、右下
+  const rings = prof.map(p => {
+    const top = p[1], wt = p[2], belt = Math.min(0.47, top), z = p[0];
+    const wb = 0.42, ws = z < 0.04 ? 0.47 : z > 1.9 ? 0.45 : 0.48;
+    return [[-wb, 0.17, z], [-ws, Math.min(0.3, belt - 0.02), z], [-ws, belt, z], [-wt, top, z], [wt, top, z], [ws, belt, z], [ws, Math.min(0.3, belt - 0.02), z], [wb, 0.17, z]];
+  });
+  for (let i = 1; i < rings.length; i++) {
+    const a = rings[i - 1], b = rings[i], seg = prof[i][3];
+    for (let j = 0; j < 7; j++) {
+      const vs = [a[j], a[j + 1], b[j + 1], b[j]];
+      let kind = 'body';
+      if (j === 0 || j === 6) kind = 'low';
+      else if ((j === 2 || j === 4) && seg === 'roof') kind = 'glass';
+      else if (j === 3 && (seg === 'rear' || seg === 'front')) kind = 'glass';
+      else if (j === 3) kind = seg === 'roof' ? 'roof' : 'body';
+      add(faces, vs, kind, null, { seg, j });
+      if (stripe && j === 3 && (seg === 'deck' || seg === 'hood' || seg === 'roof' || seg === 'pillar')) { // 賽車中線條紋
+        const s0 = 0.055, y0 = a[3][1] + 0.004, y1 = b[3][1] + 0.004;
+        add(extra, [[-s0, y0, a[3][2]], [s0, y0, a[3][2]], [s0, y1, b[3][2]], [-s0, y1, b[3][2]]], 'stripe', [0, 1, 0], { layer: 1 });
+      }
+    }
+  }
+  // 前後蓋板
+  const rear = rings[0], front = rings[rings.length - 1];
+  add(faces, rear.slice().reverse(), 'rearcap', [0, 0, -1], { cap: 'rear' });
+  add(faces, front.slice(), 'frontcap', [0, 0, 1], { cap: 'front' });
+  // ── 後面板上的細節（貼在 z=-0.004 的平面上）──
+  const R = (vs, kind, info) => add(extra, vs.map(p => [p[0], p[1], -0.004]), kind, [0, 0, -1], { layer: 1, plane: 'rear', ...(info || {}) });
+  R([[-0.42, 0.17, 0], [0.42, 0.17, 0], [0.43, 0.27, 0], [-0.43, 0.27, 0]], 'trim');                         // 下保險桿
+  R([[-0.34, 0.18, 0], [0.34, 0.18, 0], [0.34, 0.255, 0], [-0.34, 0.255, 0]], 'diff');                       // 擴散器
+  for (let i = -3; i <= 3; i++) if (i) R([[i * 0.075 - 0.004, 0.18, 0], [i * 0.075 + 0.004, 0.18, 0], [i * 0.085 + 0.004, 0.255, 0], [i * 0.085 - 0.004, 0.255, 0]], 'fin');
+  [-1, 1].forEach(s => {
+    const x0 = s * 0.2, x1 = s * 0.455, ya = shape === 'hatch' ? 0.34 : 0.35, yb = ya + 0.1;
+    R([[x0, ya, 0], [x1, ya, 0], [x1 * 0.99, yb, 0], [x0, yb, 0]], 'lamp', { side: s });                      // 尾燈
+    R([[x0 + s * 0.02, ya + 0.045, 0], [x1 - s * 0.02, ya + 0.045, 0], [x1 - s * 0.02, ya + 0.065, 0], [x0 + s * 0.02, ya + 0.065, 0]], 'led');
+  });
+  R([[-0.2, 0.385, 0], [0.2, 0.385, 0], [0.2, 0.41, 0], [-0.2, 0.41, 0]], 'bar');                              // 中央連燈條
+  R([[-0.11, 0.285, 0], [0.11, 0.285, 0], [0.11, 0.345, 0], [-0.11, 0.345, 0]], 'plate');                      // 車牌
+  R([[-0.095, 0.325, 0], [0.095, 0.325, 0], [0.095, 0.335, 0], [-0.095, 0.335, 0]], 'platetxt');
+  [-1, 1].forEach(s => { // 排氣尾管（小橢圓）
+    const o = [], q = [];
+    for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832; o.push([s * 0.26 + Math.cos(a) * 0.05, 0.215 + Math.sin(a) * 0.04, 0]); q.push([s * 0.26 + Math.cos(a) * 0.034, 0.215 + Math.sin(a) * 0.026, 0]); }
+    R(o, 'pipe', { tip: s }); R(q, 'pipein');
+  });
+  // ── 前面板（開到側面看得到車頭時才會用到）──
+  const F = (vs, kind) => add(extra, vs.map(p => [p[0], p[1], 2.004]), kind, [0, 0, 1], { layer: 1, plane: 'front' });
+  [-1, 1].forEach(s => F([[s * 0.2, 0.2, 0], [s * 0.43, 0.2, 0], [s * 0.43, 0.3, 0], [s * 0.2, 0.3, 0]], 'head'));
+  F([[-0.16, 0.2, 0], [0.16, 0.2, 0], [0.16, 0.29, 0], [-0.16, 0.29, 0]], 'grille');
+  // ── 盒子：尾翼、後照鏡 ──
+  const box = (x0, x1, y0, y1, z0, z1, kind) => {
+    const P = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]];
+    [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [3, 2, 6, 7], [4, 5, 1, 0]].forEach(f => add(extra, f.map(i => P[i]), kind, [0, 0, 0], { layer: 2, boxC: [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2] }));
+  };
+  if (spoiler) {
+    const yw = shape === 'hatch' ? 0.82 : shape === 'coupe' ? 0.64 : 0.68, y0 = shape === 'hatch' ? 0.58 : 0.5;
+    [-1, 1].forEach(s => box(s * 0.27 - 0.02, s * 0.27 + 0.02, y0, yw, 0.1, 0.15, 'carbon'));
+    box(-0.47, 0.47, yw, yw + 0.045, 0.02, 0.3, 'wing');
+    [-1, 1].forEach(s => box(s * 0.47 - (s > 0 ? 0.02 : 0), s * 0.47 + (s > 0 ? 0 : 0.02), yw - 0.03, yw + 0.1, 0.0, 0.32, 'carbon'));
+  }
+  [-1, 1].forEach(s => box(s * 0.5 - (s > 0 ? 0 : 0.085), s * 0.5 + (s > 0 ? 0.085 : 0), 0.5, 0.58, 1.25, 1.36, 'mirror'));
+  // 方塊面的朝外方向要用方塊自己的中心來判斷，這裡重新算一次
+  extra.forEach(f => { if (f.boxC) { const c = f.boxC, v = f.v, ce = [0, 1, 2, 3].reduce((s, i) => [s[0] + v[i][0] / 4, s[1] + v[i][1] / 4, s[2] + v[i][2] / 4], [0, 0, 0]); const h = [ce[0] - c[0], ce[1] - c[1], ce[2] - c[2]]; const n = f.n; if (n[0] * h[0] + n[1] * h[1] + n[2] * h[2] < 0) f.n = [-n[0], -n[1], -n[2]]; } });
+  return (racerModelCache[key] = { faces, extra, wz: RACER_WHEELS[shape] || RACER_WHEELS.sedan });
 }
+
+const RC_LIGHT = (() => { const v = [-0.42, 0.78, -0.46], l = Math.hypot(...v); return v.map(x => x / l); })();
+function rcMixRgb(a, b, t) { return `rgb(${Math.round(a[0] + (b[0] - a[0]) * t)},${Math.round(a[1] + (b[1] - a[1]) * t)},${Math.round(a[2] + (b[2] - a[2]) * t)})`; }
+function rcFillPoly(c, pts, fill, stroke) {
+  c.beginPath(); c.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+  c.closePath(); c.fillStyle = fill; c.fill();
+  if (stroke) { c.strokeStyle = stroke; c.lineWidth = 0.7; c.stroke(); }
+}
+
 function drawRacerCar(c, car, cx, by, w, opt) {
   if (w < 2) return;
-  const o = opt || {}, u = w, S = RACER_SHAPES[car.shape] || RACER_SHAPES.sedan, body = car.body;
+  const o = opt || {};
   c.save();
   c.translate(cx, by);
   if (o.tilt) c.rotate(o.tilt);
-  // 影子
-  const sg = c.createRadialGradient(0, -u * 0.01, u * 0.05, 0, -u * 0.01, u * 0.64);
-  sg.addColorStop(0, 'rgba(0,0,0,0.6)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = sg; c.beginPath(); c.ellipse(0, -u * 0.01, u * 0.64, u * 0.1, 0, 0, 6.2832); c.fill();
-  if (w < 14) { // 遠處的小車，簡化畫法
-    c.fillStyle = rcShade(body, -0.15); c.fillRect(-u * 0.45, -u * 0.5, u * 0.9, u * 0.42);
-    c.fillStyle = rcShade(body, 0.2); c.fillRect(-u * 0.3, -u * 0.62, u * 0.6, u * 0.14);
-    c.fillStyle = '#ff3b3b'; c.fillRect(-u * 0.42, -u * 0.38, u * 0.22, u * 0.1); c.fillRect(u * 0.2, -u * 0.38, u * 0.22, u * 0.1);
+  if (w < 12) { // 遠處的小車，簡化畫法
+    const u = w;
+    c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.ellipse(0, 0, u * 0.55, u * 0.1, 0, 0, 6.2832); c.fill();
+    c.fillStyle = rcShade(car.body, -0.2); c.fillRect(-u * 0.45, -u * 0.5, u * 0.9, u * 0.42);
+    c.fillStyle = rcShade(car.body, 0.15); c.fillRect(-u * 0.32, -u * 0.64, u * 0.64, u * 0.16);
+    c.fillStyle = '#ff3b3b'; c.fillRect(-u * 0.42, -u * 0.4, u * 0.2, u * 0.1); c.fillRect(u * 0.22, -u * 0.4, u * 0.2, u * 0.1);
     c.restore(); return;
   }
-  const fine = w > 44;                          // 夠大才畫細節
-  const side = o.side || 0, sw = Math.abs(side), dir = side > 0 ? 1 : -1, k = o.sk || 0.86, sup = o.sup || 0;
-  const pw = S.pw * u, topY = S.top * u, trunkD = S.trunk * u, cbW = S.cb * u, ctW = S.ct * u, chH = S.ch * u;
-  const baseY = -(topY + trunkD), roofY = baseY - chH;
-  const lit = rcShade(body, 0.22), mid = body, dark = rcShade(body, -0.3);
+  const M = racerCarModel(car.shape, car.spoiler, car.stripe);
+  const yaw = o.yaw || 0, pitch = rcClamp(o.pitch == null ? 0.7 : o.pitch, 0.1, 1.15);
+  const cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const k = w / 0.98, D = 7, LC = 1.0, fine = w > 38, wetK = o.wet ? 1 : 0;
+  // 把車身座標轉到「看的人」座標系：先繞車中心偏航、再往下俯視
+  const tfv = (p) => { const z = p[2] - LC; const x1 = p[0] * cyw + z * syw, z1 = -p[0] * syw + z * cyw + LC; return [x1, p[1] * cp + z1 * sp, z1 * cp - p[1] * sp]; };
+  const proj = (v) => { const f = D / (D + v[2]); return [v[0] * k * f, -v[1] * k * f]; };
+  const nview = (n) => { const x1 = n[0] * cyw + n[2] * syw, z1 = -n[0] * syw + n[2] * cyw; return [x1, n[1] * cp + z1 * sp, z1 * cp - n[1] * sp]; };
+  const base = car.body, baseRgb = (() => { const n = parseInt(base.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; })();
+  const twoCol = car.two || null;
+  const stripeRgb = car.stripe ? (() => { const n = parseInt(car.stripe.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; })() : [255, 255, 255];
+  const twoRgb = twoCol ? (() => { const n = parseInt(twoCol.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; })() : null;
+  // 影子：車子投在地面的四邊形（兩層，外層較淡）
+  const gp = [[-0.55, 0, -0.08], [0.55, 0, -0.08], [0.55, 0, 2.08], [-0.55, 0, 2.08]].map(p => proj(tfv(p)));
+  rcFillPoly(c, gp, 'rgba(0,0,0,0.28)');
+  const gp2 = [[-0.46, 0, 0.0], [0.46, 0, 0.0], [0.46, 0, 2.0], [-0.46, 0, 2.0]].map(p => proj(tfv(p)));
+  rcFillPoly(c, gp2, 'rgba(0,0,0,0.3)');
 
-  // ── 側面（偏離中線時才看得到）──
-  if (sw > u * 0.025 && w >= 18) {
-    const x0 = dir * pw, x1 = x0 + dir * sw;
-    const fy = y => -sup + y * k;                  // 遠端的高度：縮小再往上抬
-    const sideCol = rcShade(body, dir > 0 ? -0.34 : -0.22);
-    let g = c.createLinearGradient(x0, 0, x1, 0);
-    g.addColorStop(0, rcShade(body, dir > 0 ? -0.4 : -0.28)); g.addColorStop(1, sideCol);
-    // 車廂側面（含車窗）
-    const cx0 = dir * cbW, cx1 = cx0 + dir * sw * 0.82, rx0 = dir * ctW, rx1 = rx0 + dir * sw * 0.7;
-    rcQuad(c, [cx0, baseY], [rx0, roofY], [rx1, fy(roofY)], [cx1, fy(baseY)], g);
-    if (fine) { // 側窗：車廂側面四邊形內縮一圈
-      const A = [cx0, baseY], B = [rx0, roofY], C = [rx1, fy(roofY)], D = [cx1, fy(baseY)];
-      const P = (uu, vv) => [(A[0] * (1 - uu) + D[0] * uu) * (1 - vv) + (B[0] * (1 - uu) + C[0] * uu) * vv, (A[1] * (1 - uu) + D[1] * uu) * (1 - vv) + (B[1] * (1 - uu) + C[1] * uu) * vv];
-      const p1 = P(0.1, 0.2), p2 = P(0.1, 0.8), p3 = P(0.93, 0.8), p4 = P(0.93, 0.2);
-      rcQuad(c, p1, p2, p3, p4, '#0e1620');
+  const eyeVis = (n, cv) => n[0] * cv[0] + n[1] * cv[1] + n[2] * (cv[2] + D);       // < 0 代表朝向鏡頭
+  const colorOf = (f, nv) => {
+    const lit = Math.max(0, nv[0] * RC_LIGHT[0] + nv[1] * RC_LIGHT[1] + nv[2] * RC_LIGHT[2]);
+    const I = 0.34 + 0.66 * lit;
+    switch (f.kind) {
+      case 'glass': return rcMixRgb([9, 14, 21], [88, 120, 156], Math.min(1, lit * 0.8 + wetK * 0.1));
+      case 'low': { const b = twoRgb || baseRgb; return rcMixRgb([b[0] * 0.18, b[1] * 0.18, b[2] * 0.18], [b[0] * 0.9, b[1] * 0.9, b[2] * 0.9], I * 0.9); }
+      case 'roof': return rcMixRgb([baseRgb[0] * 0.3, baseRgb[1] * 0.3, baseRgb[2] * 0.3], [Math.min(255, baseRgb[0] * 1.25 + 14), Math.min(255, baseRgb[1] * 1.25 + 14), Math.min(255, baseRgb[2] * 1.25 + 14)], I);
+      case 'stripe': return rcMixRgb([stripeRgb[0] * 0.35, stripeRgb[1] * 0.35, stripeRgb[2] * 0.35], [Math.min(255, stripeRgb[0] * 1.1), Math.min(255, stripeRgb[1] * 1.1), Math.min(255, stripeRgb[2] * 1.1)], I);
+      case 'carbon': case 'wing': return rcMixRgb([6, 6, 8], [58, 62, 72], lit);
+      case 'mirror': return rcMixRgb([baseRgb[0] * 0.25, baseRgb[1] * 0.25, baseRgb[2] * 0.25], [baseRgb[0], baseRgb[1], baseRgb[2]], I);
+      case 'trim': case 'diff': return rcMixRgb([6, 7, 9], [34, 36, 42], lit);
+      case 'fin': return '#2c2f37';
+      case 'plate': return '#f2f2ea'; case 'platetxt': return '#26344c';
+      case 'pipe': return '#cfd4dc'; case 'pipein': return '#06070a';
+      case 'head': return '#fff3c6'; case 'grille': return '#0d0f13';
+      default: return rcMixRgb([baseRgb[0] * 0.2, baseRgb[1] * 0.2, baseRgb[2] * 0.2], [Math.min(255, baseRgb[0] * 1.12 + 6), Math.min(255, baseRgb[1] * 1.12 + 6), Math.min(255, baseRgb[2] * 1.12 + 6)], I);
     }
-    // 車身側面
-    g = c.createLinearGradient(x0, 0, x1, 0);
-    g.addColorStop(0, rcShade(body, dir > 0 ? -0.42 : -0.3)); g.addColorStop(1, rcShade(body, dir > 0 ? -0.26 : -0.14));
-    rcQuad(c, [x0, -u * 0.1], [x0, -topY], [x1, fy(-topY)], [x1, fy(-u * 0.1)], g);
-    if (car.two) rcQuad(c, [x0, -u * 0.1], [x0, -u * 0.3], [x1, fy(-u * 0.3)], [x1, fy(-u * 0.1)], rcShade(car.two, dir > 0 ? 0 : 0.05));
-    if (fine) { // 腰線、門縫
-      c.strokeStyle = 'rgba(255,255,255,0.16)'; c.lineWidth = Math.max(1, u * 0.012);
-      c.beginPath(); c.moveTo(x0, -u * 0.34); c.lineTo(x1, fy(-u * 0.34)); c.stroke();
-      c.strokeStyle = 'rgba(0,0,0,0.3)'; c.lineWidth = 1;
-      c.beginPath(); c.moveTo(x0 + dir * sw * 0.45, -u * 0.12); c.lineTo(x0 + dir * sw * 0.45, fy(-topY * 0.9)); c.stroke();
+  };
+  const drawFace = (f) => {
+    const vv = f.v.map(tfv), nv = nview(f.n), m = vv.length;
+    const cen = [0, 0, 0];
+    vv.forEach(p => { cen[0] += p[0] / m; cen[1] += p[1] / m; cen[2] += p[2] / m; });
+    if (eyeVis(nv, cen) >= 0) return null;
+    return { f, pts: vv.map(proj), nv, depth: cen[2] };
+  };
+  const visible = [];
+  M.faces.forEach(f => { const d = drawFace(f); if (d) visible.push(d); });
+  visible.sort((a, b) => b.depth - a.depth);
+  // 車輪：先算每顆輪子的外側面朝不朝鏡頭，決定畫在車身前或後
+  const wheels = [];
+  M.wz.forEach(z => [-1, 1].forEach(s => {
+    const outer = tfv([s * 0.515, 0.19, z]), nv = nview([s, 0, 0]);
+    wheels.push({ s, z, near: eyeVis(nv, outer) / Math.hypot(...outer.slice(0, 2), outer[2] + D) < -0.1, depth: outer[2] });
+  }));
+  const wheelFill = (wl) => {
+    const R = 0.19, hw = 0.085, yc = 0.19, xc = wl.s * 0.43, N = fine ? 14 : 8;
+    const ring = (x, rr) => Array.from({ length: N }, (_, i) => { const a = i / N * 6.2832; return [x, yc + rr * Math.cos(a), wl.z + rr * Math.sin(a)]; });
+    const xo = xc + wl.s * hw, xi = xc - wl.s * hw;
+    // 輪弧（車身上的黑色弧形開口）
+    if (fine && wl.near) { const arch = Array.from({ length: 12 }, (_, i) => { const a = i / 12 * 6.2832; return [wl.s * 0.484, yc + R * 1.22 * Math.cos(a), wl.z + R * 1.22 * Math.sin(a)]; }).map(tfv); const nv = nview([wl.s, 0, 0]); const cen = arch[0]; if (eyeVis(nv, cen) < 0) rcFillPoly(c, arch.map(proj), '#050506'); }
+    const oR = ring(xo, R).map(tfv), iR = ring(xi, R).map(tfv);
+    // 內側圓面（輪子的內側朝鏡頭時才畫）
+    const nIn = nview([-wl.s, 0, 0]);
+    if (eyeVis(nIn, tfv([xi, yc, wl.z])) < 0) rcFillPoly(c, iR.map(proj), '#0b0b0d');
+    // 胎面（一小片一小片）
+    const quads = [];
+    for (let i = 0; i < N; i++) {
+      const j = (i + 1) % N, a = (i + 0.5) / N * 6.2832, nvq = nview([0, Math.cos(a), Math.sin(a)]);
+      const ce = [(oR[i][0] + iR[j][0]) / 2, (oR[i][1] + iR[j][1]) / 2, (oR[i][2] + iR[j][2]) / 2];
+      if (eyeVis(nvq, ce) >= 0) continue;
+      quads.push({ pts: [oR[i], oR[j], iR[j], iR[i]].map(proj), depth: ce[2], lit: Math.max(0, nvq[0] * RC_LIGHT[0] + nvq[1] * RC_LIGHT[1] + nvq[2] * RC_LIGHT[2]) });
     }
-    // 輪子（側面看起來是被壓扁的橢圓）
-    c.fillStyle = '#0a0a0a';
-    c.beginPath(); c.ellipse(x0 + dir * sw * 0.12, -u * 0.12, Math.max(1.5, sw * 0.2), u * 0.13, 0, 0, 6.2832); c.fill();
-    c.beginPath(); c.ellipse(x0 + dir * sw * 0.84, fy(-u * 0.12), Math.max(1.2, sw * 0.17), u * 0.13 * k, 0, 0, 6.2832); c.fill();
-  }
-
-  // ── 後輪 ──
-  const tw = u * 0.15;
-  [-1, 1].forEach(sd => {
-    const x = sd > 0 ? pw - tw * 0.55 : -pw - tw * 0.45;
-    const tg = c.createLinearGradient(x, 0, x + tw, 0);
-    tg.addColorStop(0, '#080808'); tg.addColorStop(0.5, '#262626'); tg.addColorStop(1, '#080808');
-    c.fillStyle = tg; rcRR(c, x, -u * 0.255, tw, u * 0.255, u * 0.035); c.fill();
-    if (fine) { c.strokeStyle = 'rgba(255,255,255,0.07)'; c.lineWidth = 1; c.beginPath(); c.moveTo(x + tw / 2, -u * 0.24); c.lineTo(x + tw / 2, -u * 0.01); c.stroke(); }
+    quads.sort((p, q) => q.depth - p.depth).forEach(q => rcFillPoly(c, q.pts, rcMixRgb([8, 8, 10], [48, 49, 55], q.lit), 'rgba(0,0,0,0.5)'));
+    // 外側圓面：輪胎側壁＋鋁圈
+    const nOut = nview([wl.s, 0, 0]);
+    if (eyeVis(nOut, tfv([xo, yc, wl.z])) < 0) {
+      rcFillPoly(c, oR.map(proj), '#17181c');
+      if (fine) {
+        const rim = ring(xo + wl.s * 0.002, R * 0.66).map(tfv).map(proj);
+        rcFillPoly(c, rim, '#c4c9d2', 'rgba(0,0,0,0.35)');
+        if (w > 70) { const hub = proj(tfv([xo + wl.s * 0.004, yc, wl.z])); c.strokeStyle = '#6c7380'; c.lineWidth = 1; c.beginPath(); for (let i = 0; i < 5; i++) { const a = i / 5 * 6.2832 + 0.3, p2 = proj(tfv([xo + wl.s * 0.004, yc + R * 0.62 * Math.cos(a), wl.z + R * 0.62 * Math.sin(a)])); c.moveTo(hub[0], hub[1]); c.lineTo(p2[0], p2[1]); } c.stroke(); rcFillPoly(c, ring(xo + wl.s * 0.006, R * 0.16).map(tfv).map(proj), '#2a2d34'); }
+      }
+    }
+  };
+  // 1) 背對鏡頭那側的輪子
+  wheels.filter(wl => !wl.near).sort((a, b) => b.depth - a.depth).forEach(wheelFill);
+  // 2) 車身
+  visible.forEach(d => {
+    const col = colorOf(d.f, d.nv);
+    rcFillPoly(c, d.pts, col, col);
   });
-
-  // ── 車廂（後窗＋車頂）──
-  const gl = rcVGrad(c, roofY, baseY, [[0, '#32465e'], [0.55, '#131c28'], [1, '#0a0f16']]);
-  // 車頂（比車窗再高一點，露出頂面）
-  c.fillStyle = rcShade(body, 0.3);
-  c.beginPath(); c.moveTo(-ctW, roofY); c.lineTo(-ctW * 0.9, roofY - u * 0.04); c.lineTo(ctW * 0.9, roofY - u * 0.04); c.lineTo(ctW, roofY); c.closePath(); c.fill();
-  // C 柱＋車廂本體
-  c.fillStyle = rcVGrad(c, roofY, baseY, [[0, rcShade(body, 0.1)], [1, rcShade(body, -0.12)]]);
-  c.beginPath(); c.moveTo(-cbW, baseY); c.lineTo(-ctW, roofY); c.lineTo(ctW, roofY); c.lineTo(cbW, baseY); c.closePath(); c.fill();
-  // 後擋風玻璃
-  const gi = u * 0.04, gt = chH * 0.12;
-  c.fillStyle = gl;
-  c.beginPath(); c.moveTo(-cbW + gi, baseY - u * 0.012); c.lineTo(-ctW + gi * 0.9, roofY + gt); c.lineTo(ctW - gi * 0.9, roofY + gt); c.lineTo(cbW - gi, baseY - u * 0.012); c.closePath(); c.fill();
-  if (fine) {
-    c.save(); c.clip();
-    c.fillStyle = 'rgba(255,255,255,0.16)';
-    c.beginPath(); c.moveTo(-cbW * 0.75, baseY); c.lineTo(-ctW * 0.35, roofY); c.lineTo(ctW * 0.05, roofY); c.lineTo(-cbW * 0.35, baseY); c.closePath(); c.fill();
-    c.fillStyle = 'rgba(255,255,255,0.07)';
-    c.beginPath(); c.moveTo(cbW * 0.15, baseY); c.lineTo(ctW * 0.35, roofY); c.lineTo(ctW * 0.55, roofY); c.lineTo(cbW * 0.35, baseY); c.closePath(); c.fill();
-    c.strokeStyle = 'rgba(255,170,120,0.18)'; c.lineWidth = 1; // 除霧線
-    for (let i = 1; i < 4; i++) { const yy = roofY + gt + (baseY - roofY - gt) * i / 4; c.beginPath(); c.moveTo(-cbW, yy); c.lineTo(cbW, yy); c.stroke(); }
-    c.restore();
+  if (o.wet || fine) { // 車頂／引擎蓋／行李廂的高光（雨天更亮）
+    visible.forEach(d => {
+      const f = d.f;
+      if (f.kind !== 'body' && f.kind !== 'roof') return;
+      if (f.j !== 3) return;
+      c.fillStyle = o.wet ? 'rgba(220,235,255,0.2)' : 'rgba(255,255,255,0.1)';
+      const p = d.pts; c.beginPath(); c.moveTo(p[0][0] * 0.55 + p[1][0] * 0.45, p[0][1] * 0.55 + p[1][1] * 0.45); c.lineTo(p[0][0] * 0.3 + p[1][0] * 0.7, p[0][1] * 0.3 + p[1][1] * 0.7);
+      c.lineTo(p[3][0] * 0.3 + p[2][0] * 0.7, p[3][1] * 0.3 + p[2][1] * 0.7); c.lineTo(p[3][0] * 0.55 + p[2][0] * 0.45, p[3][1] * 0.55 + p[2][1] * 0.45); c.closePath(); c.fill();
+    });
   }
-  // 車廂中線賽車條紋
-  if (car.stripe) {
-    c.fillStyle = car.stripe;
-    c.beginPath(); c.moveTo(-u * 0.06, baseY); c.lineTo(-u * 0.04, roofY - u * 0.03); c.lineTo(u * 0.04, roofY - u * 0.03); c.lineTo(u * 0.06, baseY); c.closePath(); c.fill();
-  }
-
-  // ── 行李廂蓋頂面（鏡面般反射天空，比車身亮）──
-  if (trunkD > 0.5) {
-    c.fillStyle = rcVGrad(c, baseY, -topY, [[0, rcShade(body, 0.12)], [1, lit]]);
-    c.beginPath(); c.moveTo(-cbW, baseY); c.lineTo(-pw * 0.99, -topY); c.lineTo(pw * 0.99, -topY); c.lineTo(cbW, baseY); c.closePath(); c.fill();
-    if (car.stripe) rcQuad(c, [-u * 0.06, baseY], [-u * 0.06, -topY], [u * 0.06, -topY], [u * 0.06, baseY], car.stripe);
-    c.fillStyle = 'rgba(255,255,255,0.18)';
-    c.beginPath(); c.moveTo(-cbW * 0.9, baseY + trunkD * 0.2); c.lineTo(-pw * 0.8, -topY - trunkD * 0.12); c.lineTo(-pw * 0.35, -topY - trunkD * 0.12); c.lineTo(-cbW * 0.45, baseY + trunkD * 0.2); c.closePath(); c.fill();
-  }
-
-  // ── 尾翼（放在行李廂／後窗下緣）──
-  if (car.spoiler) {
-    const wy = baseY + trunkD * 0.15 + u * 0.01, wh = u * 0.045;
-    c.fillStyle = '#0c0c0c';
-    c.fillRect(-u * 0.3, wy, u * 0.035, u * 0.06); c.fillRect(u * 0.265, wy, u * 0.035, u * 0.06);
-    c.fillStyle = rcVGrad(c, wy - wh * 1.5, wy, [[0, '#3a3d44'], [0.4, '#151619'], [1, '#050505']]);
-    rcRR(c, -pw * 1.0, wy - wh * 1.5, pw * 2, wh * 1.5, u * 0.012); c.fill();
-    c.fillStyle = 'rgba(255,255,255,0.22)'; c.fillRect(-pw * 0.95, wy - wh * 1.5, pw * 1.9, Math.max(1, u * 0.008));
-    c.fillStyle = '#0a0a0a'; c.fillRect(-pw * 1.02, wy - wh * 2.1, u * 0.025, wh * 2.4); c.fillRect(pw * 1.02 - u * 0.025, wy - wh * 2.1, u * 0.025, wh * 2.4);
-  }
-
-  // ── 後車身板件 ──
-  c.fillStyle = rcVGrad(c, -topY, -u * 0.12, [[0, rcShade(body, 0.1)], [0.35, mid], [1, dark]]);
-  rcRR(c, -pw, -topY, pw * 2, topY - u * 0.12, u * 0.05); c.fill();
-  if (car.two) { c.fillStyle = car.two; rcRR(c, -pw, -u * 0.34, pw * 2, u * 0.22, u * 0.04); c.fill(); }
-  if (car.stripe) { c.fillStyle = car.stripe; c.fillRect(-u * 0.06, -topY, u * 0.12, topY - u * 0.12); }
-  if (fine) { // 腰線高光＋行李廂縫
-    c.fillStyle = 'rgba(255,255,255,0.22)'; c.fillRect(-pw * 0.92, -topY + u * 0.012, pw * 1.84, Math.max(1, u * 0.012));
-    c.fillStyle = 'rgba(0,0,0,0.28)'; c.fillRect(-pw * 0.92, -u * 0.275, pw * 1.84, Math.max(1, u * 0.007));
-  }
-  // 尾燈：煞車時整排亮起並發光
-  const lampY = -topY + u * 0.055, lampH = u * 0.075, brake = !!o.brake;
-  [-1, 1].forEach(sd => {
-    const x0 = sd > 0 ? u * 0.17 : -u * 0.45, lw = u * 0.28;
-    c.fillStyle = rcVGrad(c, lampY, lampY + lampH, [[0, brake ? '#ff8d86' : '#d81f26'], [1, brake ? '#e0242c' : '#7a0c12']]);
-    rcRR(c, x0, lampY, lw, lampH, u * 0.02); c.fill();
-    if (fine) {
-      c.fillStyle = brake ? '#fff1ee' : '#ff6a63'; c.fillRect(x0 + lw * 0.1, lampY + lampH * 0.34, lw * 0.8, Math.max(1, lampH * 0.18)); // LED 燈條
-      c.fillStyle = 'rgba(255,255,255,0.22)'; c.fillRect(x0 + lw * 0.06, lampY + lampH * 0.08, lw * 0.5, Math.max(1, lampH * 0.14));
-    }
+  // 3) 貼在車身上的細節（條紋、尾燈、車牌、尾管…）
+  const decals = [], boxes = [];
+  M.extra.forEach(f => {
+    if (f.kind === 'stripe' && !car.stripe) return;
+    if (!fine && f.layer === 1 && f.kind !== 'lamp' && f.kind !== 'trim' && f.kind !== 'stripe') return;
+    const d = drawFace(f);
+    if (!d) return;
+    (f.layer === 2 ? boxes : decals).push(d);
   });
-  if (fine) { // 中央連接燈條
-    c.fillStyle = brake ? '#ff7d76' : '#8e1018';
-    c.fillRect(-u * 0.17, lampY + lampH * 0.4, u * 0.34, Math.max(1, lampH * 0.16));
-  }
-  if (brake || o.night) { // 發光（疊加）
+  const brake = !!o.brake, night = !!o.night;
+  let lampCenters = [], pipeCenters = [];
+  decals.forEach(d => {
+    const f = d.f;
+    let col;
+    if (f.kind === 'lamp') col = brake ? '#ff6b61' : '#b3141c';
+    else if (f.kind === 'led') col = brake ? '#fff1ee' : '#ff5a52';
+    else if (f.kind === 'bar') col = brake ? '#ff7d76' : '#7a0f16';
+    else col = colorOf(f, d.nv);
+    if (f.kind === 'lamp') lampCenters.push([(d.pts[0][0] + d.pts[2][0]) / 2, (d.pts[0][1] + d.pts[2][1]) / 2, Math.abs(d.pts[1][0] - d.pts[0][0])]);
+    if (f.kind === 'pipe') pipeCenters.push([(d.pts[0][0] + d.pts[5][0]) / 2, (d.pts[0][1] + d.pts[5][1]) / 2, Math.abs(d.pts[0][0] - d.pts[5][0])]);
+    rcFillPoly(c, d.pts, col, f.kind === 'plate' ? 'rgba(0,0,0,0.4)' : null);
+  });
+  // 4) 面向鏡頭那側的輪子
+  wheels.filter(wl => wl.near).sort((a, b) => b.depth - a.depth).forEach(wheelFill);
+  // 5) 尾翼、後照鏡（獨立的盒子，由遠到近）
+  boxes.sort((a, b) => b.depth - a.depth).forEach(d => {
+    const col = colorOf(d.f, d.nv);
+    rcFillPoly(c, d.pts, col, col);
+  });
+  // 尾燈／煞車燈發光（疊加）
+  if ((brake || night) && lampCenters.length) {
     c.globalCompositeOperation = 'lighter';
-    [-1, 1].forEach(sd => {
-      const gx = sd * u * 0.31, gy = lampY + lampH * 0.5, r = u * (brake ? 0.34 : 0.2);
-      const rg = c.createRadialGradient(gx, gy, 0, gx, gy, r);
-      rg.addColorStop(0, brake ? 'rgba(255,60,50,0.75)' : 'rgba(255,40,40,0.38)'); rg.addColorStop(1, 'rgba(255,40,40,0)');
-      c.fillStyle = rg; c.beginPath(); c.arc(gx, gy, r, 0, 6.2832); c.fill();
+    lampCenters.forEach(lc => {
+      const r = Math.max(6, lc[2] * (brake ? 1.7 : 1.0)), g = c.createRadialGradient(lc[0], lc[1], 0, lc[0], lc[1], r);
+      g.addColorStop(0, brake ? 'rgba(255,70,55,0.8)' : 'rgba(255,40,40,0.4)'); g.addColorStop(1, 'rgba(255,40,40,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(lc[0], lc[1], r, 0, 6.2832); c.fill();
     });
     c.globalCompositeOperation = 'source-over';
   }
-  // 車牌
-  c.fillStyle = '#f4f4ee'; rcRR(c, -u * 0.1, -u * 0.335, u * 0.2, u * 0.075, u * 0.012); c.fill();
-  if (fine) {
-    c.fillStyle = '#23324a'; c.fillRect(-u * 0.085, -u * 0.318, u * 0.17, Math.max(1, u * 0.018)); c.fillRect(-u * 0.06, -u * 0.29, u * 0.12, Math.max(1, u * 0.012));
-    c.strokeStyle = 'rgba(0,0,0,0.4)'; c.lineWidth = 1; rcRR(c, -u * 0.1, -u * 0.335, u * 0.2, u * 0.075, u * 0.012); c.stroke();
-  }
-
-  // ── 保險桿／下擾流／排氣管 ──
-  c.fillStyle = rcVGrad(c, -u * 0.27, -u * 0.04, [[0, rcShade(body, -0.35)], [1, '#0c0d10']]);
-  rcRR(c, -u * 0.46, -u * 0.265, u * 0.92, u * 0.15, u * 0.03); c.fill();
-  c.fillStyle = '#111317'; rcRR(c, -u * 0.36, -u * 0.17, u * 0.72, u * 0.12, u * 0.02); c.fill(); // 擴散器
-  if (fine) {
-    c.strokeStyle = '#2a2d34'; c.lineWidth = Math.max(1, u * 0.008);
-    for (let i = -3; i <= 3; i++) { if (i === 0) continue; c.beginPath(); c.moveTo(i * u * 0.08, -u * 0.16); c.lineTo(i * u * 0.095, -u * 0.06); c.stroke(); }
-    [-1, 1].forEach(sd => { // 排氣尾管
-      const ex = sd * u * 0.27, ey = -u * 0.155, er = u * 0.045;
-      c.fillStyle = '#cfd3da'; c.beginPath(); c.ellipse(ex, ey, er, er * 0.78, 0, 0, 6.2832); c.fill();
-      c.fillStyle = '#05060a'; c.beginPath(); c.ellipse(ex, ey, er * 0.7, er * 0.52, 0, 0, 6.2832); c.fill();
-      if (o.flame) { // 升檔噴火
-        c.globalCompositeOperation = 'lighter';
-        const fr = u * 0.17, fg = c.createRadialGradient(ex, ey, 0, ex, ey, fr);
-        fg.addColorStop(0, 'rgba(255,240,170,0.95)'); fg.addColorStop(0.4, 'rgba(255,140,40,0.6)'); fg.addColorStop(1, 'rgba(255,60,0,0)');
-        c.fillStyle = fg; c.beginPath(); c.arc(ex, ey, fr, 0, 6.2832); c.fill();
-        c.globalCompositeOperation = 'source-over';
-      }
+  // 升檔噴火
+  if (o.flame && pipeCenters.length) {
+    c.globalCompositeOperation = 'lighter';
+    pipeCenters.forEach(pc => {
+      const r = Math.max(8, pc[2] * 3.4), g = c.createRadialGradient(pc[0], pc[1], 0, pc[0], pc[1], r);
+      g.addColorStop(0, 'rgba(255,240,170,0.95)'); g.addColorStop(0.4, 'rgba(255,140,40,0.6)'); g.addColorStop(1, 'rgba(255,60,0,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(pc[0], pc[1], r, 0, 6.2832); c.fill();
     });
+    c.globalCompositeOperation = 'source-over';
   }
-  // 雨天車身反光
-  if (o.wet && fine) {
-    c.fillStyle = 'rgba(210,225,255,0.14)'; rcRR(c, -pw * 0.9, -topY + u * 0.01, pw * 1.8, u * 0.06, u * 0.02); c.fill();
-  }
-  // 損壞：耐久越低刮痕、凹痕越多
+  // 損壞：耐久越低，刮痕、凹痕、玻璃裂痕越多（位置固定，所以不會閃動）
   const dmg = o.dmg || 0;
   if (dmg > 0.12 && fine) {
-    c.strokeStyle = 'rgba(0,0,0,0.38)'; c.lineWidth = Math.max(1, u * 0.01);
-    const n = Math.min(9, Math.floor(dmg * 11));
-    for (let i = 0; i < n; i++) {
-      const sx = (((i * 53) % 17) / 17 - 0.5) * pw * 1.7, sy = -topY + (((i * 31) % 11) / 11) * (topY - u * 0.14);
-      c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx + u * (0.04 + (i % 3) * 0.02), sy + u * 0.03); c.stroke();
+    const rearCap = visible.find(d => d.f.cap === 'rear');
+    if (rearCap) {
+      const P = rearCap.pts, n = Math.min(9, Math.floor(dmg * 11));
+      c.strokeStyle = 'rgba(0,0,0,0.4)'; c.lineWidth = Math.max(1, w * 0.01);
+      for (let i = 0; i < n; i++) {
+        const u1 = ((i * 53) % 17) / 17, v1 = ((i * 31) % 11) / 11;
+        const ax = P[0][0] + (P[7][0] - P[0][0]) * u1 + (P[3][0] - P[0][0]) * v1 * 0.8, ay = P[0][1] + (P[7][1] - P[0][1]) * u1 + (P[3][1] - P[0][1]) * v1 * 0.8;
+        c.beginPath(); c.moveTo(ax, ay); c.lineTo(ax + w * (0.04 + (i % 3) * 0.02), ay + w * 0.03); c.stroke();
+      }
+      if (dmg > 0.45) { c.fillStyle = 'rgba(0,0,0,0.28)'; c.beginPath(); c.ellipse((P[0][0] + P[3][0]) / 2 + w * 0.12, (P[0][1] + P[3][1]) / 2 + w * 0.02, w * 0.09, w * 0.05, 0.4, 0, 6.2832); c.fill(); }
     }
-    if (dmg > 0.45) { c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(-pw * 0.5, -u * 0.22, u * 0.09, u * 0.05, 0.4, 0, 6.2832); c.fill(); }
-    if (dmg > 0.65) { c.strokeStyle = 'rgba(255,255,255,0.55)'; c.lineWidth = 1; c.beginPath(); c.moveTo(ctW * 0.1, roofY + gt); c.lineTo(ctW * 0.35, baseY - chH * 0.4); c.lineTo(ctW * 0.15, baseY - chH * 0.2); c.moveTo(ctW * 0.35, baseY - chH * 0.4); c.lineTo(ctW * 0.6, baseY - chH * 0.3); c.stroke(); }
+    if (dmg > 0.65) {
+      const gl = visible.find(d => d.f.kind === 'glass' && d.f.seg === 'rear' && d.f.j === 3);
+      if (gl) { const q = gl.pts, mx = (q[0][0] + q[2][0]) / 2, my = (q[0][1] + q[2][1]) / 2; c.strokeStyle = 'rgba(255,255,255,0.6)'; c.lineWidth = 1; c.beginPath(); c.moveTo(q[0][0] * 0.7 + mx * 0.3, q[0][1] * 0.7 + my * 0.3); c.lineTo(mx, my); c.lineTo(q[2][0] * 0.8 + mx * 0.2, q[2][1] * 0.8 + my * 0.2); c.moveTo(mx, my); c.lineTo(q[1][0] * 0.7 + mx * 0.3, q[1][1] * 0.7 + my * 0.3); c.stroke(); }
+    }
   }
   c.restore();
 }
@@ -5763,6 +5848,7 @@ function rcDrawParticles(c, by, dt) {
   }
 }
 
+function rcCamPitch(sy) { return Math.atan(Math.max(0, sy - RC.HORIZON) / (RC.H / 2 * RC.VS * RC.CAM_DEPTH)) * 0.55; } // 從鏡頭往下看這個位置的車，約幾度俯角（縮一點比較好看）
 function rcRender() {
   const c = rc.ctx, T = rc.track, def = T.def, segs = T.segs, W = RC.W, H = RC.H, dt = rc.frameDt;
   const env = rc.env, rain = env && env.weather === 'rain' ? env.intensity : 0, pal = rcPalette(def, rain);
@@ -5808,10 +5894,9 @@ function rcRender() {
       const clipIt = sy > seg.clip;
       if (clipIt) { c.save(); c.beginPath(); c.rect(0, 0, W, seg.clip); c.clip(); }
       c.globalAlpha = fa;
-      // 透視：離畫面中線越遠、越近，越看得到面向賽道中央的那一側車身
-      const zc = RC.CAM_DEPTH / sc, kk = zc / (zc + RC.CAR_LEN * 0.55), lat = (W / 2 - sx) * (1 - kk);
-      const slip = car.slipT > 0 ? Math.sin(rc.time * 26) * 0.22 : 0;
-      drawRacerCar(c, car.design, sx, sy, sw, { side: rcClamp(lat, -sw * 0.45, sw * 0.45), sk: kk, sup: Math.min(sw * 0.22, (sy - RC.HORIZON) * (1 - kk)), wet: rain > 0, night, tilt: slip, brake: car.slipT > 0 });
+      // 真正的 3D 車模：依車在畫面的位置算出從鏡頭看它的偏航角（越偏離中線越看得到側面）與俯角
+      const slip = car.slipT > 0 ? Math.sin(rc.time * 26) * 0.35 : 0;
+      drawRacerCar(c, car.design, sx, sy, sw, { yaw: -Math.atan((sx - W / 2) / (W / 2 * RC.CAM_DEPTH)) + seg.curve * 0.05 + slip, pitch: rcCamPitch(sy), wet: rain > 0, night, brake: car.slipT > 0 });
       if (car.isTarget && sw > 12) { // 挑戰目標：頭上標示 🎯 和名字
         c.textAlign = 'center'; c.fillStyle = '#fff';
         c.font = `800 ${Math.round(rcClamp(sw * 0.24, 10, 17))}px 'Noto Sans TC', sans-serif`;
@@ -5850,14 +5935,14 @@ function rcRender() {
       by = RC.HORIZON - scale * rcInterp(playerSeg.p1.camera.y, playerSeg.p2.camera.y, playerPct) * H / 2 * RC.VS;
       const bounce = rc.state === 'countdown' ? 0 : 1.2 * Math.random() * speedPct * (Math.random() < 0.5 ? -1 : 1);
       const shake = rc.crashT > 0 ? Math.sin(rc.time * 70) * 3 : 0;
-      const slipRot = rc.slipT > 0 ? Math.sin(rc.slipT * 11) * 0.28 * rc.slipDir : 0;
+      const slipRot = rc.slipT > 0 ? Math.sin(rc.slipT * 11) * 0.28 * rc.slipDir : 0, seg0curve = playerSeg.curve;
       const braking = rc.crashT > 0 || (rc.speed < (rc.lastSpeedR || 0) - 60 * dt) || rc.state === 'finished';
       rc.lastSpeedR = rc.speed;
       const dmgLook = 1 - rc.dur;
       if (rc.dur < 0.4 && rc.state !== 'countdown' && Math.random() < (0.4 - rc.dur) * 1.4) rc.smoke.push({ x: W / 2 + (Math.random() - 0.5) * pw * 0.5, y: -pw * 0.5, vx: (Math.random() - 0.5) * 12, vy: -30 - Math.random() * 25, life: 0.9, r: 4, dark: true });
       if (rain > 0 && rc.speed > RC.MAX * 0.15 && rc.smoke.length < 60 && Math.random() < 0.7) [-1, 1].forEach(s => rc.smoke.push({ x: W / 2 + s * pw * 0.42, y: -pw * 0.1, vx: s * 25 + (Math.random() - 0.5) * 20, vy: -18 - Math.random() * 20, life: 0.5, r: 3 }));
       drawRacerCar(c, rc.carDef, W / 2 + shake, by + bounce, pw, {
-        tilt: rc.steer * 0.05 + slipRot + (rc.crashT > 0 ? Math.sin(rc.time * 50) * 0.04 : 0), side: -(rc.steer * 0.2 + slipRot * 0.6) * pw, sk: 0.9, sup: pw * 0.03,
+        yaw: rc.steer * 0.16 + slipRot * 1.6 + seg0curve * 0.04, tilt: rc.crashT > 0 ? Math.sin(rc.time * 50) * 0.04 : 0, pitch: rcCamPitch(by),
         brake: braking, wet: rain > 0, night, dmg: dmgLook, flame: rc.flameT > 0,
       });
     }
@@ -5999,8 +6084,60 @@ function drawRacerDash(c, x, y, style, tier, kmh, rpm, gear, info) {
   }
 }
 
-// ── HUD ──
+// ── 即時地圖：把賽道每一段的彎度累加成一條封閉的路線圖，再依各車的跑道位置畫上小圓點 ──
+function racerMapPath(T) {
+  if (T.map) return T.map;
+  const n = T.segs.length, A = 0.009;
+  let sum = 0;
+  T.segs.forEach(s => { sum += s.curve; });
+  const bias = (6.2832 - A * sum) / n; // 不夠一圈的轉角平均補上，讓路線繞回起點
+  const pts = [[0, 0]];
+  let th = 0, x = 0, y = 0;
+  for (let i = 0; i < n; i++) { th += A * T.segs[i].curve + bias; x += Math.sin(th); y -= Math.cos(th); pts.push([x, y]); }
+  const ex = x, ey = y;
+  pts.forEach((p, i) => { p[0] -= ex * i / n; p[1] -= ey * i / n; });
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  pts.forEach(p => { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); });
+  const s = 1 / Math.max(x1 - x0, y1 - y0), ox = (1 - (x1 - x0) * s) / 2, oy = (1 - (y1 - y0) * s) / 2;
+  return (T.map = { n, pts: pts.map(p => [(p[0] - x0) * s + ox, (p[1] - y0) * s + oy]) });
+}
+function rcMapAt(M, z, len) { // z（沿賽道的位置）→ 地圖上的點
+  const f = (((z % len) + len) % len) / len * M.n, i = Math.floor(f) % M.n, t = f - Math.floor(f), a = M.pts[i], b = M.pts[(i + 1) % (M.n + 1)];
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+}
+function rcDrawMap(c, x, y, size) {
+  const M = racerMapPath(rc.track), pad = 9, S = size - pad * 2, len = rc.track.length;
+  rcPill(c, x, y, size, size, 'rgba(8,12,20,0.62)');
+  const P = p => [x + pad + p[0] * S, y + pad + p[1] * S];
+  c.lineJoin = 'round'; c.lineCap = 'round';
+  c.beginPath(); M.pts.forEach((p, i) => { const q = P(p); i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); });
+  c.closePath();
+  c.strokeStyle = 'rgba(0,0,0,0.7)'; c.lineWidth = 5.5; c.stroke();
+  c.strokeStyle = '#9fb0c6'; c.lineWidth = 3; c.stroke();
+  const s0 = P(M.pts[0]); // 起終點：黑白格
+  c.fillStyle = '#fff'; c.fillRect(s0[0] - 3, s0[1] - 3, 6, 6); c.fillStyle = '#111'; c.fillRect(s0[0] - 3, s0[1] - 3, 3, 3); c.fillRect(s0[0], s0[1], 3, 3);
+  const dot = (z, r, fill, ring) => { const q = P(rcMapAt(M, z, len)); c.beginPath(); c.arc(q[0], q[1], r, 0, 6.2832); c.fillStyle = fill; c.fill(); c.lineWidth = ring ? 1.6 : 1; c.strokeStyle = ring || 'rgba(0,0,0,0.8)'; c.stroke(); };
+  rc.cars.forEach(car => { if (!car.isTarget) dot(car.z, 2.6, car.design.body); });
+  rc.cars.forEach(car => { if (car.isTarget) dot(car.z, 3.4, car.design.body, '#ff4d4d'); });
+  dot(rcPlayerZ(), 4.4, '#ffd23f', '#fff'); // 自己：黃色大圓點
+}
+
+// ── HUD：左上名次，右上圈數／圈速／即時地圖，左下一張「環境＆車況」小卡（天氣、胎種、風、耐久都收在這裡）──
 function rcPill(c, x, y, w, h, fill) { c.fillStyle = fill || 'rgba(0,0,0,0.55)'; rcRR(c, x, y, w, h, Math.min(12, h / 2)); c.fill(); }
+function rcDrawEnvCard(c) {
+  const e = rc.env, W = RC.W, x = 6, h = 58, y = RC.H - 112 - h - 6, w = 108;
+  if (!e) return;
+  rcPill(c, x, y, w, h, 'rgba(8,12,20,0.6)');
+  c.textAlign = 'left'; c.font = "700 11px 'Noto Sans TC', sans-serif"; c.fillStyle = '#fff';
+  c.fillText(`${e.weather === 'rain' ? '🌧' : '☀️'} ${rc.tire === 'rain' ? '雨胎' : '一般胎'}`, x + 8, y + 16);
+  const al = rc.windAlong, flat = Math.abs(al) < 0.8;
+  c.fillStyle = flat ? '#cbd5e1' : al > 0 ? '#4ade80' : '#fb923c';
+  const cross = Math.abs(rc.windCross) > 1.2 ? (rc.windCross > 0 ? ' ⇢' : ' ⇠') : '';
+  c.fillText(`💨 ${flat ? '微風' : al > 0 ? '順風' : '逆風'} ${Math.abs(al).toFixed(1)}${cross}`, x + 8, y + 32);
+  c.font = "10px 'Noto Sans TC', sans-serif"; c.fillStyle = '#fff';
+  c.fillText('🔧', x + 7, y + 49); c.fillText('🛞', x + 57, y + 49);
+  rcCondBar(c, x + 22, y + 43, 30, 5, rc.dur); rcCondBar(c, x + 72, y + 43, 30, 5, rc.tireDur);
+}
 function rcDrawHud(c) {
   const W = RC.W, H = RC.H, quali = rc.mode === 'quali';
   c.textBaseline = 'alphabetic';
@@ -6037,41 +6174,24 @@ function rcDrawHud(c) {
   if (Math.abs(rc.lineGain) > 0.012 && rc.state === 'race') {
     const inn = rc.lineGain > 0, txt = `${inn ? '內線' : '外線'} ${inn ? '+' : '−'}${Math.abs(Math.round(rc.lineGain * 100))}%`;
     c.font = "700 11px 'Noto Sans TC', sans-serif";
-    const tw = c.measureText(txt).width;
-    rcPill(c, 10, quali ? 72 : 100, tw + 16, 20, inn ? 'rgba(22,163,74,0.75)' : 'rgba(180,83,9,0.75)');
-    c.fillStyle = '#fff'; c.textAlign = 'left'; c.fillText(txt, 18, (quali ? 72 : 100) + 14);
+    const tw = c.measureText(txt).width, ly = quali ? 72 : 100;
+    rcPill(c, 10, ly, tw + 16, 20, inn ? 'rgba(22,163,74,0.75)' : 'rgba(180,83,9,0.75)');
+    c.fillStyle = '#fff'; c.textAlign = 'left'; c.fillText(txt, 18, ly + 14);
   }
-  // 右上角：圈數、圈速、車況、天氣／風
+  // 右上角：圈數、圈速、即時地圖
+  const rx = W - 98;
   c.textAlign = 'center';
-  rcPill(c, W - 102, 10, 92, 28, 'rgba(0,0,0,0.55)');
-  c.fillStyle = '#fff'; c.font = "800 14px 'Noto Sans TC', sans-serif";
-  c.fillText(quali ? 'QUALI' : `LAP ${Math.max(1, Math.min(RC.LAPS, rc.lap + 1))} / ${RC.LAPS}`, W - 56, 29);
+  rcPill(c, rx, 10, 88, 26, 'rgba(0,0,0,0.55)');
+  c.fillStyle = '#fff'; c.font = "800 13px 'Noto Sans TC', sans-serif";
+  c.fillText(quali ? 'QUALI' : `LAP ${Math.max(1, Math.min(RC.LAPS, rc.lap + 1))} / ${RC.LAPS}`, rx + 44, 28);
   const cur = rc.lapStart !== null && rc.lap >= 0 ? (rc.time - rc.lapStart) * 1000 : 0;
-  rcPill(c, W - 102, 42, 92, 22);
+  rcPill(c, rx, 40, 88, 20);
   c.font = "800 12px 'Noto Sans TC', sans-serif"; c.fillStyle = rc.lapFlash > 0 && rc.lastLap && rc.lastLap <= rc.bestLap ? '#4ade80' : '#fff';
-  c.fillText(rc.lapFlash > 0 && rc.lastLap ? racerFmtLap(rc.lastLap) : (cur ? racerFmtLap(cur) : '-:--.---'), W - 56, 58);
-  if (rc.bestLap) { rcPill(c, W - 102, 68, 92, 20, 'rgba(0,0,0,0.45)'); c.fillStyle = '#ffd23f'; c.font = "700 10.5px 'Noto Sans TC', sans-serif"; c.fillText(`最快 ${racerFmtLap(rc.bestLap)}`, W - 56, 82); }
-  // 車況條
-  const cy0 = rc.bestLap ? 94 : 70;
-  rcPill(c, W - 102, cy0, 92, 38, 'rgba(0,0,0,0.5)');
-  c.font = "10px 'Noto Sans TC', sans-serif"; c.textAlign = 'left'; c.fillStyle = '#fff';
-  c.fillText('🔧', W - 96, cy0 + 14); c.fillText('🛞', W - 96, cy0 + 31);
-  rcCondBar(c, W - 78, cy0 + 8, 58, 6, rc.dur); rcCondBar(c, W - 78, cy0 + 25, 58, 6, rc.tireDur);
-  // 天氣／風
-  const e = rc.env;
-  if (e) {
-    const al = rc.windAlong, txt = `${e.weather === 'rain' ? '🌧' : '☀️'} ${rc.tire === 'rain' ? '雨胎' : '一般胎'}`;
-    const wy = cy0 + 44;
-    c.font = "700 11px 'Noto Sans TC', sans-serif";
-    rcPill(c, W - 102, wy, 92, 22, 'rgba(0,0,0,0.5)'); c.textAlign = 'center'; c.fillStyle = '#fff'; c.fillText(txt, W - 56, wy + 15);
-    rcPill(c, W - 102, wy + 26, 92, 22, 'rgba(0,0,0,0.5)');
-    c.fillStyle = Math.abs(al) < 0.8 ? '#cbd5e1' : al > 0 ? '#4ade80' : '#fb923c';
-    c.fillText(`💨 ${Math.abs(al) < 0.8 ? '微風' : al > 0 ? '順風' : '逆風'} ${Math.abs(al).toFixed(1)}`, W - 56, wy + 41);
-    if (Math.abs(rc.windCross) > 1.2) { // 側風箭頭
-      const s = Math.sign(rc.windCross), ax = W - 56, ay = wy + 62;
-      c.strokeStyle = '#7dd3fc'; c.lineWidth = 2; c.beginPath(); c.moveTo(ax - s * 12, ay); c.lineTo(ax + s * 12, ay); c.lineTo(ax + s * 7, ay - 4); c.moveTo(ax + s * 12, ay); c.lineTo(ax + s * 7, ay + 4); c.stroke();
-    }
-  }
+  c.fillText(rc.lapFlash > 0 && rc.lastLap ? racerFmtLap(rc.lastLap) : (cur ? racerFmtLap(cur) : '-:--.---'), rx + 44, 55);
+  let my = 66;
+  if (rc.bestLap) { rcPill(c, rx, my, 88, 18, 'rgba(0,0,0,0.45)'); c.fillStyle = '#ffd23f'; c.font = "700 10px 'Noto Sans TC', sans-serif"; c.fillText(`最快 ${racerFmtLap(rc.bestLap)}`, rx + 44, my + 13); my += 22; }
+  rcDrawMap(c, rx, my + 2, 88);
+  rcDrawEnvCard(c);
   // 狀態警告
   c.textAlign = 'center';
   if (rc.state === 'race') {
@@ -6079,7 +6199,7 @@ function rcDrawHud(c) {
     if (rc.slipT > 0) warn = '⚠️ 打滑！';
     else if (rc.tireDur <= 0) warn = '🛞 輪胎磨光，容易打滑';
     else if (rc.dur < 0.3) warn = '🔧 車況不佳，速度下降';
-    if (warn) { c.font = "800 15px 'Noto Sans TC', sans-serif"; c.strokeStyle = 'rgba(0,0,0,0.7)'; c.lineWidth = 4; c.fillStyle = rc.slipT > 0 ? '#fbbf24' : '#fca5a5'; c.strokeText(warn, W / 2, 150); c.fillText(warn, W / 2, 150); }
+    if (warn) { c.font = "800 15px 'Noto Sans TC', sans-serif"; c.strokeStyle = 'rgba(0,0,0,0.7)'; c.lineWidth = 4; c.fillStyle = rc.slipT > 0 ? '#fbbf24' : '#fca5a5'; c.strokeText(warn, W / 2 - 30, 150); c.fillText(warn, W / 2 - 30, 150); }
   }
   // 倒數／出發／完賽
   if (rc.state === 'countdown') {
@@ -6096,7 +6216,7 @@ function rcDrawHud(c) {
     }
     c.fillStyle = 'rgba(255,255,255,0.9)'; c.font = "600 13px 'Noto Sans TC', sans-serif";
     c.strokeStyle = 'rgba(0,0,0,0.5)'; c.lineWidth = 3;
-    c.strokeText('按住畫面左／右半邊轉向，自動加速', W / 2, H - 126); c.fillText('按住畫面左／右半邊轉向，自動加速', W / 2, H - 126);
+    c.strokeText('按住畫面左／右半邊轉向，自動加速', W / 2, 268); c.fillText('按住畫面左／右半邊轉向，自動加速', W / 2, 268);
   } else if (rc.goFlash > 0) {
     c.globalAlpha = Math.min(1, rc.goFlash * 2);
     c.fillStyle = '#22C55E'; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 6; c.font = "900 84px 'Bebas Neue', 'Noto Sans TC', sans-serif";
@@ -6180,8 +6300,8 @@ function updateRacerChip() {
   document.getElementById('racer-progress').textContent = `💰 ${racerBalance().toLocaleString()}　🏁 ${racerSave.defeated.length}/9`;
 }
 function racerCarView(id) { const t = racerSave.tunes[id] || {}; return { ...RACER_CARS[id], body: t.color || RACER_CARS[id].body }; }
-// 選單／預覽用的 3/4 後視角（露出一點側面，看起來比較立體）
-function racerPreviewOpt(u, extra) { return { side: u * 0.2, sk: 0.84, sup: u * 0.05, dmg: 0, ...(extra || {}) }; }
+// 選單／預覽用的 3/4 後視角（轉一個角度、從上往下看，立體感最明顯）
+function racerPreviewOpt(extra) { return { yaw: -0.55, pitch: 0.5, dmg: 0, ...(extra || {}) }; }
 function rcStatBar(label, frac, text) {
   const pct = Math.round(rcClamp(frac, 0.06, 1) * 100);
   return `<div class="rc-stat"><span>${label}</span><i><b style="width:${pct}%"></b></i><em>${text}</em></div>`;
@@ -6241,8 +6361,8 @@ function renderRacerHub() {
     <div class="rc-cars">${carsHtml}</div>
     <div class="rc-sec-title">⚔️ 對手（共 9 台，加上你一共 10 台）</div>${rivals}`;
   hub.querySelectorAll('canvas[data-car]').forEach(cv => {
-    const x = cv.getContext('2d'), u = cv.width * 0.66;
-    drawRacerCar(x, cv.dataset.rival ? RACER_CARS[cv.dataset.car] : racerCarView(cv.dataset.car), cv.width / 2 - u * 0.08, cv.height - 14, u, racerPreviewOpt(u));
+    const x = cv.getContext('2d'), u = cv.width * 0.46;
+    drawRacerCar(x, cv.dataset.rival ? RACER_CARS[cv.dataset.car] : racerCarView(cv.dataset.car), cv.width / 2, cv.height - 14, u, racerPreviewOpt());
   });
 }
 window.racerPickTrack = (id) => {
@@ -6299,6 +6419,21 @@ window.racerOpenTune = (toRepair) => {
   el.scrollTop = 0;
   if (toRepair === true) { const r = document.getElementById('tune-repair'); if (r) el.scrollTop = r.offsetTop - 70; }
 };
+// 改裝畫面的愛車預覽：像展示台一樣慢慢轉一圈，從各個角度檢查車身結構、顏色、損傷
+function rcStartTurntable(cv, id, dmg) {
+  if (rc.turnRaf) cancelAnimationFrame(rc.turnRaf);
+  const x = cv.getContext('2d'), t0 = performance.now();
+  const loop = (ts) => {
+    if (!document.body.contains(cv) || rc.panel !== 'tune') { rc.turnRaf = 0; return; }
+    const t = (ts - t0) / 1000;
+    x.clearRect(0, 0, cv.width, cv.height);
+    const g = x.createRadialGradient(360, 300, 20, 360, 300, 330); g.addColorStop(0, 'rgba(255,255,255,0.14)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.beginPath(); x.ellipse(360, 300, 330, 90, 0, 0, 6.2832); x.fill();
+    drawRacerCar(x, racerCarView(id), 360, 345, 250, { yaw: -0.55 + t * 0.55, pitch: 0.42, dmg });
+    rc.turnRaf = requestAnimationFrame(loop);
+  };
+  rc.turnRaf = requestAnimationFrame(loop);
+}
 function renderRacerTune() {
   const el = document.getElementById('racer-tune'), keep = el.scrollTop;
   const id = racerSave.car, car = RACER_CARS[id], tune = racerSave.tunes[id] || {}, st = racerStats(id, tune), base = racerStats(id, {});
@@ -6359,8 +6494,7 @@ function renderRacerTune() {
     <div class="rc-card"><div class="rc-claim-txt">🏁 比賽獎金：名次越前獎金越高，後面的賽道倍率更高，雨戰再加成；第一次勝過挑戰目標還有額外 ${RACER_TARGET_BONUS} 積分，排位賽拿竿位並完賽再加 ${RACER_POLE_BONUS}。</div>
       <div class="rc-claim-txt" style="margin-top:8px">🚗 ${claimTxt}</div>
       <button class="btn-submit" style="margin-top:12px" ${cl.pts ? '' : 'disabled'} onclick="racerClaim()">${cl.pts ? `領取收藏獎勵 +${cl.pts} 積分` : '目前沒有可領取的收藏積分'}</button></div>`;
-  const cv = document.getElementById('tune-car'), cx = cv.getContext('2d');
-  const u = 330; drawRacerCar(cx, racerCarView(id), 345, 360, u, racerPreviewOpt(u, { side: u * 0.16, dmg: 1 - cd.dur / 100, wet: false }));
+  rcStartTurntable(document.getElementById('tune-car'), id, 1 - cd.dur / 100);
   el.querySelectorAll('canvas[data-style]').forEach(c2 => {
     const s = c2.dataset.style, d = c2.getContext('2d'), fake = { dur: cd.dur / 100, tire: cd.tire / 100 };
     d.save(); d.scale(2, 2); drawRacerDash(d, 0, 0, s, st.dash, st.kmh * 0.62, RACER_DASH[st.dash].limit * 0.74, 4, fake); d.restore();
