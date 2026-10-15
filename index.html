@@ -1289,6 +1289,8 @@
   .rc-track.locked { filter: grayscale(0.85) brightness(0.55); }
   .rc-track-icon { font-size: 34px; }
   .rc-track-name { font-weight: 800; font-size: 15px; margin-top: 6px; }
+  .rc-track-kind { font-size: 10px; font-weight: 800; margin-top: 2px; opacity: 0.8; letter-spacing: 0; }
+  .rc-env-sub { font-size: 12px; font-weight: 700; margin: -4px 0 8px; opacity: 0.85; }
   .rc-track-sub { font-size: 11px; margin-top: 4px; font-weight: 700; opacity: 0.85; line-height: 1.4; }
   .rc-cars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .rc-car { position: relative; background: var(--card); border: 2px solid var(--border); border-radius: 14px; padding: 10px; cursor: pointer; }
@@ -4587,7 +4589,7 @@ window.addEventListener('keydown', e => {
 const RC = {
   W: 360, H: 560, HORIZON: 215, VS: 0.77, SEG: 200, ROAD: 1200, RUMBLE: 3, LANES: 3,
   CAM_H: 1000, CAM_DEPTH: 0.84, DRAW: 240, UPK: 55, MAX_KMH: 260, CAR_W: 0.5, LAPS: 2, CUTOFF_SEC: 30, QUALI_CUTOFF: 150,
-  GRID_GAP: 430, GRID_POLE: 1000, CAR_LEN: 800,
+  GRID_GAP: 430, GRID_POLE: 1000, CAR_LEN: 800, REF: 1200,
 };
 RC.MAX = RC.MAX_KMH * RC.UPK; // 速度上限（單位／秒），用來換算轉向與彎道推力的比例；1 km/h ＝ 55 單位／秒
 RC.PLAYER_Z = RC.CAM_H * RC.CAM_DEPTH;
@@ -4667,45 +4669,82 @@ const RACER_TARGET_BONUS = 200;   // 第一次勝過挑戰目標的額外獎金
 const RACER_COLLECT_PTS = 50;     // 收藏每多一台／每多公開一台換到的積分
 const RACER_SWATCHES = ['#ece9df', '#c8102e', '#2563eb', '#15803d', '#f59e0b', '#7c3aed', '#ea580c', '#0ea5e9', '#facc15', '#334155', '#111111', '#ec4899'];
 
-// 賽道：need＝累計擊敗幾台對手才開放；kmhMin～kmhMax＝這條賽道上對手由弱到強的極速（km/h）；mult＝獎金倍率
-// layout 的 ['S', n] 是 n 段直線，['R', 進彎, 維持, 出彎, 彎道強度, 坡度] 是彎道／坡道
+// 賽場：全球著名城市的街道賽（兩側有護牆、路比較窄、建築緊貼路邊）和專屬賽道（路寬、有路肩和草地緩衝區）
+// need＝累計擊敗幾台對手才開放；kmhMin～kmhMax＝這裡對手由弱到強的極速（km/h）；mult＝獎金倍率
+// road＝路的半寬（單位）；wall＝街道賽護牆（off＝護牆離路中心多遠，h＝高度，cols＝護牆交錯的兩種顏色）
+// layout 的 ['S', n] 是 n 段直線，['R', 進彎, 維持, 出彎, 彎道強度, 坡度] 是彎道／坡道（強度正＝右彎、負＝左彎）
+// 路線是依各地著名賽道的特徵（連續彎、髮夾彎、長直線、爬坡）簡化而成，不是 1:1 的真實地圖
 const RACER_TRACKS = [
-  { id: 'city', name: '城市高速', icon: '🏙️', need: 0, rain: 0.22, wind: 3, surface: { name: '平整柏油', grip: 1, wear: 1, dmg: 1, spd: 1 }, kmhMin: 60, kmhMax: 116, mult: 1, seed: 11, ink: '#0b1220',
-    sky: ['#4db8ff', '#d9f1ff'], fog: '#d9f1ff', sun: '#fff2a8', mtn: '#8aa6cf', mtn2: '#b3c8e6',
-    grass: ['#37b24d', '#2f9e44'], road: ['#707075', '#68686d'], rumble: ['#d62828', '#f1f1f1'], lane: '#f5f5f5',
-    leaf: '#2f9e44', scenery: ['tree', 'tree', 'bush', 'building', 'billboard'],
-    layout: [['S', 40], ['R', 25, 40, 25, 2, 0], ['S', 30], ['R', 25, 40, 25, -2, 20], ['R', 20, 20, 20, 0, -20], ['S', 40],
-             ['R', 25, 35, 25, 3, 0], ['R', 25, 35, 25, -3, 0], ['S', 30], ['R', 30, 30, 30, 0, 40], ['R', 30, 30, 30, 2, -40],
-             ['S', 30], ['R', 25, 45, 25, -2, 0], ['S', 40], ['R', 25, 40, 25, 3, 0], ['S', 60]] },
-  { id: 'coast', name: '海岸公路', icon: '🌴', need: 3, rain: 0.3, wind: 8, surface: { name: '海風沙塵路面', grip: 0.95, wear: 1.15, dmg: 1, rough: 0.0003, spd: 0.99 }, kmhMin: 84, kmhMax: 136, mult: 1.3, seed: 23, ink: '#0b1220',
-    sky: ['#2fb4f0', '#c9f1ff'], fog: '#c9f1ff', sun: '#fffbd0', mtn: '#4fb0c4', mtn2: '#86cfd8',
-    grass: ['#ebd48c', '#e1c778'], road: ['#78787c', '#707074'], rumble: ['#ff7a00', '#ffffff'], lane: '#ffffff',
-    scenery: ['palm', 'palm', 'palm', 'rock', 'bush'],
-    layout: [['S', 40], ['R', 30, 60, 30, 2, 10], ['R', 20, 30, 20, -3, -10], ['S', 30], ['R', 30, 50, 30, 3, 20], ['R', 30, 40, 30, -2, -20],
-             ['S', 40], ['R', 25, 40, 25, -3, 0], ['R', 25, 40, 25, 3, 0], ['S', 30], ['R', 30, 40, 30, 2, 30], ['R', 30, 40, 30, -3, -30],
-             ['S', 30], ['R', 25, 45, 25, 3, 0], ['S', 70]] },
-  { id: 'mountain', name: '楓紅山道', icon: '🍁', need: 6, rain: 0.36, wind: 5, surface: { name: '碎石山路', grip: 0.93, wear: 1.3, dmg: 1.25, rough: 0.0006, spd: 0.98 }, kmhMin: 106, kmhMax: 160, mult: 1.6, seed: 37, ink: '#3a1500',
-    sky: ['#ff9a5a', '#ffe3c2'], fog: '#ffe3c2', sun: '#fff1d6', mtn: '#9a6048', mtn2: '#c08a70',
-    grass: ['#6f8230', '#647529'], road: ['#6c6c70', '#646468'], rumble: ['#7c2d12', '#fde68a'], lane: '#fff3cf',
-    autumn: ['#e8590c', '#f08c00', '#c92a2a'], scenery: ['maple', 'maple', 'pine', 'rock', 'maple'],
-    layout: [['S', 30], ['R', 20, 30, 20, 3, 20], ['R', 20, 30, 20, -3, 20], ['R', 20, 30, 20, 3, -20], ['R', 20, 30, 20, -4, -20], ['S', 20],
-             ['R', 25, 40, 25, 4, 40], ['R', 25, 40, 25, -3, -40], ['S', 20], ['R', 20, 25, 20, -4, 0], ['R', 20, 25, 20, 4, 0],
-             ['R', 20, 25, 20, -4, 30], ['R', 20, 25, 20, 3, -30], ['S', 30], ['R', 25, 40, 25, 3, 0], ['S', 50]] },
-  { id: 'night', name: '首都夜景', icon: '🌃', need: 9, rain: 0.28, wind: 4, surface: { name: '光滑瀝青', grip: 1, wear: 0.9, dmg: 1, spd: 1 }, kmhMin: 130, kmhMax: 186, mult: 2, seed: 51, ink: '#ffffff', night: true,
-    sky: ['#04061a', '#1b2457'], fog: '#141a3d', sun: '#e8ecff', mtn: '#0f1535', mtn2: '#1a2150',
-    grass: ['#0d2a1f', '#0a2318'], road: ['#3a3b45', '#33343d'], rumble: ['#ff2e63', '#2de2e6'], lane: '#ffd23f',
-    bldg: ['#1f2547', '#2a2f57', '#171b38'], scenery: ['lamp', 'building', 'building', 'lamp', 'billboard'],
-    layout: [['S', 30], ['R', 20, 30, 20, 3, 0], ['R', 15, 20, 15, -4, 0], ['R', 15, 20, 15, 4, 0], ['R', 15, 20, 15, -3, 10], ['S', 20],
-             ['R', 25, 40, 25, 4, -10], ['S', 15], ['R', 20, 30, 20, -4, 0], ['R', 20, 30, 20, 3, 20], ['R', 20, 30, 20, -3, -20],
-             ['S', 20], ['R', 15, 25, 15, 4, 0], ['R', 15, 25, 15, -4, 0], ['S', 30], ['R', 25, 40, 25, 3, 0], ['S', 60]] },
+  { id: 'tokyo', name: '東京灣岸街道賽', city: '東京', country: '日本', flag: '🇯🇵', kind: 'street', icon: '🗼', need: 0, rain: 0.3, wind: 3, kmhMin: 60, kmhMax: 116, mult: 1, seed: 11, ink: '#2a1500',
+    surface: { name: '高速公路柏油', grip: 1, wear: 1, dmg: 1.1, spd: 1 }, road: 1050, wall: { off: 1.05, h: 360, cols: ['#9aa3b2', '#d7dce4'] }, skyline: 'tokyo',
+    sky: ['#3c78d8', '#ffd7a1'], fog: '#ffd7a1', sun: '#ffb26b', mtn: '#7e8aa8', mtn2: '#a6aec6',
+    grass: ['#6c727e', '#636976'], road_c: ['#4a4d57', '#43464f'], rumble: ['#e5e7eb', '#9ca3af'], lane: '#f5f5f5',
+    bldg: ['#8793ad', '#a8b2c6', '#6e7a94', '#c3cada'], scenery: ['building', 'building', 'lamp', 'billboard', 'building'], deco: { inner: 1.2, spread: 0.5, step: [2, 4] },
+    layout: [['S', 60], ['R', 25, 35, 25, 2, 0], ['S', 40], ['R', 25, 40, 25, -2, 15], ['S', 30], ['R', 20, 30, 20, 3, 0], ['R', 20, 30, 20, -3, 0], ['S', 40],
+             ['R', 30, 30, 30, 0, 30], ['R', 30, 30, 30, 0, -30], ['S', 30], ['R', 25, 40, 25, 4, 0], ['S', 25], ['R', 25, 35, 25, -2, 0], ['S', 40], ['R', 25, 30, 25, 3, 0], ['S', 70]] },
+  { id: 'suzuka', name: '鈴鹿賽道', city: '鈴鹿', country: '日本', flag: '🇯🇵', kind: 'circuit', icon: '🎡', need: 1, rain: 0.35, wind: 4, kmhMin: 70, kmhMax: 122, mult: 1.15, seed: 23, ink: '#0b1220',
+    surface: { name: '高抓地賽道柏油', grip: 1.02, wear: 1, dmg: 1, spd: 1 }, road: 1300, skyline: 'suzuka',
+    sky: ['#4eb4ff', '#e2f6ff'], fog: '#e2f6ff', sun: '#fffbd0', mtn: '#3f8a58', mtn2: '#79b58c',
+    grass: ['#3f9d48', '#378d40'], road_c: ['#6a6d75', '#62656d'], rumble: ['#d62828', '#f1f1f1'], lane: '#ffffff', leaf: '#2f9e44',
+    scenery: ['pine', 'tree', 'tree', 'tire', 'flag', 'pine'], deco: { inner: 1.45, spread: 3, step: [2, 6], stand: 0.06 },
+    layout: [['S', 45], ['R', 25, 35, 25, 3, 0], ['R', 25, 35, 25, -3, 0], ['R', 15, 20, 15, 3, 0], ['R', 15, 20, 15, -3, 0], ['R', 15, 20, 15, 3, 0], ['R', 15, 20, 15, -3, 10], ['R', 20, 25, 20, 4, 25],
+             ['R', 25, 40, 25, -2, -25], ['R', 15, 20, 15, -3, 0], ['S', 30], ['R', 30, 40, 30, -4, 0], ['R', 30, 40, 30, 3, 0], ['S', 40], ['R', 25, 30, 25, -2, 0], ['R', 15, 20, 15, 3, 0], ['R', 15, 20, 15, -3, 0], ['S', 60]] },
+  { id: 'monaco', name: '摩納哥蒙地卡羅街道賽', city: '蒙地卡羅', country: '摩納哥', flag: '🇲🇨', kind: 'street', icon: '⛵', need: 2, rain: 0.2, wind: 4, kmhMin: 76, kmhMax: 124, mult: 1.25, seed: 37, ink: '#0b1220',
+    surface: { name: '窄街柏油', grip: 0.98, wear: 1.05, dmg: 1.25, spd: 0.99 }, road: 950, wall: { off: 1.05, h: 420, cols: ['#d62828', '#f4f4f4'] }, skyline: 'monaco',
+    sky: ['#2b95ee', '#c8ecff'], fog: '#d6f0ff', sun: '#fff6c9', mtn: '#8aa6bd', mtn2: '#b6cadb',
+    grass: ['#cbb89a', '#bfae92'], road_c: ['#5b5e66', '#54575f'], rumble: ['#d62828', '#f1f1f1'], lane: '#ffffff',
+    bldg: ['#e8c9a0', '#d9a577', '#f2e3c9', '#c98f6a'], scenery: ['building', 'building', 'palm', 'yacht', 'building', 'lamp'], deco: { inner: 1.2, spread: 0.55, step: [2, 4] },
+    layout: [['S', 35], ['R', 20, 25, 20, 3, 0], ['R', 25, 35, 25, 0, 30], ['R', 15, 20, 15, -3, 0], ['R', 15, 25, 15, 3, 0], ['R', 15, 20, 15, 4, 0], ['R', 20, 30, 20, -5, -10], ['R', 15, 20, 15, 3, 0],
+             ['S', 30], ['R', 15, 15, 15, -3, 0], ['R', 15, 15, 15, 3, 0], ['R', 20, 30, 20, 3, 0], ['R', 12, 12, 12, -3, 0], ['R', 12, 12, 12, 3, 0], ['R', 12, 12, 12, -3, 0], ['R', 12, 12, 12, 3, 0],
+             ['R', 20, 25, 20, 5, 0], ['R', 20, 25, 20, 3, 0], ['S', 45]] },
+  { id: 'silverstone', name: '銀石賽道', city: '銀石', country: '英國', flag: '🇬🇧', kind: 'circuit', icon: '🏁', need: 3, rain: 0.45, wind: 6, kmhMin: 88, kmhMax: 134, mult: 1.35, seed: 51, ink: '#0b1220',
+    surface: { name: '平坦高速柏油', grip: 1, wear: 1.05, dmg: 1, spd: 1 }, road: 1350, skyline: 'silverstone',
+    sky: ['#8aa0b8', '#dfe7ee'], fog: '#dfe7ee', sun: '#f4f6f8', mtn: '#7d9486', mtn2: '#a5b6ac',
+    grass: ['#4f9a4a', '#478f43'], road_c: ['#6d7078', '#656870'], rumble: ['#1d4ed8', '#f1f1f1'], lane: '#ffffff', leaf: '#3b8a3e',
+    scenery: ['tree', 'bush', 'tire', 'flag', 'tree', 'bush'], deco: { inner: 1.5, spread: 3.5, step: [3, 7], stand: 0.07 },
+    layout: [['S', 50], ['R', 25, 30, 25, 2, 0], ['R', 20, 25, 20, -2, 0], ['R', 20, 25, 20, 3, 0], ['R', 20, 25, 20, -3, 0], ['R', 20, 25, 20, 2, 0], ['S', 40], ['R', 25, 35, 25, 3, 0], ['S', 30],
+             ['R', 25, 35, 25, -3, 0], ['S', 30], ['R', 25, 40, 25, -2, 0], ['R', 20, 30, 20, 2, 0], ['S', 40], ['R', 30, 40, 30, 3, 0], ['R', 20, 25, 20, -3, 0], ['S', 50], ['R', 25, 30, 25, 2, 0], ['S', 60]] },
+  { id: 'singapore', name: '新加坡濱海灣夜間街道賽', city: '新加坡', country: '新加坡', flag: '🇸🇬', kind: 'street', icon: '🌃', need: 4, rain: 0.4, wind: 3, kmhMin: 96, kmhMax: 142, mult: 1.5, seed: 63, ink: '#ffffff', night: true,
+    surface: { name: '濕熱街道柏油', grip: 0.97, wear: 1, dmg: 1.2, spd: 1 }, road: 1050, wall: { off: 1.05, h: 400, cols: ['#e11d48', '#e5e7eb'] }, skyline: 'singapore',
+    sky: ['#050a24', '#26306b'], fog: '#1a2257', sun: '#e8ecff', mtn: '#0f1535', mtn2: '#1a2150',
+    grass: ['#17233f', '#131e37'], road_c: ['#30323d', '#2b2d37'], rumble: ['#e11d48', '#e5e7eb'], lane: '#ffe66d',
+    bldg: ['#1f2a5a', '#2b3a7a', '#162052'], scenery: ['building', 'building', 'lamp', 'neon', 'palm', 'building'], deco: { inner: 1.2, spread: 0.5, step: [2, 4] },
+    layout: [['S', 40], ['R', 20, 25, 20, 3, 0], ['S', 25], ['R', 20, 25, 20, -3, 0], ['S', 30], ['R', 15, 20, 15, 3, 0], ['R', 15, 20, 15, -3, 0], ['S', 25], ['R', 25, 35, 25, -4, 0], ['S', 40],
+             ['R', 20, 25, 20, 3, 0], ['S', 20], ['R', 20, 25, 20, 3, 0], ['S', 30], ['R', 25, 30, 25, 0, 25], ['R', 25, 30, 25, 0, -25], ['R', 20, 25, 20, -3, 0], ['S', 30], ['R', 20, 25, 20, 3, 0], ['S', 40], ['R', 20, 25, 20, -3, 0], ['S', 55]] },
+  { id: 'interlagos', name: '英特拉格斯賽道', city: '聖保羅', country: '巴西', flag: '🇧🇷', kind: 'circuit', icon: '⛰️', need: 5, rain: 0.4, wind: 5, kmhMin: 104, kmhMax: 150, mult: 1.6, seed: 71, ink: '#0b1220',
+    surface: { name: '起伏賽道柏油', grip: 0.99, wear: 1.15, dmg: 1, spd: 0.99 }, road: 1300, skyline: 'interlagos',
+    sky: ['#2fb4f0', '#d7f4ff'], fog: '#d7f4ff', sun: '#fffbd0', mtn: '#4f9a6a', mtn2: '#86c39a',
+    grass: ['#49a23c', '#429735'], road_c: ['#75777f', '#6d6f77'], rumble: ['#facc15', '#16a34a'], lane: '#ffffff', leaf: '#2f9e44',
+    scenery: ['palm', 'tree', 'bush', 'tire', 'flag', 'palm'], deco: { inner: 1.45, spread: 3, step: [3, 6], stand: 0.06 },
+    layout: [['S', 50], ['R', 25, 30, 25, -3, -10], ['R', 15, 20, 15, 3, 0], ['R', 25, 35, 25, -3, 0], ['S', 30], ['R', 20, 30, 20, -2, 15], ['R', 30, 40, 30, 3, 25], ['R', 25, 35, 25, 3, -25], ['S', 40],
+             ['R', 20, 25, 20, -4, 0], ['S', 35], ['R', 30, 30, 30, 0, 30], ['R', 25, 35, 25, -2, 0], ['R', 25, 30, 25, 3, -30], ['S', 40], ['R', 25, 35, 25, 3, 0], ['S', 70]] },
+  { id: 'spa', name: '斯帕-弗朗科爾尚賽道', city: '斯帕', country: '比利時', flag: '🇧🇪', kind: 'circuit', icon: '🌲', need: 6, rain: 0.55, wind: 5, kmhMin: 112, kmhMax: 158, mult: 1.75, seed: 83, ink: '#0b1220',
+    surface: { name: '山林賽道柏油', grip: 0.97, wear: 1.1, dmg: 1.05, spd: 0.99 }, road: 1300, skyline: 'spa',
+    sky: ['#6f95b8', '#d9e6ef'], fog: '#d9e6ef', sun: '#eef2f5', mtn: '#2c5d45', mtn2: '#5b8c75',
+    grass: ['#2f7d3a', '#2a7034'], road_c: ['#686b73', '#60636b'], rumble: ['#d62828', '#f1f1f1'], lane: '#ffffff', leaf: '#2c6e3a',
+    scenery: ['pine', 'pine', 'tree', 'pine', 'tire', 'flag'], deco: { inner: 1.45, spread: 2.6, step: [2, 5] },
+    layout: [['S', 50], ['R', 15, 20, 15, 5, 0], ['R', 40, 50, 40, 0, 40], ['R', 20, 25, 20, -2, 0], ['S', 80], ['R', 15, 20, 15, -3, 0], ['R', 20, 30, 20, -3, 0], ['R', 20, 30, 20, 3, 0], ['R', 15, 20, 15, -3, 0],
+             ['R', 25, 35, 25, 4, -20], ['R', 25, 35, 25, 2, 0], ['S', 30], ['R', 15, 20, 15, 3, 0], ['S', 50], ['R', 15, 20, 15, -3, 0], ['R', 15, 20, 15, 3, 0], ['S', 70]] },
+  { id: 'monza', name: '蒙札賽道', city: '蒙札', country: '義大利', flag: '🇮🇹', kind: 'circuit', icon: '🏎️', need: 8, rain: 0.15, wind: 4, kmhMin: 126, kmhMax: 172, mult: 1.9, seed: 97, ink: '#0b1220',
+    surface: { name: '高速賽道柏油', grip: 1, wear: 1.1, dmg: 1, spd: 1 }, road: 1400, skyline: 'monza',
+    sky: ['#3fa9f5', '#d9f0ff'], fog: '#d9f0ff', sun: '#fffbd0', mtn: '#7f9bb8', mtn2: '#b3c6d8',
+    grass: ['#3e9a3a', '#378f34'], road_c: ['#74767e', '#6c6e76'], rumble: ['#d62828', '#f1f1f1'], lane: '#ffffff', leaf: '#2f8f3a',
+    scenery: ['tree', 'tree', 'tree', 'tire', 'flag', 'bush'], deco: { inner: 1.5, spread: 3.5, step: [2, 5], stand: 0.05 },
+    layout: [['S', 120], ['R', 15, 20, 15, -3, 0], ['R', 15, 20, 15, 3, 0], ['S', 40], ['R', 30, 40, 30, 2, 0], ['S', 30], ['R', 15, 20, 15, -3, 0], ['R', 15, 20, 15, 3, 0], ['S', 30], ['R', 20, 30, 20, 2, 0], ['S', 20],
+             ['R', 20, 25, 20, 3, 0], ['S', 90], ['R', 25, 25, 25, -3, 0], ['R', 15, 20, 15, 3, 0], ['R', 15, 20, 15, -3, 0], ['S', 40], ['R', 40, 60, 40, 2, 0], ['S', 90]] },
+  { id: 'vegas', name: '拉斯維加斯大道街道賽', city: '拉斯維加斯', country: '美國', flag: '🇺🇸', kind: 'street', icon: '🎰', need: 9, rain: 0.05, wind: 7, kmhMin: 136, kmhMax: 186, mult: 2, seed: 109, ink: '#ffffff', night: true,
+    surface: { name: '沙漠夜間柏油', grip: 0.96, wear: 1.1, dmg: 1.15, spd: 1 }, road: 1150, wall: { off: 1.05, h: 380, cols: ['#a855f7', '#e5e7eb'] }, skyline: 'vegas',
+    sky: ['#0a0420', '#3a1650'], fog: '#2a1240', sun: '#fbe7ff', mtn: '#2a1646', mtn2: '#43245f',
+    grass: ['#2b1c20', '#25181c'], road_c: ['#2c2c35', '#26262f'], rumble: ['#a855f7', '#e5e7eb'], lane: '#ffd23f',
+    bldg: ['#2a1d58', '#3f2a78', '#1f1546'], scenery: ['neon', 'building', 'neon', 'lamp', 'palm', 'neon'], deco: { inner: 1.2, spread: 0.6, step: [2, 4] },
+    layout: [['S', 120], ['R', 20, 25, 20, 4, 0], ['S', 60], ['R', 20, 25, 20, -3, 0], ['S', 120], ['R', 20, 25, 20, 4, 0], ['S', 50], ['R', 20, 25, 20, 3, 0], ['S', 100], ['R', 25, 30, 25, -3, 0], ['S', 40], ['R', 20, 25, 20, 3, 0], ['S', 120]] },
 ];
 // 夜間賽道的星星（固定亂數種子，每次都一樣）
-(() => {
-  const t = RACER_TRACKS.find(x => x.night);
-  let a = 99;
+RACER_TRACKS.filter(x => x.night).forEach((t, i) => {
+  let a = 99 + i * 17;
   const r = () => { a = (a * 1664525 + 1013904223) >>> 0; return a / 4294967296; };
   t.stars = Array.from({ length: 60 }, () => [r() * RC.W, r() * RC.HORIZON * 0.9, 0.3 + r() * 0.7, r() < 0.2 ? 2 : 1]);
-})();
+});
 
 // ── 小工具 ──
 function rcInterp(a, b, p) { return a + (b - a) * p; }
@@ -5102,33 +5141,35 @@ const RACER_SCENERY = {
     c.fillStyle = 'rgba(0,0,0,0.18)';
     c.beginPath(); c.moveTo(x + w * 0.1, y - h * 0.5); c.lineTo(x + w * 0.5, y - h * 0.25); c.lineTo(x + w * 0.55, y); c.lineTo(x + w * 0.05, y); c.closePath(); c.fill();
   } },
-  building: { a: 2.6, w: 1.3, draw(c, x, y, w, h, s, d, side) {
+  building: { a: 2.6, w: 1.3, depth: 1.25, draw(c, x, y, w, h, s, d, side, geo) {
     const pal = d.bldg || ['#8d99ae', '#adb5bd', '#6c757d'];
     const base = pal[Math.floor(s * pal.length) % pal.length];
-    const sd = w * 0.42, k = 0.8, sup = Math.max(0, (y - RC.HORIZON) * 0.2);
-    const nx = x - side * w / 2, fx = nx - side * sd;            // 面向賽道的側面：從正面邊緣往遠處縮進去
-    const sg = c.createLinearGradient(nx, 0, fx, 0);
-    sg.addColorStop(0, rcShade(base, -0.38)); sg.addColorStop(1, rcShade(base, -0.22));
-    c.fillStyle = sg;
-    c.beginPath(); c.moveTo(nx, y); c.lineTo(nx, y - h); c.lineTo(fx, y - sup - h * k); c.lineTo(fx, y - sup); c.closePath(); c.fill();
+    const rows = Math.max(3, Math.floor(h / (w * 0.3)));
+    // 面向賽道的那面牆：沿著賽道方向（跟路邊平行）往遠處延伸，所以永遠不會伸進賽道裡
+    if (geo) {
+      const xn = x - side * w / 2, fx = geo.fx, fy = geo.fy, fh = geo.fh;
+      const sg = c.createLinearGradient(xn, 0, fx, 0);
+      sg.addColorStop(0, rcShade(base, -0.38)); sg.addColorStop(1, rcShade(base, -0.2));
+      c.fillStyle = sg;
+      c.beginPath(); c.moveTo(xn, y); c.lineTo(xn, y - h); c.lineTo(fx, fy - fh); c.lineTo(fx, fy); c.closePath(); c.fill();
+      const P = (u, v) => [xn + (fx - xn) * u, (y - h + h * v) + ((fy - fh + fh * v) - (y - h + h * v)) * u];
+      for (let r = 0; r < rows; r++) for (let k2 = 0; k2 < 3; k2++) {
+        const lit = ((r * 5 + k2 * 11 + Math.floor(s * 100)) % 4) < 2;
+        const v0 = (0.8 + r * 1.7) / (rows * 1.7 + 0.8), v1 = (1.8 + r * 1.7) / (rows * 1.7 + 0.8), u0 = 0.1 + k2 * 0.3, u1 = u0 + 0.16;
+        c.fillStyle = d.night ? (lit ? '#c99a2e' : '#070a1c') : (lit ? '#7fa6c9' : '#5d7e9c');
+        const a1 = P(u0, v0), a2 = P(u0, v1), a3 = P(u1, v1), a4 = P(u1, v0);
+        c.beginPath(); c.moveTo(a1[0], a1[1]); c.lineTo(a2[0], a2[1]); c.lineTo(a3[0], a3[1]); c.lineTo(a4[0], a4[1]); c.closePath(); c.fill();
+      }
+    }
     const fg = c.createLinearGradient(0, y - h, 0, y);
     fg.addColorStop(0, rcShade(base, 0.12)); fg.addColorStop(1, rcShade(base, -0.1));
     c.fillStyle = fg; c.fillRect(x - w / 2, y - h, w, h);
     c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect(x - w / 2, y - h, w, h * 0.03);
-    const cols = 4, rows = Math.max(3, Math.floor(h / (w * 0.3)));
-    const cw = w / (cols * 2 + 1), rh = h / (rows * 1.7 + 0.8);
+    const cols = 4, cw = w / (cols * 2 + 1), rh = h / (rows * 1.7 + 0.8);
     for (let r = 0; r < rows; r++) for (let k2 = 0; k2 < cols; k2++) {
       const lit = ((r * 7 + k2 * 13 + Math.floor(s * 100)) % 5) < 3;
       c.fillStyle = d.night ? (lit ? '#ffd966' : '#0b0f26') : (lit ? '#d6ecff' : '#a9c8e6');
       c.fillRect(x - w / 2 + cw * (1 + k2 * 2), y - h + rh * (0.8 + r * 1.7), cw, rh);
-    }
-    // 側面的窗（斜的）
-    for (let r = 0; r < rows; r++) {
-      const lit = ((r * 5 + Math.floor(s * 100)) % 4) < 2, t0 = (0.8 + r * 1.7) / (rows * 1.7 + 0.8), t1 = (1.8 + r * 1.7) / (rows * 1.7 + 0.8);
-      const ya = u0 => y - h + h * u0, yb = u0 => y - sup - h * k + h * k * u0;
-      c.fillStyle = d.night ? (lit ? '#c99a2e' : '#070a1c') : (lit ? '#7fa6c9' : '#5d7e9c');
-      c.beginPath(); c.moveTo(nx - side * sd * 0.18, ya(t0) + (yb(t0) - ya(t0)) * 0.18); c.lineTo(nx - side * sd * 0.18, ya(t1) + (yb(t1) - ya(t1)) * 0.18);
-      c.lineTo(nx - side * sd * 0.82, yb(t1)); c.lineTo(nx - side * sd * 0.82, yb(t0)); c.closePath(); c.fill();
     }
   } },
   lamp: { a: 3.2, w: 0.35, draw(c, x, y, w, h, s, d, side) {
@@ -5156,6 +5197,201 @@ const RACER_SCENERY = {
   } },
 };
 
+// ── 各城市的遠景天際線：全部用向量現畫，會跟著彎道慢慢平移（視差）──
+const RC_SKY_W = 760; // 一個循環的寬度
+function rcSkyX(off, px) { return ((px - off * RC_SKY_W) % RC_SKY_W + RC_SKY_W) % RC_SKY_W; }
+function rcSkyWrap(c, off, px, w, fn) { // 在循環的兩個位置各畫一次，這樣不會斷開
+  const x = rcSkyX(off, px) - 40;
+  fn(x); if (x + w > RC_SKY_W) fn(x - RC_SKY_W);
+  if (x < 0) fn(x + RC_SKY_W);
+}
+// 一排排方塊大樓：每棟的寬高由固定亂數決定，整排剛好是一個循環寬度，所以平移時不會跳動
+const rcSkyPatCache = {};
+function rcSkyPattern(seed, wMin, wMax, hMin, hMax) {
+  const key = `${seed}|${wMin}|${wMax}|${hMin}|${hMax}`;
+  if (rcSkyPatCache[key]) return rcSkyPatCache[key];
+  const rnd = rcRng(seed), items = [];
+  let sum = 0;
+  while (sum < RC_SKY_W) { const w = wMin + rnd() * (wMax - wMin), h = hMin + rnd() * (hMax - hMin); items.push({ w, h, tone: rnd(), r: rnd() }); sum += w; }
+  const k = RC_SKY_W / sum;
+  let x = 0;
+  items.forEach(it => { it.w *= k; it.x = x; x += it.w; });
+  return (rcSkyPatCache[key] = items);
+}
+function rcSkyBlocks(c, o) {
+  const items = rcSkyPattern(o.seed, o.wMin, o.wMax, o.hMin, o.hMax), H0 = RC.HORIZON, sh = o.off * RC_SKY_W;
+  for (let rep = -1; rep <= 1; rep++) {
+    items.forEach((it, i) => {
+      const x = it.x + rep * RC_SKY_W - ((sh % RC_SKY_W) + RC_SKY_W) % RC_SKY_W;
+      if (x > RC.W || x + it.w < 0) return;
+      c.fillStyle = Array.isArray(o.color) ? o.color[Math.floor(it.tone * o.color.length)] : o.color;
+      c.fillRect(x, H0 - o.base - it.h, it.w, it.h + o.base + 2);
+      if (o.win) {
+        c.fillStyle = o.win;
+        for (let yy = H0 - o.base - it.h + 4; yy < H0 - o.base - 3; yy += 5) for (let xx = x + 3; xx < x + it.w - 3; xx += 5) if (((i * 31 + Math.round(xx - x) * 7 + Math.round(yy) * 13) | 0) % 5 < (o.lit || 2)) c.fillRect(xx, yy, 2, 2);
+      }
+    });
+  }
+}
+function rcSkyTrees(c, o) { // 一排樹：pine＝針葉樹，否則闊葉樹
+  const items = rcSkyPattern(o.seed, o.size * 0.7 * (o.dense || 0.7), o.size * 1.5 * (o.dense || 0.7), o.size * 0.9, o.size * 2.2), H0 = RC.HORIZON, sh = ((o.off * RC_SKY_W) % RC_SKY_W + RC_SKY_W) % RC_SKY_W;
+  c.fillStyle = o.color; c.beginPath();
+  for (let rep = -1; rep <= 1; rep++) items.forEach(it => {
+    const x = it.x + it.w / 2 + rep * RC_SKY_W - sh;
+    if (x > RC.W + 30 || x < -30) return;
+    const w = it.w * 1.4, h = it.h;
+    if (o.pine) { c.moveTo(x - w * 0.5, H0 - o.base + 1); c.lineTo(x, H0 - o.base - h); c.lineTo(x + w * 0.5, H0 - o.base + 1); }
+    else { c.moveTo(x - w * 0.5, H0 - o.base + 1); c.quadraticCurveTo(x - w * 0.55, H0 - o.base - h * 0.9, x, H0 - o.base - h); c.quadraticCurveTo(x + w * 0.55, H0 - o.base - h * 0.9, x + w * 0.5, H0 - o.base + 1); }
+  });
+  c.fill();
+  c.fillRect(0, H0 - o.base, RC.W, o.base + 2);
+}
+function rcSkyGlow(c, x, y, r, col) {
+  c.globalCompositeOperation = 'lighter';
+  const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
+  c.globalCompositeOperation = 'source-over';
+}
+const RACER_SKYLINES = {
+  tokyo(c, def, pal, rain, off) {
+    rcRidge(c, pal.mtn2, off * 0.5, 14, 22, 8, 0.6);
+    rcSkyBlocks(c, { seed: 3, off: off * 0.9, base: 0, hMin: 20, hMax: 62, wMin: 12, wMax: 26, color: [pal.mtn, rcMix(def.mtn, '#ffffff', 0.15)], win: 'rgba(255,240,200,0.45)', lit: 1 });
+    rcSkyWrap(c, off, 330, 40, x => { // 東京鐵塔：紅白相間的桁架
+      const base = RC.HORIZON, h = 104;
+      for (let i = 0; i < 12; i++) {
+        const t0 = i / 12, t1 = (i + 1) / 12, w0 = 15 * (1 - t0) + 2, w1 = 15 * (1 - t1) + 2;
+        c.fillStyle = i % 2 ? '#f8f4ec' : '#e8431c';
+        c.beginPath(); c.moveTo(x - w0, base - h * t0); c.lineTo(x + w0, base - h * t0); c.lineTo(x + w1, base - h * t1); c.lineTo(x - w1, base - h * t1); c.closePath(); c.fill();
+      }
+      c.fillStyle = '#e8431c'; c.fillRect(x - 1, base - h - 14, 2, 14);
+      c.fillStyle = '#f2f2f2'; c.fillRect(x - 11, base - h * 0.55, 22, 4); c.fillRect(x - 7, base - h * 0.82, 14, 3);
+    });
+    rcSkyBlocks(c, { seed: 8, off: off * 1.3, base: 0, hMin: 12, hMax: 40, wMin: 10, wMax: 22, color: [rcMix(def.mtn, '#334155', 0.5), rcMix(def.mtn, '#1e293b', 0.55)], win: 'rgba(255,230,170,0.5)', lit: 2 });
+  },
+  monaco(c, def, pal, rain, off) {
+    c.fillStyle = rcMix('#2e86de', def.fog, 0.35); c.fillRect(0, RC.HORIZON - 10, RC.W, 12); // 地中海
+    rcRidge(c, pal.mtn, off * 0.4, 8, 36, 12, 0.9);
+    const rnd = rcRng(21); // 山坡上一戶戶疊上去的房子
+    for (let i = 0; i < 70; i++) {
+      const bx = ((rnd() * RC_SKY_W - off * RC_SKY_W * 0.4) % RC_SKY_W + RC_SKY_W) % RC_SKY_W, w = 8 + rnd() * 12, h = 7 + rnd() * 13, by = 6 + rnd() * 26;
+      [bx, bx - RC_SKY_W].forEach(x => { if (x > -w && x < RC.W) { c.fillStyle = def.bldg[Math.floor(rnd() * def.bldg.length)]; c.fillRect(x, RC.HORIZON - by - h, w, h); c.fillStyle = 'rgba(80,40,20,0.6)'; c.fillRect(x, RC.HORIZON - by - h - 2, w, 2); } });
+    }
+    rcSkyWrap(c, off * 0.9, 120, 30, x => { c.fillStyle = '#ffffff'; c.beginPath(); c.moveTo(x, RC.HORIZON - 3); c.lineTo(x + 8, RC.HORIZON - 3); c.lineTo(x + 4, RC.HORIZON - 14); c.closePath(); c.fill(); }); // 帆船
+    rcSkyWrap(c, off * 0.9, 460, 30, x => { c.fillStyle = '#ffffff'; c.beginPath(); c.moveTo(x, RC.HORIZON - 3); c.lineTo(x + 8, RC.HORIZON - 3); c.lineTo(x + 4, RC.HORIZON - 12); c.closePath(); c.fill(); });
+  },
+  singapore(c, def, pal, rain, off) {
+    rcSkyBlocks(c, { seed: 5, off: off * 0.8, base: 0, hMin: 18, hMax: 70, wMin: 10, wMax: 22, color: ['#10183f', '#0c1233', '#141c4a'], win: 'rgba(255,224,140,0.8)', lit: 2 });
+    rcSkyWrap(c, off, 300, 70, x => { // 濱海灣金沙：三座塔＋頂上的船形空中花園
+      const base = RC.HORIZON;
+      [-22, 0, 22].forEach(dx => { c.fillStyle = '#1a2352'; c.beginPath(); c.moveTo(x + dx - 8, base); c.lineTo(x + dx - 4, base - 62); c.lineTo(x + dx + 4, base - 62); c.lineTo(x + dx + 8, base); c.closePath(); c.fill(); });
+      c.fillStyle = '#2b3a7a'; c.beginPath(); c.moveTo(x - 38, base - 64); c.quadraticCurveTo(x, base - 74, x + 40, base - 62); c.lineTo(x + 36, base - 58); c.quadraticCurveTo(x, base - 68, x - 34, base - 59); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(255,230,160,0.9)'; for (let i = -3; i <= 3; i++) c.fillRect(x + i * 5 - 1, base - 50 + Math.abs(i), 2, 2);
+      rcSkyGlow(c, x, base - 60, 36, 'rgba(120,150,255,0.35)');
+    });
+    rcSkyWrap(c, off, 90, 60, x => { // 新加坡摩天輪
+      const cy = RC.HORIZON - 34, r = 25;
+      c.strokeStyle = '#7da3ff'; c.lineWidth = 1.4; c.beginPath(); c.arc(x, cy, r, 0, 6.2832); c.stroke();
+      c.lineWidth = 0.7; for (let i = 0; i < 12; i++) { const a = i / 12 * 6.2832; c.beginPath(); c.moveTo(x, cy); c.lineTo(x + Math.cos(a) * r, cy + Math.sin(a) * r); c.stroke(); }
+      c.fillStyle = '#1a2352'; c.fillRect(x - 3, cy, 6, 34);
+      rcSkyGlow(c, x, cy, 30, 'rgba(100,140,255,0.3)');
+    });
+  },
+  vegas(c, def, pal, rain, off) {
+    rcRidge(c, pal.mtn2, off * 0.4, 6, 24, 10, 0.2);
+    rcSkyBlocks(c, { seed: 14, off: off * 0.8, base: 0, hMin: 16, hMax: 56, wMin: 12, wMax: 26, color: ['#1c1240', '#241752', '#170e36'], win: 'rgba(255,120,220,0.7)', lit: 2 });
+    rcSkyWrap(c, off, 260, 40, x => { // 同溫層塔
+      const base = RC.HORIZON; c.fillStyle = '#2a1a5e'; c.beginPath(); c.moveTo(x - 3, base); c.lineTo(x - 1.5, base - 84); c.lineTo(x + 1.5, base - 84); c.lineTo(x + 3, base); c.closePath(); c.fill();
+      c.beginPath(); c.ellipse(x, base - 84, 9, 4, 0, 0, 6.2832); c.fill(); c.fillRect(x - 0.7, base - 100, 1.4, 16);
+      rcSkyGlow(c, x, base - 84, 22, 'rgba(255,80,200,0.5)');
+    });
+    rcSkyWrap(c, off, 560, 50, x => { // 金字塔旅館＋向天空的光束
+      const base = RC.HORIZON; c.fillStyle = '#1a2a52'; c.beginPath(); c.moveTo(x - 28, base); c.lineTo(x, base - 44); c.lineTo(x + 28, base); c.closePath(); c.fill();
+      c.globalCompositeOperation = 'lighter'; const g = c.createLinearGradient(x, base - 44, x, 0); g.addColorStop(0, 'rgba(140,220,255,0.55)'); g.addColorStop(1, 'rgba(140,220,255,0)');
+      c.fillStyle = g; c.fillRect(x - 3, 0, 6, base - 44); c.globalCompositeOperation = 'source-over';
+    });
+    rcSkyWrap(c, off, 130, 40, x => { // 巴黎鐵塔縮小版
+      const base = RC.HORIZON; c.fillStyle = '#3a2a7a'; c.beginPath(); c.moveTo(x - 14, base); c.lineTo(x - 2, base - 48); c.lineTo(x + 2, base - 48); c.lineTo(x + 14, base); c.lineTo(x + 8, base); c.lineTo(x, base - 16); c.lineTo(x - 8, base); c.closePath(); c.fill();
+      rcSkyGlow(c, x, base - 30, 26, 'rgba(255,200,90,0.35)');
+    });
+  },
+  suzuka(c, def, pal, rain, off) {
+    rcRidge(c, pal.mtn2, off * 0.4, 14, 34, 10, 0.4);
+    rcSkyTrees(c, { seed: 31, off: off * 0.7, base: 4, size: 11, color: rcMix(def.mtn, '#14532d', 0.35), pine: true, dense: 0.55 });
+    rcSkyWrap(c, off, 400, 60, x => { // 鈴鹿的摩天輪
+      const cy = RC.HORIZON - 38, r = 28;
+      c.strokeStyle = '#e8eef5'; c.lineWidth = 1.6; c.beginPath(); c.arc(x, cy, r, 0, 6.2832); c.stroke();
+      c.lineWidth = 0.8; for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832; c.beginPath(); c.moveTo(x, cy); c.lineTo(x + Math.cos(a) * r, cy + Math.sin(a) * r); c.stroke(); }
+      c.fillStyle = ['#f43f5e', '#facc15', '#38bdf8', '#34d399'][0]; for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832; c.fillStyle = ['#f43f5e', '#facc15', '#38bdf8', '#34d399'][i % 4]; c.fillRect(x + Math.cos(a) * r - 2, cy + Math.sin(a) * r - 2, 4, 4); }
+      c.strokeStyle = '#cfd6df'; c.lineWidth = 2; c.beginPath(); c.moveTo(x - 10, RC.HORIZON); c.lineTo(x, cy); c.lineTo(x + 10, RC.HORIZON); c.stroke();
+    });
+    rcSkyTrees(c, { seed: 41, off: off * 1.1, base: 0, size: 9, color: rcMix(def.mtn, '#14532d', 0.55), pine: false, dense: 0.6 });
+  },
+  silverstone(c, def, pal, rain, off) {
+    rcSkyTrees(c, { seed: 51, off: off * 0.6, base: 2, size: 9, color: rcMix(def.mtn, '#3f6b4a', 0.5), dense: 0.6 });
+    rcSkyWrap(c, off, 200, 90, x => { // 機庫與看台
+      const b = RC.HORIZON; c.fillStyle = '#a7b0ba'; c.fillRect(x, b - 15, 60, 15); c.fillStyle = '#7e8996'; c.beginPath(); c.moveTo(x - 4, b - 15); c.lineTo(x + 30, b - 26); c.lineTo(x + 64, b - 15); c.closePath(); c.fill();
+      c.fillStyle = '#c3cad2'; c.fillRect(x + 72, b - 10, 80, 10); c.fillStyle = '#e11d48'; c.fillRect(x + 72, b - 12, 80, 2);
+    });
+    rcSkyTrees(c, { seed: 52, off: off * 1.0, base: 0, size: 12, color: rcMix(def.mtn, '#2f6b3a', 0.6), dense: 0.55 });
+  },
+  monza(c, def, pal, rain, off) {
+    rcRidge(c, '#dbe7f3', off * 0.2, 36, 30, 20, 0.2); // 遠方的阿爾卑斯山（雪頂）
+    rcRidge(c, pal.mtn, off * 0.3, 10, 26, 12, 0.7);
+    rcSkyTrees(c, { seed: 61, off: off * 0.8, base: 0, size: 14, color: '#2c6e34', dense: 0.5 });
+    rcSkyWrap(c, off, 280, 40, x => { const b = RC.HORIZON; c.fillStyle = '#e5d3b3'; c.fillRect(x, b - 28, 12, 28); c.fillStyle = '#b4513a'; c.beginPath(); c.moveTo(x - 2, b - 28); c.lineTo(x + 6, b - 40); c.lineTo(x + 14, b - 28); c.closePath(); c.fill(); }); // 教堂鐘樓
+  },
+  spa(c, def, pal, rain, off) {
+    rcRidge(c, pal.mtn2, off * 0.3, 18, 36, 12, 0.5);
+    rcSkyTrees(c, { seed: 71, off: off * 0.6, base: 8, size: 13, color: rcMix(def.mtn, '#14412a', 0.45), pine: true, dense: 0.5 });
+    rcSkyTrees(c, { seed: 72, off: off * 0.95, base: 0, size: 15, color: rcMix(def.mtn, '#0f3320', 0.6), pine: true, dense: 0.5 });
+  },
+  interlagos(c, def, pal, rain, off) {
+    rcRidge(c, pal.mtn2, off * 0.3, 18, 38, 12, 0.3);
+    rcSkyBlocks(c, { seed: 81, off: off * 0.6, base: 6, hMin: 10, hMax: 38, wMin: 8, wMax: 18, color: ['#aeb7c4', '#98a3b3', '#c4cbd6'], win: 'rgba(255,255,255,0.35)', lit: 2 });
+    rcRidge(c, pal.mtn, off * 0.8, 2, 20, 12, 1.1);
+    rcSkyTrees(c, { seed: 82, off: off * 1.0, base: 0, size: 11, color: rcMix(def.mtn, '#14532d', 0.5), dense: 0.55 });
+  },
+};
+
+// ── 新的路邊景物：看台、遊艇、霓虹看板、旗幟、輪胎牆 ──
+Object.assign(RACER_SCENERY, {
+  grandstand: { a: 0.42, w: 3.4, draw(c, x, y, w, h, s, d) {
+    const rnd = rcRng(Math.floor(s * 1e6));
+    c.fillStyle = '#d4d8de'; c.fillRect(x - w / 2, y - h, w, h);                    // 看台本體
+    for (let r = 0; r < 4; r++) for (let i = 0; i < 30; i++) { c.fillStyle = ['#e11d48', '#2563eb', '#facc15', '#f8fafc', '#16a34a', '#fb923c'][Math.floor(rnd() * 6)]; c.fillRect(x - w / 2 + 3 + i * (w - 6) / 30, y - h + 3 + r * (h - 8) / 4, Math.max(1, (w - 6) / 30 - 0.6), Math.max(1, (h - 8) / 4 - 1)); }
+    c.fillStyle = '#4b5563'; c.fillRect(x - w / 2 - 2, y - h - h * 0.18, w + 4, h * 0.18);   // 屋頂
+    c.fillStyle = '#9ca3af'; for (let i = 0; i <= 6; i++) c.fillRect(x - w / 2 + i * w / 6 - 1, y - h, 2, h);
+  } },
+  yacht: { a: 0.8, w: 1.5, draw(c, x, y, w, h) {
+    c.fillStyle = '#f8fafc'; c.beginPath(); c.moveTo(x - w * 0.5, y - h * 0.3); c.lineTo(x + w * 0.5, y - h * 0.3); c.lineTo(x + w * 0.38, y); c.lineTo(x - w * 0.42, y); c.closePath(); c.fill();
+    c.fillStyle = '#1d4ed8'; c.fillRect(x - w * 0.47, y - h * 0.22, w * 0.92, h * 0.05);
+    c.fillStyle = '#e2e8f0'; c.fillRect(x - w * 0.25, y - h * 0.55, w * 0.5, h * 0.25); c.fillStyle = '#0f172a'; for (let i = 0; i < 4; i++) c.fillRect(x - w * 0.22 + i * w * 0.12, y - h * 0.48, w * 0.08, h * 0.08);
+    c.fillStyle = '#cbd5e1'; c.fillRect(x - 1, y - h, 2, h * 0.45);
+  } },
+  neon: { a: 2.7, w: 0.9, draw(c, x, y, w, h, s, d) {
+    c.fillStyle = '#12082a'; c.fillRect(x - w * 0.38, y - h, w * 0.76, h);
+    const cols = ['#ff2e93', '#22d3ee', '#facc15', '#a855f7', '#34d399'];
+    for (let i = 0; i < 5; i++) { const cc = cols[(Math.floor(s * 7) + i) % 5]; c.fillStyle = cc; c.fillRect(x - w * 0.32, y - h + h * (0.06 + i * 0.18), w * 0.64, h * 0.1); }
+    c.globalCompositeOperation = 'lighter';
+    const g = c.createRadialGradient(x, y - h * 0.55, 0, x, y - h * 0.55, w * 1.5); g.addColorStop(0, 'rgba(255,60,200,0.45)'); g.addColorStop(1, 'rgba(255,60,200,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(x, y - h * 0.55, w * 1.5, 0, 6.2832); c.fill(); c.globalCompositeOperation = 'source-over';
+  } },
+  flag: { a: 2.4, w: 0.28, draw(c, x, y, w, h, s) {
+    c.fillStyle = '#cfd6df'; c.fillRect(x - w * 0.08, y - h, w * 0.16, h);
+    const cols = [['#e11d48', '#f8fafc'], ['#2563eb', '#f8fafc'], ['#16a34a', '#facc15'], ['#f8fafc', '#111827']][Math.floor(s * 4) % 4];
+    c.fillStyle = cols[0]; c.beginPath(); c.moveTo(x + w * 0.08, y - h); c.lineTo(x + w * 1.5, y - h * 0.94); c.lineTo(x + w * 1.4, y - h * 0.72); c.lineTo(x + w * 0.08, y - h * 0.76); c.closePath(); c.fill();
+    c.fillStyle = cols[1]; c.beginPath(); c.moveTo(x + w * 0.08, y - h * 0.88); c.lineTo(x + w * 1.45, y - h * 0.83); c.lineTo(x + w * 1.42, y - h * 0.77); c.lineTo(x + w * 0.08, y - h * 0.82); c.closePath(); c.fill();
+  } },
+  tire: { a: 0.5, w: 0.5, draw(c, x, y, w, h) {
+    for (let r = 0; r < 3; r++) for (let i = 0; i < 3 - r; i++) {
+      const tx = x + (i - (2 - r) / 2) * w * 0.34, ty = y - h * 0.18 - r * h * 0.3;
+      c.fillStyle = '#16171b'; c.beginPath(); c.ellipse(tx, ty, w * 0.17, h * 0.17, 0, 0, 6.2832); c.fill();
+      c.fillStyle = r % 2 ? '#e11d48' : '#f8fafc'; c.beginPath(); c.ellipse(tx, ty, w * 0.1, h * 0.1, 0, 0, 6.2832); c.fill();
+      c.fillStyle = '#2b2c33'; c.beginPath(); c.ellipse(tx, ty, w * 0.045, h * 0.045, 0, 0, 6.2832); c.fill();
+    }
+  } },
+});
+
 // ── 存檔（本機＋登入後同步到 users/{uid}.racerSave）──
 // 改裝積分不直接存「餘額」，而是存「累計獲得」，餘額＝累計獲得 − 已買的改裝總價 − 已花的維修費。
 // 這樣兩台裝置合併時：累計獲得／維修花費取較大的、各零件等級取較高的，餘額自然對得起來，
@@ -5164,7 +5400,7 @@ const RACER_SAVE_KEY = 'tg-racer-save';
 const RACER_PART_IDS = RACER_PARTS.map(p => p.id);
 const RACER_STYLE_IDS = RACER_DASH_STYLES.map(s => s.id);
 function racerDefaultSave() {
-  return { defeated: [], bestPos: {}, bestLap: {}, races: 0, wins: 0, poles: 0, rainWins: 0, car: 'crown', track: 'city', earned: 0, repairSpent: 0,
+  return { defeated: [], bestPos: {}, bestLap: {}, races: 0, wins: 0, poles: 0, rainWins: 0, car: 'crown', track: 'tokyo', earned: 0, repairSpent: 0,
     tunes: {}, cond: {}, claimedOwned: 0, claimedPublic: 0 };
 }
 function racerNormTune(t) {
@@ -5190,7 +5426,7 @@ function racerNormalize(o) {
   base.poles = Math.max(0, Math.round(Number(o.poles) || 0));
   base.rainWins = Math.max(0, Math.round(Number(o.rainWins) || 0));
   base.car = RACER_CARS[o.car] ? o.car : 'crown';
-  base.track = RACER_TRACKS.some(t => t.id === o.track) ? o.track : 'city';
+  base.track = RACER_TRACKS.some(t => t.id === o.track) ? o.track : 'tokyo';
   base.earned = rcClamp(Math.round(Number(o.earned) || 0), 0, 10000000);
   base.repairSpent = rcClamp(Math.round(Number(o.repairSpent) || 0), 0, 10000000);
   base.claimedOwned = rcClamp(Math.round(Number(o.claimedOwned) || 0), 0, 100000);
@@ -5347,11 +5583,13 @@ function buildRacerTrack(def) {
   }
   road(25, 25, 25, 0, -lastY() / RC.SEG); // 平順下坡回到起點高度，讓賽道能接成一圈
   segs[segs.length - 1].p2.world.y = 0;
-  const rnd = rcRng(def.seed);
-  for (let i = 10; i < segs.length - 5; i += 2 + Math.floor(rnd() * 5)) {
+  const rnd = rcRng(def.seed), dc = def.deco || { inner: 1.2, spread: 2.2, step: [2, 6] }, both = dc.spread < 1;
+  for (let i = 10; i < segs.length - 5; i += dc.step[0] + Math.floor(rnd() * (dc.step[1] - dc.step[0] + 1))) {
     const side = rnd() < 0.5 ? -1 : 1;
-    segs[i].sprites.push({ type: def.scenery[Math.floor(rnd() * def.scenery.length)], offset: side * (1.2 + rnd() * 2.2), seed: rnd() });
-    if (rnd() < 0.45) segs[i].sprites.push({ type: def.scenery[Math.floor(rnd() * def.scenery.length)], offset: -side * (1.2 + rnd() * 2.4), seed: rnd() });
+    const pick = () => def.scenery[Math.floor(rnd() * def.scenery.length)];
+    if (dc.stand && rnd() < dc.stand) { segs[i].sprites.push({ type: 'grandstand', offset: side * (dc.inner + 0.4), seed: rnd() }); i += 6; continue; }
+    segs[i].sprites.push({ type: pick(), offset: side * (dc.inner + rnd() * dc.spread), seed: rnd() });
+    if (both || rnd() < 0.45) segs[i].sprites.push({ type: pick(), offset: -side * (dc.inner + rnd() * dc.spread * 1.1), seed: rnd() });
   }
   segs[2].gantry = true; // 起跑／終點門架
   for (let i = 0; i < 10; i++) { // 起跑格線（F1 式兩列交錯）：畫在每一格車頭前方
@@ -5366,7 +5604,7 @@ const rc = {
   ctx: null, canvas: null, raf: 0, last: 0, acc: 0, frameDt: 0.016, panel: 'hub', ready: false, mode: 'race',
   track: null, tdef: null, carId: 'crown', carDef: null, stat: null, topUnits: 0, topEff: 0, dashTier: 0, dashStyle: 'classic', targetId: null, rpm: 1000, gear: 'N', state: 'idle',
   env: null, tire: 'normal', dur: 1, tireDur: 1, dur0: 1, tire0: 1, grip: 1, windAlong: 0, windCross: 0, lineGain: 0,
-  slipT: 0, slipCd: 0, slipDir: 1, hitCd: 0, flameT: 0, lastGear: 'N', lapStart: null, laps: [], bestLap: 0, lastLap: 0, lapFlash: 0, poleMs: 0, gridPos: 10, lapsTotal: 2,
+  slipT: 0, slipCd: 0, slipDir: 1, vx: 0, hitCd: 0, flameT: 0, lastGear: 'N', lapStart: null, laps: [], bestLap: 0, lastLap: 0, lapFlash: 0, poleMs: 0, gridPos: 10, lapsTotal: 2,
   cdLeft: 0, time: 0, goFlash: 0, position: 0, playerX: 0, speed: 0, steer: 0, lap: -1, prevZ: 0, pdist: 0,
   finished: false, finishCount: 0, myOrder: 0, resultAt: 0, resultShown: false, rank: 10, cutoffAt: null, timeUp: false, frozen: null,
   cars: [], skyOffset: 0, hillOffset: 0, crashT: 0, drawN: RC.DRAW, slow: 0, sparks: [], smoke: [], drops: [], dmgTaken: 0,
@@ -5429,6 +5667,9 @@ function rcGripNow() {
 function rcSetupSession(mode) {
   if (!racerPrep || racerPrep.trackId !== racerSave.track) racerNewPrep();
   const tdef = RACER_TRACKS.find(t => t.id === racerSave.track) || RACER_TRACKS[0];
+  RC.ROAD = tdef.road; RC.CAR_W = 600 / tdef.road;                 // 每條賽道的路寬不同，但車子的實際大小不變
+  rc.edge = tdef.wall ? tdef.wall.off - RC.CAR_W / 2 : 0;         // 街道賽：車子中心最多能開到哪裡（再過去就撞牆）
+  rc.aiEdge = tdef.wall ? rc.edge - 0.03 : 1.05;
   const T = buildRacerTrack(tdef), len = T.length;
   T.segs.forEach(s => { s.cars.length = 0; });
   const carId = RACER_CARS[racerSave.car] ? racerSave.car : 'crown';
@@ -5445,7 +5686,7 @@ function rcSetupSession(mode) {
     state: 'countdown', cdLeft: mode === 'quali' ? 2.6 : 3.4, time: 0, goFlash: 0, rpm: 1000, gear: 'N', lastGear: 'N',
     playerX: 0, speed: 0, steer: 0, lap: -1, finished: false, finishCount: 0, myOrder: 0, resultAt: 0, resultShown: false, rank: 10,
     cutoffAt: null, timeUp: false, frozen: null, skyOffset: 0, hillOffset: 0, crashT: 0, slow: 0,
-    slipT: 0, slipCd: 0, hitCd: 0, flameT: 0, lapStart: null, laps: [], bestLap: 0, lastLap: 0, lapFlash: 0, windAlong: 0, windCross: 0, lineGain: 0,
+    slipT: 0, slipCd: 0, vx: 0, hitCd: 0, flameT: 0, lapStart: null, laps: [], bestLap: 0, lastLap: 0, lapFlash: 0, windAlong: 0, windCross: 0, lineGain: 0,
     gridPos: slot + 1, poleMs: Math.min(...Object.values(P.ai)), sparks: [], smoke: [], cars: [],
   });
   rc.grip = rcGripNow();
@@ -5483,10 +5724,10 @@ function rcCarSteer(car, carSeg, playerSeg) {
       }
     }
   }
-  if (car.offset < -0.9) return 0.1;
-  if (car.offset > 0.9) return -0.1;
+  if (car.offset < -(rc.aiEdge - 0.15)) return 0.1;
+  if (car.offset > rc.aiEdge - 0.15) return -0.1;
   // 沒有擋路的車時，過彎會往內線靠（內線路程短、比較快）
-  if (Math.abs(carSeg.curve) > 0.7) return rcClamp((Math.sign(carSeg.curve) * 0.5 - car.offset) * 0.012, -0.02, 0.02);
+  if (Math.abs(carSeg.curve) > 0.7) return rcClamp((Math.sign(carSeg.curve) * Math.min(0.5, rc.aiEdge - 0.2) - car.offset) * 0.012, -0.02, 0.02);
   return 0;
 }
 function rcStepAI(car, dt, playerSeg) {
@@ -5503,7 +5744,7 @@ function rcStepAI(car, dt, playerSeg) {
   else if (rc.env.weather === 'rain' && Math.abs(oldSeg.curve) > 1.2 && Math.random() < 0.05 * rc.env.intensity * dt) car.slipT = 0.8;
   const target = car.target * k * rcWindF(w.along) * (car.slipT > 0 ? 0.8 : 1) * (car.finished ? 0.65 : 1);
   car.speed += rcClamp(target - car.speed, -car.target * 0.5 * dt, car.target * 0.25 * dt);
-  car.offset = rcClamp(car.offset + rcCarSteer(car, oldSeg, playerSeg) * dt * 60, -1.05, 1.05);
+  car.offset = rcClamp(car.offset + rcCarSteer(car, oldSeg, playerSeg) * dt * 60, -rc.aiEdge, rc.aiEdge);
   car.z += dt * car.speed * (1 + rcClamp(oldSeg.curve * car.offset * 0.018, -0.07, 0.07));
   if (car.z >= len) { car.z -= len; car.lap++; }
   const newSeg = rcFindSeg(car.z);
@@ -5599,20 +5840,31 @@ function rcStep(dt) {
       if (rc.slipCd <= 0 && Math.random() < risk * dt) { rc.slipT = 1.0; rc.slipCd = 1.6; rc.slipDir = Math.abs(curve) > 0.3 ? -Math.sign(curve) : (Math.random() < 0.5 ? -1 : 1); }
     }
     const slipping = rc.slipT > 0;
-    if (slipping) { rc.slipT -= dt; rc.playerX += rc.slipDir * dt * (0.4 + pct) * 1.4; rc.speed *= 1 - 0.32 * dt; if (rc.smoke.length < 70 && Math.random() < 0.6) rc.smoke.push({ x: RC.W / 2 + (Math.random() - 0.5) * 60, y: 0, vx: (Math.random() - 0.5) * 30, vy: -10 - Math.random() * 25, life: 0.7, r: 6 + Math.random() * 6 }); }
-    // 轉向力道在低速也要夠用（不然 120 km/h 這種慢速會轉不動）；彎道把車往外推的力道跟速度的平方成正比，
-    // 所以高速要靠操控（懸吊／輪胎）才壓得住，這就是改裝的意義；抓地不好時更難壓住
-    const dx = dt * (1.8 + pct) * (0.9 + 0.1 * st.hnd) * Math.min(1, G) * (slipping ? 0.35 : 1);
-    rc.playerX += dx * rc.steer;
-    rc.playerX -= dt * pct * pct * curve * 0.8 / (st.hnd * rcClamp(G, 0.5, 1.15));
-    rc.playerX += dt * w.cross * 0.022 * (0.4 + pct); // 側風
-    if (!racing) { rc.speed *= 1 - dt * 0.7; rc.playerX *= 1 - dt * 2; }
+    if (slipping) { rc.slipT -= dt; rc.speed *= 1 - 0.32 * dt; if (rc.smoke.length < 70 && Math.random() < 0.6) rc.smoke.push({ x: RC.W / 2 + (Math.random() - 0.5) * 60, y: 0, vx: (Math.random() - 0.5) * 30, vy: -10 - Math.random() * 25, life: 0.7, r: 6 + Math.random() * 6 }); }
+    // 橫向運動：方向盤給的橫向速度 − 彎道把車往外甩的速度（跟速度平方成正比），再加側風。
+    // 橫向速度有慣性，而且完全沒有任何「自動回正」：不打方向盤，車子就是直直往前、彎道一來就自己衝出賽道。
+    // 高速要靠操控（懸吊／輪胎）才壓得住離心力，抓地不好時更難壓住
+    const steerV = rc.steer * (2.4 + pct) * (0.9 + 0.1 * st.hnd) * Math.min(1, G) * (slipping ? 0.35 : 1);
+    const pushV = pct * pct * curve * 1.7 / (st.hnd * rcClamp(G, 0.5, 1.15));
+    rc.vx += (steerV - pushV + w.cross * 0.022 * (0.4 + pct) + (slipping ? rc.slipDir * (0.4 + pct) * 1.4 : 0) - rc.vx) * Math.min(1, dt * 5);
+    rc.playerX += rc.vx * dt;
+    if (!racing) { rc.speed *= 1 - dt * 0.7; rc.vx *= 1 - dt * 2; }
     else {
       rc.speed = Math.min(top, rc.speed + (top / 5) * st.acc * (0.7 + 0.3 * df) * dt * (1.15 - 0.3 * rc.speed / top));
       if (rc.speed > top) rc.speed -= (rc.speed - top) * Math.min(1, dt * 3);
     }
-    if ((rc.playerX < -1 || rc.playerX > 1) && rc.speed > top * 0.4) rc.speed -= (top / 3) * st.grip * dt; // 衝出賽道會減速
-    rc.playerX = rcClamp(rc.playerX, -2.2, 2.2);
+    if (rc.playerX < -1 || rc.playerX > 1) { // 衝出賽道：草地很黏，離賽道越遠越慢
+      const out = Math.min(3, Math.abs(rc.playerX) - 1);
+      if (rc.speed > top * 0.25) rc.speed -= (top / 3) * st.grip * (1 + out * 0.6) * dt;
+    }
+    rc.playerX = rcClamp(rc.playerX, -6, 6);
+    if (rc.edge && Math.abs(rc.playerX) > rc.edge) { // 街道賽護牆：撞上去會掉耐久、被彈開、貼著牆磨會一直減速
+      const sg = Math.sign(rc.playerX), into = Math.max(0, sg * rc.vx);
+      rc.playerX = sg * rc.edge;
+      if (into > 0.6) { rcDamage(0.03 + 0.09 * pct + into * 0.012, sg * 70); rc.crashT = Math.max(rc.crashT, 0.3); rc.speed *= 0.9; }
+      rc.vx = -sg * Math.min(into * 0.2, 0.5);
+      rc.speed *= 1 - 0.3 * dt;
+    }
 
     for (const car of playerSeg.cars) { // 追撞前車：被擋住減速，耐久受損
       if (!rcOverlap(rc.playerX, RC.CAR_W, car.offset, RC.CAR_W, 0.8)) continue;
@@ -5631,8 +5883,8 @@ function rcStep(dt) {
     }
     for (const sp of playerSeg.sprites) { // 撞到路邊景物
       const sd = RACER_SCENERY[sp.type];
-      const cx = sp.offset + (sp.offset > 0 ? 1 : -1) * sd.w / 2;
-      if (rcOverlap(rc.playerX, RC.CAR_W, cx, sd.w * 0.55, 1)) {
+      const wOff = sd.w * RC.REF / RC.ROAD, cx = sp.offset + (sp.offset > 0 ? 1 : -1) * wOff / 2;
+      if (rcOverlap(rc.playerX, RC.CAR_W, cx, wOff * 0.55, 1)) {
         rcDamage(0.05 + 0.12 * pct, (cx - rc.playerX) * 60);
         rc.speed = Math.min(rc.speed, top * st.crash);
         rc.position = rcInc(playerSeg.p1.world.z, -RC.PLAYER_Z, len);
@@ -5692,7 +5944,7 @@ function rcPalette(def, rain) {
   const wx = hex => rain > 0 ? rcMix(hex, def.night ? '#1b2230' : '#5b6672', 0.5 * rain) : hex;
   return {
     sky: [wx(def.sky[0]), wx(def.sky[1])], fog: wx(def.fog), mtn: wx(def.mtn), mtn2: wx(def.mtn2),
-    grass: [wx(def.grass[0]), wx(def.grass[1])], road: [wx(def.road[0]), wx(def.road[1])], rumble: [wx(def.rumble[0]), wx(def.rumble[1])], lane: def.lane,
+    grass: [wx(def.grass[0]), wx(def.grass[1])], road: [wx(def.road_c[0]), wx(def.road_c[1])], rumble: [wx(def.rumble[0]), wx(def.rumble[1])], lane: def.lane,
   };
 }
 function rcProject(p, camX, camY, camZ) {
@@ -5736,17 +5988,28 @@ function rcDrawBackground(c, def, pal, rain) {
     rcCloud(c, cx < -70 ? cx + RC.W + 140 : cx, 28 + (i * 41) % 85, 26 + (i * 13) % 22, cloudCol, ca);
   }
   if (rain > 0) { c.fillStyle = `rgba(60,70,85,${0.28 * rain})`; c.fillRect(0, 0, RC.W, RC.HORIZON + 2); }
-  rcRidge(c, pal.mtn2, rc.skyOffset, 18, 34, 10, 1.2);
-  rcRidge(c, pal.mtn, rc.hillOffset, 4, 26, 14, 0.4);
+  if (def.skyline && RACER_SKYLINES[def.skyline]) RACER_SKYLINES[def.skyline](c, def, pal, rain, rc.skyOffset);
+  else { rcRidge(c, pal.mtn2, rc.skyOffset, 18, 34, 10, 1.2); rcRidge(c, pal.mtn, rc.hillOffset, 4, 26, 14, 0.4); }
   const hz = c.createLinearGradient(0, RC.HORIZON - 40, 0, RC.HORIZON + 2); // 地平線薄霧
   hz.addColorStop(0, 'rgba(255,255,255,0)'); hz.addColorStop(1, pal.fog);
   c.fillStyle = hz; c.fillRect(0, RC.HORIZON - 40, RC.W, 42);
   c.fillStyle = pal.fog; c.fillRect(0, RC.HORIZON, RC.W, RC.H - RC.HORIZON);
 }
+// 街道賽的護牆：兩側貼著路邊的混凝土牆（紅白／黑白交錯），要在所有路段畫完之後由遠到近再畫，才不會被後面的路蓋掉
+function rcDrawWall(c, seg, def) {
+  const W0 = def.wall, p1 = seg.p1.screen, p2 = seg.p2.screen;
+  const h1 = p1.scale * W0.h * RC.H / 2 * RC.VS, h2 = p2.scale * W0.h * RC.H / 2 * RC.VS, col = W0.cols[seg.alt];
+  [-1, 1].forEach(s => {
+    const x1 = p1.x + s * p1.w * W0.off, x2 = p2.x + s * p2.w * W0.off;
+    c.fillStyle = col; c.beginPath(); c.moveTo(x1, p1.y); c.lineTo(x2, p2.y); c.lineTo(x2, p2.y - h2); c.lineTo(x1, p1.y - h1); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(0,0,0,0.28)'; c.beginPath(); c.moveTo(x1, p1.y - h1 * 0.18); c.lineTo(x2, p2.y - h2 * 0.18); c.lineTo(x2, p2.y); c.lineTo(x1, p1.y); c.closePath(); c.fill(); // 底部陰影
+    c.fillStyle = 'rgba(255,255,255,0.35)'; c.beginPath(); c.moveTo(x1, p1.y - h1); c.lineTo(x2, p2.y - h2); c.lineTo(x2, p2.y - h2 * 0.9); c.lineTo(x1, p1.y - h1 * 0.9); c.closePath(); c.fill(); // 頂部亮邊
+  });
+}
 function rcDrawSeg(c, seg, def, pal, rain) {
   const p1 = seg.p1.screen, p2 = seg.p2.screen, y1 = p1.y, y2 = p2.y, alt = seg.alt, W = RC.W;
   c.fillStyle = pal.grass[alt]; c.fillRect(0, y2, W, y1 - y2);
-  const r1 = p1.w / Math.max(6, 2 * RC.LANES), r2 = p2.w / Math.max(6, 2 * RC.LANES);
+  const rk = def.wall ? 0.4 : 1, r1 = p1.w / Math.max(6, 2 * RC.LANES) * rk, r2 = p2.w / Math.max(6, 2 * RC.LANES) * rk;
   rcPoly(c, p1.x - p1.w - r1, y1, p1.x - p1.w, y1, p2.x - p2.w, y2, p2.x - p2.w - r2, y2, pal.rumble[alt]);
   rcPoly(c, p1.x + p1.w + r1, y1, p1.x + p1.w, y1, p2.x + p2.w, y2, p2.x + p2.w + r2, y2, pal.rumble[alt]);
   rcPoly(c, p1.x - p1.w, y1, p1.x + p1.w, y1, p2.x + p2.w, y2, p2.x - p2.w, y2, seg.line || pal.road[alt]);
@@ -5868,6 +6131,7 @@ function rcRender() {
   for (let n = 0; n < drawN; n++) {
     const seg = segs[(baseSeg.index + n) % segs.length];
     seg.looped = seg.index < baseSeg.index;
+    seg.drawn = 0;
     seg.fog = 1 / Math.pow(Math.E, (n / drawN) * (n / drawN) * (def.night || rain > 0.5 ? 5 : 3.5));
     seg.clip = maxY;
     const camX = rc.playerX * RC.ROAD - x, camY = playerY + RC.CAM_H, camZ = rc.position - (seg.looped ? T.length : 0);
@@ -5876,7 +6140,7 @@ function rcRender() {
     x += dx; dx += seg.curve;
     if (seg.p1.camera.z <= RC.CAM_DEPTH || seg.p2.screen.y >= seg.p1.screen.y || seg.p2.screen.y >= maxY) continue;
     rcDrawSeg(c, seg, def, pal, rain);
-    maxY = seg.p1.screen.y;
+    seg.drawn = 1; maxY = seg.p1.screen.y;
   }
 
   const night = !!def.night;
@@ -5884,6 +6148,7 @@ function rcRender() {
   for (let n = drawN - 1; n >= 0; n--) {
     const seg = segs[(baseSeg.index + n) % segs.length];
     const fa = Math.max(0.3, seg.fog);
+    if (def.wall && seg.drawn) { c.globalAlpha = fa; rcDrawWall(c, seg, def); c.globalAlpha = 1; }
     for (const car of seg.cars) {
       const pct = (car.z % RC.SEG) / RC.SEG;
       const sc = rcInterp(seg.p1.screen.scale, seg.p2.screen.scale, pct);
@@ -5909,17 +6174,25 @@ function rcRender() {
     for (const sp of seg.sprites) {
       const sd = RACER_SCENERY[sp.type], sc = seg.p1.screen.scale;
       if (!(sc > 0)) continue;
-      const sw = sc * sd.w * RC.ROAD * W / 2;
+      const sw = sc * sd.w * RC.REF * W / 2;
       if (sw < 3) continue;
       const sh = sw * sd.a, side = sp.offset > 0 ? 1 : -1;
       const sx = seg.p1.screen.x + sc * sp.offset * RC.ROAD * W / 2 + side * sw / 2;
       const sy = seg.p1.screen.y;
       if (sx + sw < 0 || sx - sw > W) continue;
+      let geo = null;
+      if (sd.depth) { // 建築物：用它「後面」那一段賽道的位置，算出貼著路邊的側牆
+        const m = Math.max(1, Math.round(sd.depth * sd.w * RC.REF / RC.SEG));
+        if (n + m < drawN) {
+          const sF = segs[(seg.index + m) % segs.length], scF = sF.p1.screen.scale;
+          if (scF > 0 && sF.p1.camera.z > RC.CAM_DEPTH) geo = { fx: sF.p1.screen.x + scF * sp.offset * RC.ROAD * W / 2, fy: sF.p1.screen.y, fh: scF * sd.w * RC.REF * W / 2 * sd.a };
+        }
+      }
       const clipIt = sy > seg.clip;
       if (clipIt) { c.save(); c.beginPath(); c.rect(0, 0, W, seg.clip); c.clip(); }
       c.globalAlpha = fa;
       c.fillStyle = 'rgba(0,0,0,0.2)'; c.beginPath(); c.ellipse(sx + side * sw * 0.08, sy, sw * 0.55, Math.max(1.5, sw * 0.07), 0, 0, 6.2832); c.fill(); // 地面陰影
-      sd.draw(c, sx, sy, sw, sh, sp.seed, def, side);
+      sd.draw(c, sx, sy, sw, sh, sp.seed, def, side, geo);
       c.globalAlpha = 1;
       if (clipIt) c.restore();
     }
@@ -6332,7 +6605,7 @@ function renderRacerHub() {
   const tracks = RACER_TRACKS.map(t => {
     const ok = racerUnlockedTrack(t), best = racerSave.bestPos[t.id], lap = racerSave.bestLap[t.id];
     return `<div class="rc-track ${racerSave.track === t.id ? 'sel' : ''} ${ok ? '' : 'locked'}" onclick="racerPickTrack('${t.id}')" style="color:${t.ink};background:linear-gradient(160deg,${t.sky[0]},${t.sky[1]})">
-      <div class="rc-track-icon">${t.icon}</div><div class="rc-track-name">${t.name}</div>
+      <div class="rc-track-icon">${t.icon}</div><div class="rc-track-name">${t.flag} ${t.city}</div><div class="rc-track-kind">${t.kind === 'street' ? '🏙️ 街道賽' : '🏁 專屬賽道'}</div>
       <div class="rc-track-sub">${ok ? (best ? `最佳 第 ${best} 名` : '尚未完賽') : `🔒 累計擊敗 ${t.need} 位對手解鎖`}${ok && lap ? `<br>⏱ ${racerFmtLap(lap)}` : ''}</div></div>`;
   }).join('');
   const carsHtml = Object.keys(RACER_CARS).map(id => {
@@ -6388,7 +6661,7 @@ function renderRacerPrep() {
   const tireCard = (key, icon, name, lines, rec) => `<div class="rc-tire ${P.tire === key ? 'sel' : ''}" onclick="racerPickTire('${key}')"><div class="rc-tire-icon">${icon}</div>
       <div><div class="rc-tire-name">${name}${rec ? '<span class="rc-rec">建議</span>' : ''}</div><div class="rc-tire-desc">${lines}</div></div></div>`;
   el.innerHTML = `<div class="rc-card rc-env" style="background:linear-gradient(160deg,${tdef.sky[0]},${tdef.sky[1]});color:${tdef.ink}">
-      <div class="rc-env-title">${tdef.icon} ${tdef.name}</div>
+      <div class="rc-env-title">${tdef.icon} ${tdef.name}</div><div class="rc-env-sub">${tdef.flag} ${tdef.city}・${tdef.country}　${tdef.kind === 'street' ? '🏙️ 街道賽（兩側護牆，撞上去會受損）' : '🏁 專屬賽道（路寬、有路肩與草地緩衝）'}</div>
       <div class="rc-env-grid">
         <div><b>${rain ? '🌧️ 雨天' : '☀️ 晴天'}</b><small>${rain ? `雨量 ${Math.round(env.intensity * 100)}%，路面濕滑` : '乾燥路面'}</small></div>
         <div><b>💨 ${env.wind.toFixed(1)} m/s</b><small>每一段的風向不同：順風加速、逆風減速、側風會推車</small></div>
@@ -6562,7 +6835,7 @@ window.racerClaim = () => {
 };
 
 // ── 大獎賽圈速排行榜（Firestore：racerBoard/{賽道}/entries/{uid}，每人每條賽道一筆最快單圈）──
-let racerBoardTrack = 'city';
+let racerBoardTrack = 'tokyo';
 function racerSubmitBoard(trackId, ms, carName) {
   if (!currentUser || !(ms > 0)) return Promise.resolve(false);
   return setDoc(doc(db, 'racerBoard', trackId, 'entries', currentUser.uid), {
