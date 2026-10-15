@@ -5604,8 +5604,10 @@ Object.assign(RACER_SCENERY, {
 const RACER_SAVE_KEY = 'tg-racer-save';
 const RACER_PART_IDS = RACER_PARTS.map(p => p.id);
 const RACER_STYLE_IDS = RACER_DASH_STYLES.map(s => s.id);
+// 賽道改成真實比例（1 公尺＝1 段）後圈速全部重算：舊版（lapV 不是 2）的個人紀錄與排行榜（at 早於這個時間）一律不再採計
+const RACER_LAP_EPOCH = 1792050593000;
 function racerDefaultSave() {
-  return { defeated: [], tougeWon: [], bestPos: {}, bestLap: {}, races: 0, wins: 0, poles: 0, rainWins: 0, car: 'crown', track: 'melbourne', earned: 0, repairSpent: 0,
+  return { lapV: 2, defeated: [], tougeWon: [], bestPos: {}, bestLap: {}, races: 0, wins: 0, poles: 0, rainWins: 0, car: 'crown', track: 'melbourne', earned: 0, repairSpent: 0,
     tunes: {}, cond: {}, claimedOwned: 0, claimedPublic: 0 };
 }
 function racerNormTune(t) {
@@ -5625,7 +5627,7 @@ function racerNormalize(o) {
   const ids = new Set(RACER_RIVALS.map(r => r.id));
   base.defeated = [...new Set((Array.isArray(o.defeated) ? o.defeated : []).filter(id => ids.has(id)))];
   Object.entries(o.bestPos || {}).forEach(([k, v]) => { if (racerHasTrack(k) && v >= 1 && v <= 10) base.bestPos[k] = Math.round(v); });
-  Object.entries(o.bestLap || {}).forEach(([k, v]) => { if (racerHasTrack(k) && v >= 5000 && v <= 600000) base.bestLap[k] = Math.round(v); });
+  if (o.lapV === 2) Object.entries(o.bestLap || {}).forEach(([k, v]) => { if (racerHasTrack(k) && v >= 5000 && v <= 600000) base.bestLap[k] = Math.round(v); });
   base.tougeWon = [...new Set((Array.isArray(o.tougeWon) ? o.tougeWon : []).filter(id => RACER_TOUGE.some(x => x.id === id)))];
   base.races = Math.max(0, Math.round(Number(o.races) || 0));
   base.wins = Math.max(0, Math.round(Number(o.wins) || 0));
@@ -7539,13 +7541,13 @@ async function renderRacerBoard() {
     // 登入的人如果本機有更快的圈速但排行榜上沒有（或比較慢），補上傳一次
     if (currentUser && myBest) {
       const mine = snap.docs.find(d => d.id === currentUser.uid);
-      let remoteMs = mine ? mine.data().lapMs : null;
-      if (!mine) { const g = await getDoc(doc(db, 'racerBoard', tid, 'entries', currentUser.uid)).catch(() => null); remoteMs = g && g.exists() ? g.data().lapMs : null; }
+      let remoteMs = mine && (mine.data().at || 0) >= RACER_LAP_EPOCH ? mine.data().lapMs : null;
+      if (!mine) { const g = await getDoc(doc(db, 'racerBoard', tid, 'entries', currentUser.uid)).catch(() => null); remoteMs = g && g.exists() && (g.data().at || 0) >= RACER_LAP_EPOCH ? g.data().lapMs : null; }
       if (!remoteMs || myBest < remoteMs) {
         if (await racerSubmitBoard(tid, myBest, RACER_CARS[racerSave.car].name)) { snap = await getDocs(query(colRef, orderBy('lapMs', 'asc'), limit(30))); if (racerBoardTrack !== tid) return; }
       }
     }
-    const rows = snap.docs.map(d => d.data());
+    const rows = snap.docs.map(d => d.data()).filter(r => (r.at || 0) >= RACER_LAP_EPOCH);
     if (!rows.length) { list().innerHTML = `<div style="text-align:center;padding:36px 10px;color:var(--text3);font-size:13px">還沒有人留下圈速，快去跑出第一筆紀錄吧！</div>`; return; }
     const medals = ['🥇', '🥈', '🥉'], lead = rows[0].lapMs;
     list().innerHTML = rows.map((r, i) => `<div class="rc-board-row ${currentUser && r.uid === currentUser.uid ? 'me' : ''}">
