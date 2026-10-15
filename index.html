@@ -6831,11 +6831,11 @@ function rcDrawControls(c) {
   c.strokeStyle = down ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.2)'; c.lineWidth = 3; // 踏板防滑紋
   for (let i = 0; i < 4; i++) { const yy = P.by + 18 + i * 11; c.beginPath(); c.moveTo(P.bx + 12, yy); c.lineTo(P.bx + P.bw - 12, yy); c.stroke(); }
   c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = "800 12px 'Noto Sans TC', sans-serif";
-  c.fillText('煞車', P.bx + P.bw / 2, P.by + P.bh - 8);
+  c.fillText('煞車', P.bx + P.bw / 2, P.by + P.bh - 7);
   c.restore();
   if (rc.state === 'race' && rc.time < 7 || rc.state === 'countdown') {
     c.save(); c.globalAlpha = (rc.state === 'race' ? Math.max(0, 1 - (rc.time - 5) / 2) : 1) * 0.55; c.fillStyle = '#fff'; c.font = "900 30px 'Noto Sans TC', sans-serif"; c.textAlign = 'center';
-    c.fillText('◀', 40, RC.H - 112 - 22); c.fillText('▶', 122, RC.H - 112 - 22); c.restore();
+    c.fillText('◀', 60, RC.H - 112 - 22); c.fillText('▶', 215, RC.H - 112 - 22); c.restore();
   }
 }
 function rcDrawHud(c) {
@@ -6925,7 +6925,7 @@ function rcDrawHud(c) {
     }
     c.fillStyle = 'rgba(255,255,255,0.9)'; c.font = "600 13px 'Noto Sans TC', sans-serif";
     c.strokeStyle = 'rgba(0,0,0,0.5)'; c.lineWidth = 3;
-    c.strokeText('左手按左／右半邊轉向、右手踩煞車（油門自動）', W / 2, 268); c.fillText('左手按左／右半邊轉向、右手踩煞車（油門自動）', W / 2, 268);
+    c.strokeText('按左半邊向左、右半邊向右轉；右下角踏板煞車（油門自動）', W / 2, 268); c.fillText('按左半邊向左、右半邊向右轉；右下角踏板煞車（油門自動）', W / 2, 268);
   } else if (rc.goFlash > 0) {
     c.globalAlpha = Math.min(1, rc.goFlash * 2);
     c.fillStyle = '#22C55E'; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 6; c.font = "900 84px 'Bebas Neue', 'Noto Sans TC', sans-serif";
@@ -6957,15 +6957,15 @@ function rcLoop(ts) {
   if (rc.ctx && rc.track) rcRender();
 }
 
-// ── 輸入：左手按住畫面左／右半邊轉向、右手踩右下角煞車踏板（油門自動）；電腦用 ←→（或 A／D）轉向、↓（S／空白鍵）煞車 ──
-const RC_PEDAL = { x0: RC.W - 92, y0: 300, bx: RC.W - 76, by: RC.H - 112 - 104, bw: 66, bh: 96 }; // 右側煞車區（觸控範圍）與踏板圖示位置
+// ── 輸入：按住畫面左半邊向左轉、右半邊向右轉，右下角踏板煞車（油門自動）；電腦用 ←→（或 A／D）轉向、↓（S／空白鍵）煞車 ──
+const RC_PEDAL = { x0: RC.W - 82, y0: RC.H - 112 - 112, bx: RC.W - 68, by: RC.H - 112 - 92, bw: 58, bh: 84 }; // 右側煞車區（觸控範圍）與踏板圖示位置
 function rcUpdateTouch() {
   const rect = rc.canvas.getBoundingClientRect(), k = RC.W / rect.width;
   let l = 0, r = 0, b = 0;
   for (const p of rc.ptrs.values()) {
-    const x = (p.x - rect.left) * k, y = (p.y - rect.top) * k;
-    if (x >= RC_PEDAL.x0 && y >= RC_PEDAL.y0) b = 1;            // 右側：煞車踏板
-    else if (x < (RC_PEDAL.x0) / 2) l = 1; else r = 1;           // 其餘：左半邊向左、右半邊向右
+    if (p.role === 'b') { b = 1; continue; }                       // 手指一開始按在右下角踏板上：這根手指只負責煞車
+    const x = (p.x - rect.left) * k;                                // 其他手指：整個畫面左半邊＝向左、右半邊＝向右（手指滑到踏板上也只是向右轉）
+    if (x < RC.W / 2) l = 1; else r = 1;
   }
   rc.touch.l = l; rc.touch.r = r; rc.touch.b = b;
 }
@@ -6977,8 +6977,13 @@ function rcSetupCanvas() {
   rc.canvas.width = RC.W * dpr; rc.canvas.height = RC.H * dpr;
   rc.ctx = rc.canvas.getContext('2d');
   rc.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  rc.canvas.addEventListener('pointerdown', e => { e.preventDefault(); try { rc.canvas.setPointerCapture(e.pointerId); } catch (x) {} rc.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); rcUpdateTouch(); });
-  rc.canvas.addEventListener('pointermove', e => { if (rc.ptrs.has(e.pointerId)) { rc.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); rcUpdateTouch(); } });
+  rc.canvas.addEventListener('pointerdown', e => {
+    e.preventDefault(); try { rc.canvas.setPointerCapture(e.pointerId); } catch (x) {}
+    const rect = rc.canvas.getBoundingClientRect(), k = RC.W / rect.width, px = (e.clientX - rect.left) * k, py = (e.clientY - rect.top) * k;
+    rc.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, role: px >= RC_PEDAL.x0 && py >= RC_PEDAL.y0 && py < RC.H - 112 + 4 ? 'b' : 's' });
+    rcUpdateTouch();
+  });
+  rc.canvas.addEventListener('pointermove', e => { if (rc.ptrs.has(e.pointerId)) { rc.ptrs.get(e.pointerId).x = e.clientX; rc.ptrs.get(e.pointerId).y = e.clientY; rcUpdateTouch(); } });
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => rc.canvas.addEventListener(ev, e => { rc.ptrs.delete(e.pointerId); rcUpdateTouch(); }));
 }
 function rcSizeCanvas() {
