@@ -2723,6 +2723,7 @@ function loadUserPlan() {
     if (gameStats.bestScore > remoteBest || gameStats.plays > remotePlays) saveGameStats();
     // 賽車存檔：擊敗名單取聯集、最佳名次取較好的，雲端缺了本機的東西就補寫回去
     if (mergeRacerSave(data.racerSave)) saveRacerSave();
+    racerSyncTrackList();
 
     // 升級方案有效期限過了就自動打回免費版，不然付一次錢就變成終身升級
     if (data.planExpiry && data.planExpiry < Date.now() && data.plan !== 'free') {
@@ -7529,7 +7530,19 @@ async function renderRacerBoard() {
 }
 
 // ── 開關畫面、開始排位賽／正賽 ──
+// 排行榜的賽道清單：Firestore 規則只接受 config/racerTracks 清單裡的賽道，這樣新增賽道不用再改規則。
+// 管理員（本人）登入後打開遊戲，會自動把目前遊戲裡所有賽道的 id 同步上去（有新增賽道才會寫入）
+const RACER_ADMIN_UID = 'Uq7Ok9vF3qVSYGPH3U0fnshG1ZG2';
+async function racerSyncTrackList() {
+  if (!currentUser || currentUser.uid !== RACER_ADMIN_UID) return;
+  try {
+    const ids = [...RACER_TRACKS, ...RACER_TOUGE].map(x => x.id).sort(), ref = doc(db, 'config', 'racerTracks'), snap = await getDoc(ref);
+    const cur = snap.exists() ? [...(snap.data().ids || [])].sort() : [];
+    if (cur.length !== ids.length || ids.some((x, i) => cur[i] !== x)) { await setDoc(ref, { ids, updatedAt: Date.now() }); showToast(`🛠️ 已同步排行榜賽道清單（${ids.length} 條）`); }
+  } catch (e) { console.warn('racerSyncTrackList', e); }
+}
 window.openRacer = () => {
+  racerSyncTrackList();
   const modal = document.getElementById('racer-modal');
   rcShowPanel('hub'); renderRacerHub();
   modal.style.display = 'flex';
