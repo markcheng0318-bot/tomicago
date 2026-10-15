@@ -4656,7 +4656,7 @@ window.addEventListener('keydown', e => {
 // 擊敗的對手越多，開放的賽道越多。
 const RC = {
   W: 360, H: 560, HORIZON: 215, VS: 0.77, SEG: 200, ROAD: 1200, RUMBLE: 3, LANES: 3,
-  CAM_H: 1000, CAM_DEPTH: 0.84, DRAW: 240, UPK: 55, MAX_KMH: 260, CAR_W: 0.5, LAPS: 2, CUTOFF_SEC: 30, QUALI_CUTOFF: 150,
+  CAM_H: 1110, CAM_DEPTH: 0.84, DRAW: 300, CARU: 380, CARLEN: 680, UPK: 55, MAX_KMH: 260, CAR_W: 0.5, LAPS: 2, CUTOFF_SEC: 30, QUALI_CUTOFF: 150,
   GRID_GAP: 760, GRID_POLE: 1000, CAR_LEN: 800, REF: 1200, CATCH: 0.1,
 };
 RC.MAX = RC.MAX_KMH * RC.UPK; // 速度上限（單位／秒），用來換算轉向與彎道推力的比例；1 km/h ＝ 55 單位／秒
@@ -4748,17 +4748,17 @@ const RACER_DATA = {"melbourne":{"n":1387,"loop":true,"realLen":5378,"curve":"/v
 // road＝路的半寬；wall＝街道賽護牆（off＝護牆離路中心多遠，h＝高度，cols＝交錯的兩種顏色）
 const RACER_TRACKS = [
   { id: 'melbourne', name: '墨爾本阿爾伯特公園賽道', city: '墨爾本', country: '澳洲', flag: '🇦🇺', kind: 'circuit', icon: '🦘', need: 0, rain: 0.3, wind: 4, kmhMin: 60, kmhMax: 116, mult: 1, seed: 11, ink: '#0b1220',
-    surface: { name: '公園環湖柏油', grip: 1, wear: 1, dmg: 1, spd: 1 }, road: 1250, skyline: 'melbourne', data: RACER_DATA.melbourne,
+    surface: { name: '公園環湖柏油', grip: 1, wear: 1, dmg: 1, spd: 1 }, road: 1150, skyline: 'melbourne', data: RACER_DATA.melbourne,
     sky: ['#3a9bf0', '#d8f0ff'], fog: '#d8f0ff', sun: '#fffbd0', mtn: '#7aa6c4', mtn2: '#a6c6dc',
     grass: ['#4aa04a', '#429644'], road_c: ['#6a6d75', '#62656d'], rumble: ['#d62828', '#f1f1f1'], lane: '#ffffff', leaf: '#3b9a45',
     scenery: ['tree', 'tree', 'bush', 'tire', 'flag', 'palm'], deco: { inner: 1.45, spread: 3, step: [2, 6], stand: 0.05 } },
   { id: 'suzuka', name: '鈴鹿賽道', city: '鈴鹿', country: '日本', flag: '🇯🇵', kind: 'circuit', icon: '🎡', need: 1, rain: 0.35, wind: 4, kmhMin: 70, kmhMax: 122, mult: 1.15, seed: 23, ink: '#0b1220',
-    surface: { name: '高抓地賽道柏油', grip: 1.02, wear: 1, dmg: 1, spd: 1 }, road: 1300, skyline: 'suzuka', data: RACER_DATA.suzuka,
+    surface: { name: '高抓地賽道柏油', grip: 1.02, wear: 1, dmg: 1, spd: 1 }, road: 1200, skyline: 'suzuka', data: RACER_DATA.suzuka,
     sky: ['#4eb4ff', '#e2f6ff'], fog: '#e2f6ff', sun: '#fffbd0', mtn: '#3f8a58', mtn2: '#79b58c',
     grass: ['#3f9d48', '#378d40'], road_c: ['#6a6d75', '#62656d'], rumble: ['#d62828', '#f1f1f1'], lane: '#ffffff', leaf: '#2f9e44',
     scenery: ['pine', 'tree', 'tree', 'tire', 'flag', 'pine'], deco: { inner: 1.45, spread: 3, step: [2, 6], stand: 0.06 } },
   { id: 'shanghai', name: '上海國際賽車場', city: '上海', country: '中國', flag: '🇨🇳', kind: 'circuit', icon: '🏙️', need: 2, rain: 0.35, wind: 4, kmhMin: 78, kmhMax: 128, mult: 1.25, seed: 29, ink: '#0b1220',
-    surface: { name: '高速賽道柏油', grip: 1, wear: 1.05, dmg: 1, spd: 1 }, road: 1350, skyline: 'shanghai', data: RACER_DATA.shanghai,
+    surface: { name: '高速賽道柏油', grip: 1, wear: 1.05, dmg: 1, spd: 1 }, road: 1200, skyline: 'shanghai', data: RACER_DATA.shanghai,
     sky: ['#7ea3c4', '#e3ebf2'], fog: '#e3ebf2', sun: '#f4f6f8', mtn: '#8d9db0', mtn2: '#b4c0cf',
     grass: ['#4a9a4e', '#428f46'], road_c: ['#6d7078', '#656870'], rumble: ['#d62828', '#f1f1f1'], lane: '#ffffff', leaf: '#3b8a3e',
     scenery: ['tree', 'bush', 'tire', 'flag', 'grandstand', 'tree'], deco: { inner: 1.5, spread: 3.2, step: [3, 7], stand: 0.07 } },
@@ -4768,7 +4768,7 @@ const RACER_TRACKS = [
     grass: ['#cbb89a', '#bfae92'], road_c: ['#5b5e66', '#54575f'], rumble: ['#d62828', '#f1f1f1'], lane: '#ffffff',
     bldg: ['#e8c9a0', '#d9a577', '#f2e3c9', '#c98f6a'], scenery: ['building', 'building', 'palm', 'yacht', 'building', 'lamp'], deco: { inner: 1.2, spread: 0.55, step: [2, 4] } },
   { id: 'silverstone', name: '銀石賽道', city: '銀石', country: '英國', flag: '🇬🇧', kind: 'circuit', icon: '🏁', need: 4, rain: 0.45, wind: 6, kmhMin: 94, kmhMax: 138, mult: 1.45, seed: 51, ink: '#0b1220',
-    surface: { name: '平坦高速柏油', grip: 1, wear: 1.05, dmg: 1, spd: 1 }, road: 1350, skyline: 'silverstone', data: RACER_DATA.silverstone,
+    surface: { name: '平坦高速柏油', grip: 1, wear: 1.05, dmg: 1, spd: 1 }, road: 1200, skyline: 'silverstone', data: RACER_DATA.silverstone,
     sky: ['#8aa0b8', '#dfe7ee'], fog: '#dfe7ee', sun: '#f4f6f8', mtn: '#7d9486', mtn2: '#a5b6ac',
     grass: ['#4f9a4a', '#478f43'], road_c: ['#6d7078', '#656870'], rumble: ['#1d4ed8', '#f1f1f1'], lane: '#ffffff', leaf: '#3b8a3e',
     scenery: ['tree', 'bush', 'tire', 'flag', 'tree', 'bush'], deco: { inner: 1.5, spread: 3.5, step: [3, 7], stand: 0.07 } },
@@ -4778,17 +4778,17 @@ const RACER_TRACKS = [
     grass: ['#17233f', '#131e37'], road_c: ['#30323d', '#2b2d37'], rumble: ['#e11d48', '#e5e7eb'], lane: '#ffe66d',
     bldg: ['#1f2a5a', '#2b3a7a', '#162052'], scenery: ['building', 'building', 'lamp', 'neon', 'palm', 'building'], deco: { inner: 1.2, spread: 0.5, step: [2, 4] } },
   { id: 'interlagos', name: '英特拉格斯賽道', city: '聖保羅', country: '巴西', flag: '🇧🇷', kind: 'circuit', icon: '⛰️', need: 6, rain: 0.4, wind: 5, kmhMin: 106, kmhMax: 150, mult: 1.65, seed: 71, ink: '#0b1220',
-    surface: { name: '起伏賽道柏油', grip: 0.99, wear: 1.15, dmg: 1, spd: 0.99 }, road: 1300, skyline: 'interlagos', data: RACER_DATA.interlagos,
+    surface: { name: '起伏賽道柏油', grip: 0.99, wear: 1.15, dmg: 1, spd: 0.99 }, road: 1200, skyline: 'interlagos', data: RACER_DATA.interlagos,
     sky: ['#2fb4f0', '#d7f4ff'], fog: '#d7f4ff', sun: '#fffbd0', mtn: '#4f9a6a', mtn2: '#86c39a',
     grass: ['#49a23c', '#429735'], road_c: ['#75777f', '#6d6f77'], rumble: ['#facc15', '#16a34a'], lane: '#ffffff', leaf: '#2f9e44',
     scenery: ['palm', 'tree', 'bush', 'tire', 'flag', 'palm'], deco: { inner: 1.45, spread: 3, step: [3, 6], stand: 0.06 } },
   { id: 'spa', name: '斯帕-弗朗科爾尚賽道', city: '斯帕', country: '比利時', flag: '🇧🇪', kind: 'circuit', icon: '🌲', need: 7, rain: 0.55, wind: 5, kmhMin: 114, kmhMax: 158, mult: 1.8, seed: 83, ink: '#0b1220',
-    surface: { name: '山林賽道柏油', grip: 0.97, wear: 1.1, dmg: 1.05, spd: 0.99 }, road: 1300, skyline: 'spa', data: RACER_DATA.spa,
+    surface: { name: '山林賽道柏油', grip: 0.97, wear: 1.1, dmg: 1.05, spd: 0.99 }, road: 1200, skyline: 'spa', data: RACER_DATA.spa,
     sky: ['#6f95b8', '#d9e6ef'], fog: '#d9e6ef', sun: '#eef2f5', mtn: '#2c5d45', mtn2: '#5b8c75',
     grass: ['#2f7d3a', '#2a7034'], road_c: ['#686b73', '#60636b'], rumble: ['#d62828', '#f1f1f1'], lane: '#ffffff', leaf: '#2c6e3a',
     scenery: ['pine', 'pine', 'tree', 'pine', 'tire', 'flag'], deco: { inner: 1.45, spread: 2.6, step: [2, 5] } },
   { id: 'monza', name: '蒙札賽道', city: '蒙札', country: '義大利', flag: '🇮🇹', kind: 'circuit', icon: '🏎️', need: 8, rain: 0.15, wind: 4, kmhMin: 126, kmhMax: 172, mult: 1.9, seed: 97, ink: '#0b1220',
-    surface: { name: '高速賽道柏油', grip: 1, wear: 1.1, dmg: 1, spd: 1 }, road: 1400, skyline: 'monza', data: RACER_DATA.monza,
+    surface: { name: '高速賽道柏油', grip: 1, wear: 1.1, dmg: 1, spd: 1 }, road: 1250, skyline: 'monza', data: RACER_DATA.monza,
     sky: ['#3fa9f5', '#d9f0ff'], fog: '#d9f0ff', sun: '#fffbd0', mtn: '#7f9bb8', mtn2: '#b3c6d8',
     grass: ['#3e9a3a', '#378f34'], road_c: ['#74767e', '#6c6e76'], rumble: ['#d62828', '#f1f1f1'], lane: '#ffffff', leaf: '#2f8f3a',
     scenery: ['tree', 'tree', 'tree', 'tire', 'flag', 'bush'], deco: { inner: 1.5, spread: 3.5, step: [2, 5], stand: 0.05 } },
@@ -4801,25 +4801,25 @@ const RACER_TRACKS = [
 const RACER_REGIONS = [{"id": "asia", "name": "亞洲", "icon": "🌏", "countries": [{"id": "jp", "name": "日本", "flag": "🇯🇵"}, {"id": "tw", "name": "台灣", "flag": "🇹🇼"}, {"id": "kr", "name": "韓國", "flag": "🇰🇷"}, {"id": "cn", "name": "中國", "flag": "🇨🇳"}]}, {"id": "europe", "name": "歐洲", "icon": "🌍", "countries": [{"id": "fr", "name": "法國", "flag": "🇫🇷"}, {"id": "at", "name": "奧地利", "flag": "🇦🇹"}, {"id": "it", "name": "義大利", "flag": "🇮🇹"}, {"id": "ch", "name": "瑞士", "flag": "🇨🇭"}, {"id": "no", "name": "挪威", "flag": "🇳🇴"}, {"id": "ro", "name": "羅馬尼亞", "flag": "🇷🇴"}]}, {"id": "america", "name": "美洲", "icon": "🌎", "countries": [{"id": "us", "name": "美國", "flag": "🇺🇸"}, {"id": "br", "name": "巴西", "flag": "🇧🇷"}, {"id": "cl", "name": "智利", "flag": "🇨🇱"}]}];
 // 山道（地區個人賽）：need＝要先贏幾場山道單挑才解鎖；rival＝在地傳奇對手；路窄、護欄貼著車身
 const RACER_TOUGE = [
-  {"id":"jp-akina","region":"asia","country":"jp","name":"秋名山（榛名山）","sub":"動畫《頭文字D》秋名山的原型山道","desc":"群馬縣榛名山的連續下坡彎道，走山族的聖地。路窄、彎多、護欄貼著車身，下坡路段要靠過彎線路取勝。","kind":"touge","icon":"🏔️","need":0,"diff":1,"rain":0.4,"wind":3,"mult":1,"seed":200,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"豆腐店的 86 車手","car":"ae86","kmh":99,"quote":"下坡才是 86 的主場。"},"sky":["#ff9a5a","#ffe3c2"],"fog":"#ffe3c2","sun":"#fff1d6","mtn":"#9a6048","mtn2":"#c08a70","grass":["#6f8230","#647529"],"road_c":["#585a62","#51535a"],"rumble":["#7c2d12","#fde68a"],"lane":"#fff3cf","autumn":["#e8590c","#f08c00","#c92a2a"],"scenery":["maple","maple","pine","rock","maple","pine"],"skyline":"mountain","ink":"#3a1500","data":RACER_DATA["jp-akina"]},
-  {"id":"tw-yangjin","region":"asia","country":"tw","name":"陽金公路（陽明山－金山）","sub":"台北人的週末山路","desc":"從陽明山一路下切到金山的台2甲線，雲霧多、彎道連續，是台灣最有名的飆山路線之一。","kind":"touge","icon":"🏔️","need":1,"diff":2,"rain":0.5,"wind":3,"mult":1,"seed":207,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"陽明山的夜跑車手","car":"civic","kmh":105,"quote":"這條路我閉著眼睛都能跑。"},"sky":["#8fb3c9","#e6eff4"],"fog":"#e6eff4","sun":"#f4f6f8","mtn":"#4f8a6a","mtn2":"#8fbaa4","grass":["#3f8f4a","#378443"],"road_c":["#5e6168","#575a61"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#fff3cf","leaf":"#2f8f4a","scenery":["palm","tree","bush","rock","tree"],"skyline":"tmist","ink":"#0b1220","data":RACER_DATA["tw-yangjin"]},
-  {"id":"jp-iroha","region":"asia","country":"jp","name":"伊呂波坂（日光）","sub":"48 個髮夾彎的日光名坂","desc":"栃木縣日光通往中禪寺湖的名坂，這裡跑的是下坡的第二伊呂波坂，髮夾彎一個接一個，最考驗煞車與過彎。","kind":"touge","icon":"🏔️","need":2,"diff":2,"rain":0.45,"wind":3,"mult":1,"seed":214,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"日光的下坡專家","car":"silvia","kmh":111,"quote":"一個髮夾彎都不能失手。"},"sky":["#ff9a5a","#ffe3c2"],"fog":"#ffe3c2","sun":"#fff1d6","mtn":"#9a6048","mtn2":"#c08a70","grass":["#6f8230","#647529"],"road_c":["#585a62","#51535a"],"rumble":["#7c2d12","#fde68a"],"lane":"#fff3cf","autumn":["#e8590c","#f08c00","#c92a2a"],"scenery":["maple","maple","pine","rock","maple","pine"],"skyline":"mountain","ink":"#3a1500","data":RACER_DATA["jp-iroha"]},
-  {"id":"kr-hangye","region":"asia","country":"kr","name":"寒溪嶺（雪嶽路）","sub":"韓國東海岸的名山公路","desc":"連接江原道內陸與東海岸雪嶽山的 44 號公路，海拔 1,000 公尺以上的高山路段，從山頂一路下到山腳。","kind":"touge","icon":"🏔️","need":3,"diff":3,"rain":0.4,"wind":4,"mult":1,"seed":221,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"雪嶽山的老司機","car":"bluebird","kmh":117,"quote":"山我比你熟。"},"sky":["#68a8e0","#e2f0fa"],"fog":"#e2f0fa","sun":"#fffbd0","mtn":"#4a7a5a","mtn2":"#8db39a","grass":["#4a9a4a","#428f42"],"road_c":["#5b5e66","#54575e"],"rumble":["#facc15","#f1f1f1"],"lane":"#fff3cf","autumn":["#e8590c","#f08c00","#c92a2a"],"leaf":"#3f9a4a","scenery":["pine","maple","tree","rock"],"skyline":"mountain","ink":"#0b1220","data":RACER_DATA["kr-hangye"]},
-  {"id":"jp-hakone","region":"asia","country":"jp","name":"箱根 Turnpike","sub":"深夜飆山族的聖地","desc":"神奈川縣箱根的收費山道，高速彎多、落差大，從大觀山一路下到小田原。","kind":"touge","icon":"🏔️","need":4,"diff":3,"rain":0.35,"wind":4,"mult":1,"seed":228,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"箱根的夜之王","car":"gtr","kmh":123,"quote":"箱根的夜晚屬於我。"},"sky":["#4eb4ff","#e2f6ff"],"fog":"#e2f6ff","sun":"#fffbd0","mtn":"#3f8a58","mtn2":"#79b58c","grass":["#3f9d48","#378d40"],"road_c":["#5b5e66","#54575e"],"rumble":["#d62828","#f1f1f1"],"lane":"#ffffff","leaf":"#2f9e44","scenery":["pine","pine","tree","rock","pine"],"skyline":"mountain","ink":"#0b1220","data":RACER_DATA["jp-hakone"]},
-  {"id":"tw-beiyi","region":"asia","country":"tw","name":"北宜公路（台9線）","sub":"連接台北與宜蘭的老山路","desc":"翻越雪山山脈北端的台9線，彎道密集又常起霧，是老一輩台灣車友心中的經典山路。","kind":"touge","icon":"🏔️","need":5,"diff":3,"rain":0.55,"wind":3,"mult":1,"seed":235,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"北宜公路的傳說","car":"integra","kmh":129,"quote":"起霧才是我的天氣。"},"sky":["#8fb3c9","#e6eff4"],"fog":"#e6eff4","sun":"#f4f6f8","mtn":"#4f8a6a","mtn2":"#8fbaa4","grass":["#3f8f4a","#378443"],"road_c":["#5e6168","#575a61"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#fff3cf","leaf":"#2f8f4a","scenery":["palm","tree","bush","rock","tree"],"skyline":"tmist","ink":"#0b1220","data":RACER_DATA["tw-beiyi"]},
-  {"id":"cn-tianmen","region":"asia","country":"cn","name":"天門山通天大道（張家界）","sub":"99 彎通往天門洞的盤山公路","desc":"湖南張家界天門山的盤山公路，99 個彎直上雲霄，是全世界最知名的盤山公路之一。","kind":"touge","icon":"🏔️","need":7,"diff":4,"rain":0.5,"wind":3,"mult":1,"seed":242,"surface":{"name":"山路柏油","grip":0.95,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"天門山的挑戰者","car":"lancer","kmh":141,"quote":"九十九彎，一彎都不讓。"},"sky":["#9bb7c8","#e7eef2"],"fog":"#e7eef2","sun":"#f4f6f8","mtn":"#6f8a78","mtn2":"#a7bdb0","grass":["#4f8f55","#468549"],"road_c":["#5e6168","#575a61"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#3f8f4a","scenery":["pine","rock","tree","rock","bush"],"skyline":"karst","ink":"#0b1220","data":RACER_DATA["cn-tianmen"]},
-  {"id":"tw-wuling","region":"asia","country":"tw","name":"武嶺（台14甲線）","sub":"台灣公路最高點的登頂路線","desc":"從霧社一路爬升到海拔 3,275 公尺的武嶺，是台灣公路的最高點，上坡彎道連連。","kind":"touge","icon":"🏔️","need":9,"diff":4,"rain":0.5,"wind":5,"mult":1,"seed":249,"surface":{"name":"山路柏油","grip":0.95,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"武嶺的登頂者","car":"rx7","kmh":153,"quote":"登頂的人，只有我。"},"sky":["#8fb3c9","#e6eff4"],"fog":"#e6eff4","sun":"#f4f6f8","mtn":"#4f8a6a","mtn2":"#8fbaa4","grass":["#3f8f4a","#378443"],"road_c":["#5e6168","#575a61"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#fff3cf","leaf":"#2f8f4a","scenery":["palm","tree","bush","rock","tree"],"skyline":"tmist","ink":"#0b1220","data":RACER_DATA["tw-wuling"]},
-  {"id":"fr-turini","region":"europe","country":"fr","name":"都靈山口（Col de Turini）","sub":"蒙地卡羅拉力賽的傳奇賽段","desc":"法國南部阿爾卑斯山區，蒙地卡羅拉力賽最著名的夜間賽段，連續的髮夾彎與陡峭路肩。","kind":"touge","icon":"🏔️","need":0,"diff":2,"rain":0.35,"wind":4,"mult":1,"seed":256,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"拉力賽的副手","car":"lancer","kmh":99,"quote":"拉力賽的路，就該這樣跑。"},"sky":["#3f9be6","#dff0ff"],"fog":"#dff0ff","sun":"#fffbd0","mtn":"#7d93ad","mtn2":"#b7c6d8","grass":["#5a9a4a","#528f42"],"road_c":["#64676f","#5c5f67"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#3f8f3a","scenery":["pine","rock","tree","rock","pine"],"skyline":"alps","ink":"#0b1220","data":RACER_DATA["fr-turini"]},
-  {"id":"at-glockner","region":"europe","country":"at","name":"大格洛克納高山公路","sub":"奧地利最美的高山公路","desc":"奧地利最高峰大格洛克納山下的高山公路，一路爬升到海拔 2,500 公尺，風景與彎道都是頂級。","kind":"touge","icon":"🏔️","need":1,"diff":2,"rain":0.4,"wind":4,"mult":1,"seed":263,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"高山公路的巡航者","car":"familia","kmh":105,"quote":"風景這麼美，何必急。"},"sky":["#3f9be6","#dff0ff"],"fog":"#dff0ff","sun":"#fffbd0","mtn":"#7d93ad","mtn2":"#b7c6d8","grass":["#5a9a4a","#528f42"],"road_c":["#64676f","#5c5f67"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#3f8f3a","scenery":["pine","rock","tree","rock","pine"],"skyline":"alps","ink":"#0b1220","data":RACER_DATA["at-glockner"]},
-  {"id":"it-stelvio","region":"europe","country":"it","name":"斯泰爾維奧山口（Stelvio Pass）","sub":"48 個髮夾彎的義大利名山","desc":"義大利北部海拔 2,757 公尺的斯泰爾維奧山口，是歐洲最著名、最多髮夾彎的山路之一。","kind":"touge","icon":"🏔️","need":3,"diff":3,"rain":0.35,"wind":5,"mult":1,"seed":270,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"義大利的山神","car":"rx7","kmh":117,"quote":"這座山，我跑了一輩子。"},"sky":["#3f9be6","#dff0ff"],"fog":"#dff0ff","sun":"#fffbd0","mtn":"#7d93ad","mtn2":"#b7c6d8","grass":["#5a9a4a","#528f42"],"road_c":["#64676f","#5c5f67"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#3f8f3a","scenery":["pine","rock","tree","rock","pine"],"skyline":"alps","ink":"#0b1220","data":RACER_DATA["it-stelvio"]},
-  {"id":"ch-furka","region":"europe","country":"ch","name":"富爾卡山口（Furka Pass）","sub":"瑞士高山的經典山口","desc":"連接瑞士烏里州與瓦萊州的高山山口，海拔 2,429 公尺，是無數電影與汽車廣告取景的名路。","kind":"touge","icon":"🏔️","need":5,"diff":3,"rain":0.4,"wind":5,"mult":1,"seed":277,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"瑞士的高山騎士","car":"celica","kmh":129,"quote":"精準，是山路的第一件事。"},"sky":["#3f9be6","#dff0ff"],"fog":"#dff0ff","sun":"#fffbd0","mtn":"#7d93ad","mtn2":"#b7c6d8","grass":["#5a9a4a","#528f42"],"road_c":["#64676f","#5c5f67"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#3f8f3a","scenery":["pine","rock","tree","rock","pine"],"skyline":"alps","ink":"#0b1220","data":RACER_DATA["ch-furka"]},
-  {"id":"no-troll","region":"europe","country":"no","name":"托爾斯提根（Trollstigen）","sub":"挪威巨魔之路","desc":"挪威西部陡峭山壁上的 11 個髮夾彎，旁邊就是瀑布與峽灣，是世界知名的觀光山路。","kind":"touge","icon":"🏔️","need":7,"diff":4,"rain":0.5,"wind":5,"mult":1,"seed":284,"surface":{"name":"山路柏油","grip":0.95,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"巨魔之路的守護者","car":"chaser","kmh":141,"quote":"巨魔，不會讓你過。"},"sky":["#7fb4de","#e4f0f8"],"fog":"#e4f0f8","sun":"#f4f6f8","mtn":"#5d7a8e","mtn2":"#9fb6c6","grass":["#4a8a52","#438048"],"road_c":["#5e6168","#575a61"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#2f7a4a","scenery":["pine","rock","pine","bush"],"skyline":"fjord","ink":"#0b1220","data":RACER_DATA["no-troll"]},
-  {"id":"ro-transfag","region":"europe","country":"ro","name":"特蘭斯法加拉桑公路","sub":"被譽為世界最美的公路","desc":"橫越羅馬尼亞喀爾巴阡山脈的高山公路，長長的連續彎道與髮夾彎，曾被《Top Gear》讚譽為世界最棒的公路。","kind":"touge","icon":"🏔️","need":9,"diff":5,"rain":0.4,"wind":5,"mult":1,"seed":291,"surface":{"name":"山路柏油","grip":0.95,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"喀爾巴阡的狂徒","car":"gtr","kmh":153,"quote":"在這條路，沒有人比我快。"},"sky":["#3f9be6","#dff0ff"],"fog":"#dff0ff","sun":"#fffbd0","mtn":"#7d93ad","mtn2":"#b7c6d8","grass":["#5a9a4a","#528f42"],"road_c":["#64676f","#5c5f67"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#3f8f3a","scenery":["pine","rock","tree","rock","pine"],"skyline":"alps","ink":"#0b1220","data":RACER_DATA["ro-transfag"]},
-  {"id":"us-dragon","region":"america","country":"us","name":"龍尾（Tail of the Dragon）","sub":"11 英里 318 個彎","desc":"美國田納西與北卡羅來納交界的 US-129 公路，11 英里內有 318 個彎，是美國最有名的飆山公路。","kind":"touge","icon":"🏔️","need":0,"diff":2,"rain":0.4,"wind":3,"mult":1,"seed":298,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"龍尾的老獵人","car":"civic","kmh":99,"quote":"318 個彎，我全都認得。"},"sky":["#4aa6e8","#e0f1fb"],"fog":"#e0f1fb","sun":"#fffbd0","mtn":"#5f8a5a","mtn2":"#98b896","grass":["#3f8a3f","#388037"],"road_c":["#5b5e66","#54575e"],"rumble":["#facc15","#f1f1f1"],"lane":"#fff3cf","leaf":"#3f8a3f","scenery":["pine","tree","rock","pine"],"skyline":"mountain","ink":"#0b1220","data":RACER_DATA["us-dragon"]},
-  {"id":"us-angeles","region":"america","country":"us","name":"天使峰公路（Angeles Crest）","sub":"洛杉磯車友的週末山路","desc":"加州洛杉磯北方聖蓋博山脈的 CA-2 公路，彎道流暢、視野開闊，是南加州車友的聖地。","kind":"touge","icon":"🏔️","need":2,"diff":3,"rain":0.15,"wind":4,"mult":1,"seed":305,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"加州的週末戰士","car":"integra","kmh":111,"quote":"週末就是屬於山路的。"},"sky":["#4aa0e0","#fde6c8"],"fog":"#fde6c8","sun":"#fff1d6","mtn":"#b0643e","mtn2":"#d09870","grass":["#a4903f","#9a863a"],"road_c":["#5e6168","#575a61"],"rumble":["#facc15","#f1f1f1"],"lane":"#fff3cf","leaf":"#7a8a3a","scenery":["rock","rock","bush","pine"],"skyline":"mesa","ink":"#3a1500","data":RACER_DATA["us-angeles"]},
-  {"id":"br-rastro","region":"america","country":"br","name":"里約拉斯特羅山路（Serra do Rio do Rastro）","sub":"巴西南部的蛇形山路","desc":"巴西聖卡塔琳娜州的蛇形山路，一路從高原俯衝而下，是南美洲最有名的山路之一。","kind":"touge","icon":"🏔️","need":4,"diff":3,"rain":0.45,"wind":4,"mult":1,"seed":312,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"巴西的山路舞者","car":"galant","kmh":123,"quote":"桑巴的節奏，就是過彎的節奏。"},"sky":["#2fb4f0","#d7f4ff"],"fog":"#d7f4ff","sun":"#fffbd0","mtn":"#4f9a6a","mtn2":"#86c39a","grass":["#49a23c","#429735"],"road_c":["#5e6168","#575a61"],"rumble":["#facc15","#16a34a"],"lane":"#ffffff","leaf":"#2f9e44","scenery":["palm","tree","rock","bush"],"skyline":"mountain","ink":"#0b1220","data":RACER_DATA["br-rastro"]},
-  {"id":"us-pikes","region":"america","country":"us","name":"派克峰公路（Pikes Peak）","sub":"美國天空之路的登頂賽道","desc":"科羅拉多州派克峰的登頂公路，海拔 4,300 公尺，每年舉辦知名的登山賽。","kind":"touge","icon":"🏔️","need":6,"diff":4,"rain":0.3,"wind":6,"mult":1,"seed":319,"surface":{"name":"山路柏油","grip":0.95,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"派克峰的爬坡王","car":"lancer","kmh":135,"quote":"山頂只能有一個人。"},"sky":["#4aa0e0","#fde6c8"],"fog":"#fde6c8","sun":"#fff1d6","mtn":"#b0643e","mtn2":"#d09870","grass":["#a4903f","#9a863a"],"road_c":["#5e6168","#575a61"],"rumble":["#facc15","#f1f1f1"],"lane":"#fff3cf","leaf":"#7a8a3a","scenery":["rock","rock","bush","pine"],"skyline":"mesa","ink":"#3a1500","data":RACER_DATA["us-pikes"]},
-  {"id":"cl-caracoles","region":"america","country":"cl","name":"安地斯蝸牛路（Los Caracoles）","sub":"智利與阿根廷之間的盤山路","desc":"智利聖地牙哥通往阿根廷的跨安地斯山公路，蝸牛般盤旋的連續髮夾彎，一路爬上海拔三千多公尺。","kind":"touge","icon":"🏔️","need":8,"diff":4,"rain":0.2,"wind":6,"mult":1,"seed":326,"surface":{"name":"山路柏油","grip":0.95,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":900,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"安地斯的蝸牛","car":"celica","kmh":147,"quote":"慢慢來，才跑得快。"},"sky":["#4aa0e8","#e8f1f8"],"fog":"#e8f1f8","sun":"#fffbd0","mtn":"#9a7a5a","mtn2":"#c8aa88","grass":["#b09a6a","#a58f60"],"road_c":["#5e6168","#575a61"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#7a8a3a","scenery":["rock","rock","bush"],"skyline":"alps","ink":"#0b1220","data":RACER_DATA["cl-caracoles"]},
+  {"id":"jp-akina","region":"asia","country":"jp","name":"秋名山（榛名山）","sub":"動畫《頭文字D》秋名山的原型山道","desc":"群馬縣榛名山的連續下坡彎道，走山族的聖地。路窄、彎多、護欄貼著車身，下坡路段要靠過彎線路取勝。","kind":"touge","icon":"🏔️","need":0,"diff":1,"rain":0.4,"wind":3,"mult":1,"seed":200,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"豆腐店的 86 車手","car":"ae86","kmh":99,"quote":"下坡才是 86 的主場。"},"sky":["#ff9a5a","#ffe3c2"],"fog":"#ffe3c2","sun":"#fff1d6","mtn":"#9a6048","mtn2":"#c08a70","grass":["#6f8230","#647529"],"road_c":["#585a62","#51535a"],"rumble":["#7c2d12","#fde68a"],"lane":"#fff3cf","autumn":["#e8590c","#f08c00","#c92a2a"],"scenery":["maple","maple","pine","rock","maple","pine"],"skyline":"mountain","ink":"#3a1500","data":RACER_DATA["jp-akina"]},
+  {"id":"tw-yangjin","region":"asia","country":"tw","name":"陽金公路（陽明山－金山）","sub":"台北人的週末山路","desc":"從陽明山一路下切到金山的台2甲線，雲霧多、彎道連續，是台灣最有名的飆山路線之一。","kind":"touge","icon":"🏔️","need":1,"diff":2,"rain":0.5,"wind":3,"mult":1,"seed":207,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"陽明山的夜跑車手","car":"civic","kmh":105,"quote":"這條路我閉著眼睛都能跑。"},"sky":["#8fb3c9","#e6eff4"],"fog":"#e6eff4","sun":"#f4f6f8","mtn":"#4f8a6a","mtn2":"#8fbaa4","grass":["#3f8f4a","#378443"],"road_c":["#5e6168","#575a61"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#fff3cf","leaf":"#2f8f4a","scenery":["palm","tree","bush","rock","tree"],"skyline":"tmist","ink":"#0b1220","data":RACER_DATA["tw-yangjin"]},
+  {"id":"jp-iroha","region":"asia","country":"jp","name":"伊呂波坂（日光）","sub":"48 個髮夾彎的日光名坂","desc":"栃木縣日光通往中禪寺湖的名坂，這裡跑的是下坡的第二伊呂波坂，髮夾彎一個接一個，最考驗煞車與過彎。","kind":"touge","icon":"🏔️","need":2,"diff":2,"rain":0.45,"wind":3,"mult":1,"seed":214,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"日光的下坡專家","car":"silvia","kmh":111,"quote":"一個髮夾彎都不能失手。"},"sky":["#ff9a5a","#ffe3c2"],"fog":"#ffe3c2","sun":"#fff1d6","mtn":"#9a6048","mtn2":"#c08a70","grass":["#6f8230","#647529"],"road_c":["#585a62","#51535a"],"rumble":["#7c2d12","#fde68a"],"lane":"#fff3cf","autumn":["#e8590c","#f08c00","#c92a2a"],"scenery":["maple","maple","pine","rock","maple","pine"],"skyline":"mountain","ink":"#3a1500","data":RACER_DATA["jp-iroha"]},
+  {"id":"kr-hangye","region":"asia","country":"kr","name":"寒溪嶺（雪嶽路）","sub":"韓國東海岸的名山公路","desc":"連接江原道內陸與東海岸雪嶽山的 44 號公路，海拔 1,000 公尺以上的高山路段，從山頂一路下到山腳。","kind":"touge","icon":"🏔️","need":3,"diff":3,"rain":0.4,"wind":4,"mult":1,"seed":221,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"雪嶽山的老司機","car":"bluebird","kmh":117,"quote":"山我比你熟。"},"sky":["#68a8e0","#e2f0fa"],"fog":"#e2f0fa","sun":"#fffbd0","mtn":"#4a7a5a","mtn2":"#8db39a","grass":["#4a9a4a","#428f42"],"road_c":["#5b5e66","#54575e"],"rumble":["#facc15","#f1f1f1"],"lane":"#fff3cf","autumn":["#e8590c","#f08c00","#c92a2a"],"leaf":"#3f9a4a","scenery":["pine","maple","tree","rock"],"skyline":"mountain","ink":"#0b1220","data":RACER_DATA["kr-hangye"]},
+  {"id":"jp-hakone","region":"asia","country":"jp","name":"箱根 Turnpike","sub":"深夜飆山族的聖地","desc":"神奈川縣箱根的收費山道，高速彎多、落差大，從大觀山一路下到小田原。","kind":"touge","icon":"🏔️","need":4,"diff":3,"rain":0.35,"wind":4,"mult":1,"seed":228,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"箱根的夜之王","car":"gtr","kmh":123,"quote":"箱根的夜晚屬於我。"},"sky":["#4eb4ff","#e2f6ff"],"fog":"#e2f6ff","sun":"#fffbd0","mtn":"#3f8a58","mtn2":"#79b58c","grass":["#3f9d48","#378d40"],"road_c":["#5b5e66","#54575e"],"rumble":["#d62828","#f1f1f1"],"lane":"#ffffff","leaf":"#2f9e44","scenery":["pine","pine","tree","rock","pine"],"skyline":"mountain","ink":"#0b1220","data":RACER_DATA["jp-hakone"]},
+  {"id":"tw-beiyi","region":"asia","country":"tw","name":"北宜公路（台9線）","sub":"連接台北與宜蘭的老山路","desc":"翻越雪山山脈北端的台9線，彎道密集又常起霧，是老一輩台灣車友心中的經典山路。","kind":"touge","icon":"🏔️","need":5,"diff":3,"rain":0.55,"wind":3,"mult":1,"seed":235,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"北宜公路的傳說","car":"integra","kmh":129,"quote":"起霧才是我的天氣。"},"sky":["#8fb3c9","#e6eff4"],"fog":"#e6eff4","sun":"#f4f6f8","mtn":"#4f8a6a","mtn2":"#8fbaa4","grass":["#3f8f4a","#378443"],"road_c":["#5e6168","#575a61"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#fff3cf","leaf":"#2f8f4a","scenery":["palm","tree","bush","rock","tree"],"skyline":"tmist","ink":"#0b1220","data":RACER_DATA["tw-beiyi"]},
+  {"id":"cn-tianmen","region":"asia","country":"cn","name":"天門山通天大道（張家界）","sub":"99 彎通往天門洞的盤山公路","desc":"湖南張家界天門山的盤山公路，99 個彎直上雲霄，是全世界最知名的盤山公路之一。","kind":"touge","icon":"🏔️","need":7,"diff":4,"rain":0.5,"wind":3,"mult":1,"seed":242,"surface":{"name":"山路柏油","grip":0.95,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"天門山的挑戰者","car":"lancer","kmh":141,"quote":"九十九彎，一彎都不讓。"},"sky":["#9bb7c8","#e7eef2"],"fog":"#e7eef2","sun":"#f4f6f8","mtn":"#6f8a78","mtn2":"#a7bdb0","grass":["#4f8f55","#468549"],"road_c":["#5e6168","#575a61"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#3f8f4a","scenery":["pine","rock","tree","rock","bush"],"skyline":"karst","ink":"#0b1220","data":RACER_DATA["cn-tianmen"]},
+  {"id":"tw-wuling","region":"asia","country":"tw","name":"武嶺（台14甲線）","sub":"台灣公路最高點的登頂路線","desc":"從霧社一路爬升到海拔 3,275 公尺的武嶺，是台灣公路的最高點，上坡彎道連連。","kind":"touge","icon":"🏔️","need":9,"diff":4,"rain":0.5,"wind":5,"mult":1,"seed":249,"surface":{"name":"山路柏油","grip":0.95,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"武嶺的登頂者","car":"rx7","kmh":153,"quote":"登頂的人，只有我。"},"sky":["#8fb3c9","#e6eff4"],"fog":"#e6eff4","sun":"#f4f6f8","mtn":"#4f8a6a","mtn2":"#8fbaa4","grass":["#3f8f4a","#378443"],"road_c":["#5e6168","#575a61"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#fff3cf","leaf":"#2f8f4a","scenery":["palm","tree","bush","rock","tree"],"skyline":"tmist","ink":"#0b1220","data":RACER_DATA["tw-wuling"]},
+  {"id":"fr-turini","region":"europe","country":"fr","name":"都靈山口（Col de Turini）","sub":"蒙地卡羅拉力賽的傳奇賽段","desc":"法國南部阿爾卑斯山區，蒙地卡羅拉力賽最著名的夜間賽段，連續的髮夾彎與陡峭路肩。","kind":"touge","icon":"🏔️","need":0,"diff":2,"rain":0.35,"wind":4,"mult":1,"seed":256,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"拉力賽的副手","car":"lancer","kmh":99,"quote":"拉力賽的路，就該這樣跑。"},"sky":["#3f9be6","#dff0ff"],"fog":"#dff0ff","sun":"#fffbd0","mtn":"#7d93ad","mtn2":"#b7c6d8","grass":["#5a9a4a","#528f42"],"road_c":["#64676f","#5c5f67"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#3f8f3a","scenery":["pine","rock","tree","rock","pine"],"skyline":"alps","ink":"#0b1220","data":RACER_DATA["fr-turini"]},
+  {"id":"at-glockner","region":"europe","country":"at","name":"大格洛克納高山公路","sub":"奧地利最美的高山公路","desc":"奧地利最高峰大格洛克納山下的高山公路，一路爬升到海拔 2,500 公尺，風景與彎道都是頂級。","kind":"touge","icon":"🏔️","need":1,"diff":2,"rain":0.4,"wind":4,"mult":1,"seed":263,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"高山公路的巡航者","car":"familia","kmh":105,"quote":"風景這麼美，何必急。"},"sky":["#3f9be6","#dff0ff"],"fog":"#dff0ff","sun":"#fffbd0","mtn":"#7d93ad","mtn2":"#b7c6d8","grass":["#5a9a4a","#528f42"],"road_c":["#64676f","#5c5f67"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#3f8f3a","scenery":["pine","rock","tree","rock","pine"],"skyline":"alps","ink":"#0b1220","data":RACER_DATA["at-glockner"]},
+  {"id":"it-stelvio","region":"europe","country":"it","name":"斯泰爾維奧山口（Stelvio Pass）","sub":"48 個髮夾彎的義大利名山","desc":"義大利北部海拔 2,757 公尺的斯泰爾維奧山口，是歐洲最著名、最多髮夾彎的山路之一。","kind":"touge","icon":"🏔️","need":3,"diff":3,"rain":0.35,"wind":5,"mult":1,"seed":270,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"義大利的山神","car":"rx7","kmh":117,"quote":"這座山，我跑了一輩子。"},"sky":["#3f9be6","#dff0ff"],"fog":"#dff0ff","sun":"#fffbd0","mtn":"#7d93ad","mtn2":"#b7c6d8","grass":["#5a9a4a","#528f42"],"road_c":["#64676f","#5c5f67"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#3f8f3a","scenery":["pine","rock","tree","rock","pine"],"skyline":"alps","ink":"#0b1220","data":RACER_DATA["it-stelvio"]},
+  {"id":"ch-furka","region":"europe","country":"ch","name":"富爾卡山口（Furka Pass）","sub":"瑞士高山的經典山口","desc":"連接瑞士烏里州與瓦萊州的高山山口，海拔 2,429 公尺，是無數電影與汽車廣告取景的名路。","kind":"touge","icon":"🏔️","need":5,"diff":3,"rain":0.4,"wind":5,"mult":1,"seed":277,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"瑞士的高山騎士","car":"celica","kmh":129,"quote":"精準，是山路的第一件事。"},"sky":["#3f9be6","#dff0ff"],"fog":"#dff0ff","sun":"#fffbd0","mtn":"#7d93ad","mtn2":"#b7c6d8","grass":["#5a9a4a","#528f42"],"road_c":["#64676f","#5c5f67"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#3f8f3a","scenery":["pine","rock","tree","rock","pine"],"skyline":"alps","ink":"#0b1220","data":RACER_DATA["ch-furka"]},
+  {"id":"no-troll","region":"europe","country":"no","name":"托爾斯提根（Trollstigen）","sub":"挪威巨魔之路","desc":"挪威西部陡峭山壁上的 11 個髮夾彎，旁邊就是瀑布與峽灣，是世界知名的觀光山路。","kind":"touge","icon":"🏔️","need":7,"diff":4,"rain":0.5,"wind":5,"mult":1,"seed":284,"surface":{"name":"山路柏油","grip":0.95,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"巨魔之路的守護者","car":"chaser","kmh":141,"quote":"巨魔，不會讓你過。"},"sky":["#7fb4de","#e4f0f8"],"fog":"#e4f0f8","sun":"#f4f6f8","mtn":"#5d7a8e","mtn2":"#9fb6c6","grass":["#4a8a52","#438048"],"road_c":["#5e6168","#575a61"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#2f7a4a","scenery":["pine","rock","pine","bush"],"skyline":"fjord","ink":"#0b1220","data":RACER_DATA["no-troll"]},
+  {"id":"ro-transfag","region":"europe","country":"ro","name":"特蘭斯法加拉桑公路","sub":"被譽為世界最美的公路","desc":"橫越羅馬尼亞喀爾巴阡山脈的高山公路，長長的連續彎道與髮夾彎，曾被《Top Gear》讚譽為世界最棒的公路。","kind":"touge","icon":"🏔️","need":9,"diff":5,"rain":0.4,"wind":5,"mult":1,"seed":291,"surface":{"name":"山路柏油","grip":0.95,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"喀爾巴阡的狂徒","car":"gtr","kmh":153,"quote":"在這條路，沒有人比我快。"},"sky":["#3f9be6","#dff0ff"],"fog":"#dff0ff","sun":"#fffbd0","mtn":"#7d93ad","mtn2":"#b7c6d8","grass":["#5a9a4a","#528f42"],"road_c":["#64676f","#5c5f67"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#3f8f3a","scenery":["pine","rock","tree","rock","pine"],"skyline":"alps","ink":"#0b1220","data":RACER_DATA["ro-transfag"]},
+  {"id":"us-dragon","region":"america","country":"us","name":"龍尾（Tail of the Dragon）","sub":"11 英里 318 個彎","desc":"美國田納西與北卡羅來納交界的 US-129 公路，11 英里內有 318 個彎，是美國最有名的飆山公路。","kind":"touge","icon":"🏔️","need":0,"diff":2,"rain":0.4,"wind":3,"mult":1,"seed":298,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"龍尾的老獵人","car":"civic","kmh":99,"quote":"318 個彎，我全都認得。"},"sky":["#4aa6e8","#e0f1fb"],"fog":"#e0f1fb","sun":"#fffbd0","mtn":"#5f8a5a","mtn2":"#98b896","grass":["#3f8a3f","#388037"],"road_c":["#5b5e66","#54575e"],"rumble":["#facc15","#f1f1f1"],"lane":"#fff3cf","leaf":"#3f8a3f","scenery":["pine","tree","rock","pine"],"skyline":"mountain","ink":"#0b1220","data":RACER_DATA["us-dragon"]},
+  {"id":"us-angeles","region":"america","country":"us","name":"天使峰公路（Angeles Crest）","sub":"洛杉磯車友的週末山路","desc":"加州洛杉磯北方聖蓋博山脈的 CA-2 公路，彎道流暢、視野開闊，是南加州車友的聖地。","kind":"touge","icon":"🏔️","need":2,"diff":3,"rain":0.15,"wind":4,"mult":1,"seed":305,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"加州的週末戰士","car":"integra","kmh":111,"quote":"週末就是屬於山路的。"},"sky":["#4aa0e0","#fde6c8"],"fog":"#fde6c8","sun":"#fff1d6","mtn":"#b0643e","mtn2":"#d09870","grass":["#a4903f","#9a863a"],"road_c":["#5e6168","#575a61"],"rumble":["#facc15","#f1f1f1"],"lane":"#fff3cf","leaf":"#7a8a3a","scenery":["rock","rock","bush","pine"],"skyline":"mesa","ink":"#3a1500","data":RACER_DATA["us-angeles"]},
+  {"id":"br-rastro","region":"america","country":"br","name":"里約拉斯特羅山路（Serra do Rio do Rastro）","sub":"巴西南部的蛇形山路","desc":"巴西聖卡塔琳娜州的蛇形山路，一路從高原俯衝而下，是南美洲最有名的山路之一。","kind":"touge","icon":"🏔️","need":4,"diff":3,"rain":0.45,"wind":4,"mult":1,"seed":312,"surface":{"name":"山路柏油","grip":0.97,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"巴西的山路舞者","car":"galant","kmh":123,"quote":"桑巴的節奏，就是過彎的節奏。"},"sky":["#2fb4f0","#d7f4ff"],"fog":"#d7f4ff","sun":"#fffbd0","mtn":"#4f9a6a","mtn2":"#86c39a","grass":["#49a23c","#429735"],"road_c":["#5e6168","#575a61"],"rumble":["#facc15","#16a34a"],"lane":"#ffffff","leaf":"#2f9e44","scenery":["palm","tree","rock","bush"],"skyline":"mountain","ink":"#0b1220","data":RACER_DATA["br-rastro"]},
+  {"id":"us-pikes","region":"america","country":"us","name":"派克峰公路（Pikes Peak）","sub":"美國天空之路的登頂賽道","desc":"科羅拉多州派克峰的登頂公路，海拔 4,300 公尺，每年舉辦知名的登山賽。","kind":"touge","icon":"🏔️","need":6,"diff":4,"rain":0.3,"wind":6,"mult":1,"seed":319,"surface":{"name":"山路柏油","grip":0.95,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"派克峰的爬坡王","car":"lancer","kmh":135,"quote":"山頂只能有一個人。"},"sky":["#4aa0e0","#fde6c8"],"fog":"#fde6c8","sun":"#fff1d6","mtn":"#b0643e","mtn2":"#d09870","grass":["#a4903f","#9a863a"],"road_c":["#5e6168","#575a61"],"rumble":["#facc15","#f1f1f1"],"lane":"#fff3cf","leaf":"#7a8a3a","scenery":["rock","rock","bush","pine"],"skyline":"mesa","ink":"#3a1500","data":RACER_DATA["us-pikes"]},
+  {"id":"cl-caracoles","region":"america","country":"cl","name":"安地斯蝸牛路（Los Caracoles）","sub":"智利與阿根廷之間的盤山路","desc":"智利聖地牙哥通往阿根廷的跨安地斯山公路，蝸牛般盤旋的連續髮夾彎，一路爬上海拔三千多公尺。","kind":"touge","icon":"🏔️","need":8,"diff":4,"rain":0.2,"wind":6,"mult":1,"seed":326,"surface":{"name":"山路柏油","grip":0.95,"wear":1.15,"dmg":1.1,"spd":0.99,"rough":0.0002},"road":700,"wall":{"off":1.1,"h":190,"cols":["#c3c8d2","#8d95a3"]},"deco":{"inner":1.35,"spread":2.4,"step":[2,4]},"rival":{"name":"安地斯的蝸牛","car":"celica","kmh":147,"quote":"慢慢來，才跑得快。"},"sky":["#4aa0e8","#e8f1f8"],"fog":"#e8f1f8","sun":"#fffbd0","mtn":"#9a7a5a","mtn2":"#c8aa88","grass":["#b09a6a","#a58f60"],"road_c":["#5e6168","#575a61"],"rumble":["#e5e7eb","#9ca3af"],"lane":"#ffffff","leaf":"#7a8a3a","scenery":["rock","rock","bush"],"skyline":"alps","ink":"#0b1220","data":RACER_DATA["cl-caracoles"]},
 ];
 function racerFindTrack(id) { return RACER_TRACKS.find(t => t.id === id) || RACER_TOUGE.find(t => t.id === id) || RACER_TRACKS[0]; }
 function racerHasTrack(id) { return RACER_TRACKS.some(t => t.id === id) || RACER_TOUGE.some(t => t.id === id); }
@@ -5225,26 +5225,26 @@ function rcTrunk(c, x, y, w, h, col) {
   c.fillStyle = g; c.fillRect(x - w, y - h, w * 2, h);
 }
 const RACER_SCENERY = {
-  tree: { a: 1.5, w: 0.8, draw(c, x, y, w, h, s, d) {
+  tree: { a: 1.86, w: 1.17, draw(c, x, y, w, h, s, d) {
     const col = d.leaf || '#2f9e44';
     rcTrunk(c, x, y, w * 0.07, h * 0.42, '#6b4423');
     rcLeaf(c, x, y - h * 0.68, w * 0.4, rcShade(col, -0.12));
     rcLeaf(c, x - w * 0.22, y - h * 0.52, w * 0.28, col); rcLeaf(c, x + w * 0.22, y - h * 0.52, w * 0.28, col);
     rcLeaf(c, x - w * 0.05, y - h * 0.74, w * 0.28, rcShade(col, 0.08));
   } },
-  maple: { a: 1.5, w: 0.8, draw(c, x, y, w, h, s, d) {
+  maple: { a: 1.33, w: 1.5, draw(c, x, y, w, h, s, d) {
     const col = d.autumn[Math.floor(s * d.autumn.length) % d.autumn.length];
     rcTrunk(c, x, y, w * 0.07, h * 0.42, '#5a3a22');
     rcLeaf(c, x, y - h * 0.68, w * 0.4, rcShade(col, -0.1));
     rcLeaf(c, x - w * 0.22, y - h * 0.52, w * 0.28, col); rcLeaf(c, x + w * 0.22, y - h * 0.52, w * 0.28, rcShade(col, 0.06));
     rcLeaf(c, x - w * 0.05, y - h * 0.74, w * 0.28, rcShade(col, 0.14));
   } },
-  bush: { a: 0.6, w: 0.7, draw(c, x, y, w, h, s, d) {
+  bush: { a: 0.57, w: 0.58, draw(c, x, y, w, h, s, d) {
     const col = d.leaf || '#3f9b4a';
     rcLeaf(c, x, y - h * 0.4, w * 0.4, rcShade(col, -0.1));
     rcLeaf(c, x - w * 0.2, y - h * 0.3, w * 0.26, col); rcLeaf(c, x + w * 0.22, y - h * 0.32, w * 0.25, rcShade(col, 0.06));
   } },
-  pine: { a: 1.9, w: 0.7, draw(c, x, y, w, h) {
+  pine: { a: 2.73, w: 0.92, draw(c, x, y, w, h) {
     rcTrunk(c, x, y, w * 0.05, h * 0.18, '#4b2e1a');
     for (let i = 0; i < 3; i++) {
       const baseY = y - h * (0.14 + 0.24 * i), topY = baseY - h * 0.46, hw = w * (0.5 - 0.08 * i);
@@ -5254,7 +5254,7 @@ const RACER_SCENERY = {
       c.beginPath(); c.moveTo(x - hw, baseY); c.lineTo(x + hw, baseY); c.lineTo(x, topY); c.closePath(); c.fill();
     }
   } },
-  palm: { a: 2.0, w: 0.7, draw(c, x, y, w, h) {
+  palm: { a: 2.6, w: 0.83, draw(c, x, y, w, h) {
     const tx = x + w * 0.12, ty = y - h * 0.82;
     c.strokeStyle = '#8b5e34'; c.lineWidth = Math.max(1.5, w * 0.1); c.lineCap = 'round';
     c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x - w * 0.05, y - h * 0.45, tx, ty); c.stroke();
@@ -5267,7 +5267,7 @@ const RACER_SCENERY = {
     });
     rcBlob(c, tx, ty + w * 0.04, w * 0.06, '#5b3a1a');
   } },
-  rock: { a: 0.7, w: 0.6, draw(c, x, y, w, h) {
+  rock: { a: 0.67, w: 0.5, draw(c, x, y, w, h) {
     const g = c.createLinearGradient(x - w * 0.5, y - h, x + w * 0.5, y);
     g.addColorStop(0, '#a3abb6'); g.addColorStop(1, '#5d6571');
     c.fillStyle = g;
@@ -5277,10 +5277,10 @@ const RACER_SCENERY = {
     c.fillStyle = 'rgba(0,0,0,0.18)';
     c.beginPath(); c.moveTo(x + w * 0.1, y - h * 0.5); c.lineTo(x + w * 0.5, y - h * 0.25); c.lineTo(x + w * 0.55, y); c.lineTo(x + w * 0.05, y); c.closePath(); c.fill();
   } },
-  building: { a: 2.6, w: 1.3, depth: 1.25, draw(c, x, y, w, h, s, d, side, geo) {
+  building: { a: 1.7, w: 4, depth: 1.0, ha: s => 1.0 + s * 1.6, draw(c, x, y, w, h, s, d, side, geo) {
     const pal = d.bldg || ['#8d99ae', '#adb5bd', '#6c757d'];
     const base = pal[Math.floor(s * pal.length) % pal.length];
-    const rows = Math.max(3, Math.floor(h / (w * 0.3)));
+    const rows = Math.max(4, Math.floor(h / (w * 0.15)));
     // 面向賽道的那面牆：沿著賽道方向（跟路邊平行）往遠處延伸，所以永遠不會伸進賽道裡
     if (geo) {
       const xn = x - side * w / 2, fx = geo.fx, fy = geo.fy, fh = geo.fh;
@@ -5301,14 +5301,14 @@ const RACER_SCENERY = {
     fg.addColorStop(0, rcShade(base, 0.12)); fg.addColorStop(1, rcShade(base, -0.1));
     c.fillStyle = fg; c.fillRect(x - w / 2, y - h, w, h);
     c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect(x - w / 2, y - h, w, h * 0.03);
-    const cols = 4, cw = w / (cols * 2 + 1), rh = h / (rows * 1.7 + 0.8);
+    const cols = 6, cw = w / (cols * 2 + 1), rh = h / (rows * 1.7 + 0.8);
     for (let r = 0; r < rows; r++) for (let k2 = 0; k2 < cols; k2++) {
       const lit = ((r * 7 + k2 * 13 + Math.floor(s * 100)) % 5) < 3;
       c.fillStyle = d.night ? (lit ? '#ffd966' : '#0b0f26') : (lit ? '#d6ecff' : '#a9c8e6');
       c.fillRect(x - w / 2 + cw * (1 + k2 * 2), y - h + rh * (0.8 + r * 1.7), cw, rh);
     }
   } },
-  lamp: { a: 3.2, w: 0.35, draw(c, x, y, w, h, s, d, side) {
+  lamp: { a: 6.7, w: 0.25, draw(c, x, y, w, h, s, d, side) {
     c.fillStyle = '#2a2d3a'; c.fillRect(x - w * 0.06, y - h, w * 0.12, h);
     const ax = x - side * w * 0.9;
     c.strokeStyle = '#2a2d3a'; c.lineWidth = Math.max(1, w * 0.1);
@@ -5320,7 +5320,7 @@ const RACER_SCENERY = {
     c.globalCompositeOperation = 'source-over';
     rcBlob(c, ax, y - h, w * 0.22, '#fff4cf');
   } },
-  billboard: { a: 1.3, w: 1.1, draw(c, x, y, w, h, s) {
+  billboard: { a: 0.75, w: 2.2, draw(c, x, y, w, h, s) {
     const cols = ['#e63946', '#1d6fa5', '#f4a261', '#2a9d8f'];
     const col = cols[Math.floor(s * cols.length) % cols.length];
     c.fillStyle = '#3b3f4a'; c.fillRect(x - w * 0.32, y - h * 0.5, w * 0.06, h * 0.5); c.fillRect(x + w * 0.26, y - h * 0.5, w * 0.06, h * 0.5);
@@ -5559,20 +5559,20 @@ Object.assign(RACER_SKYLINES, {
 
 // ── 新的路邊景物：看台、遊艇、霓虹看板、旗幟、輪胎牆 ──
 Object.assign(RACER_SCENERY, {
-  grandstand: { a: 0.42, w: 3.4, draw(c, x, y, w, h, s, d) {
+  grandstand: { a: 0.22, w: 10, draw(c, x, y, w, h, s, d) {
     const rnd = rcRng(Math.floor(s * 1e6));
     c.fillStyle = '#d4d8de'; c.fillRect(x - w / 2, y - h, w, h);                    // 看台本體
     for (let r = 0; r < 4; r++) for (let i = 0; i < 30; i++) { c.fillStyle = ['#e11d48', '#2563eb', '#facc15', '#f8fafc', '#16a34a', '#fb923c'][Math.floor(rnd() * 6)]; c.fillRect(x - w / 2 + 3 + i * (w - 6) / 30, y - h + 3 + r * (h - 8) / 4, Math.max(1, (w - 6) / 30 - 0.6), Math.max(1, (h - 8) / 4 - 1)); }
     c.fillStyle = '#4b5563'; c.fillRect(x - w / 2 - 2, y - h - h * 0.18, w + 4, h * 0.18);   // 屋頂
     c.fillStyle = '#9ca3af'; for (let i = 0; i <= 6; i++) c.fillRect(x - w / 2 + i * w / 6 - 1, y - h, 2, h);
   } },
-  yacht: { a: 0.8, w: 1.5, draw(c, x, y, w, h) {
+  yacht: { a: 0.4, w: 3, draw(c, x, y, w, h) {
     c.fillStyle = '#f8fafc'; c.beginPath(); c.moveTo(x - w * 0.5, y - h * 0.3); c.lineTo(x + w * 0.5, y - h * 0.3); c.lineTo(x + w * 0.38, y); c.lineTo(x - w * 0.42, y); c.closePath(); c.fill();
     c.fillStyle = '#1d4ed8'; c.fillRect(x - w * 0.47, y - h * 0.22, w * 0.92, h * 0.05);
     c.fillStyle = '#e2e8f0'; c.fillRect(x - w * 0.25, y - h * 0.55, w * 0.5, h * 0.25); c.fillStyle = '#0f172a'; for (let i = 0; i < 4; i++) c.fillRect(x - w * 0.22 + i * w * 0.12, y - h * 0.48, w * 0.08, h * 0.08);
     c.fillStyle = '#cbd5e1'; c.fillRect(x - 1, y - h, 2, h * 0.45);
   } },
-  neon: { a: 2.7, w: 0.9, draw(c, x, y, w, h, s, d) {
+  neon: { a: 5, w: 1.4, draw(c, x, y, w, h, s, d) {
     c.fillStyle = '#12082a'; c.fillRect(x - w * 0.38, y - h, w * 0.76, h);
     const cols = ['#ff2e93', '#22d3ee', '#facc15', '#a855f7', '#34d399'];
     for (let i = 0; i < 5; i++) { const cc = cols[(Math.floor(s * 7) + i) % 5]; c.fillStyle = cc; c.fillRect(x - w * 0.32, y - h + h * (0.06 + i * 0.18), w * 0.64, h * 0.1); }
@@ -5580,13 +5580,13 @@ Object.assign(RACER_SCENERY, {
     const g = c.createRadialGradient(x, y - h * 0.55, 0, x, y - h * 0.55, w * 1.5); g.addColorStop(0, 'rgba(255,60,200,0.45)'); g.addColorStop(1, 'rgba(255,60,200,0)');
     c.fillStyle = g; c.beginPath(); c.arc(x, y - h * 0.55, w * 1.5, 0, 6.2832); c.fill(); c.globalCompositeOperation = 'source-over';
   } },
-  flag: { a: 2.4, w: 0.28, draw(c, x, y, w, h, s) {
+  flag: { a: 9, w: 0.15, draw(c, x, y, w, h, s) {
     c.fillStyle = '#cfd6df'; c.fillRect(x - w * 0.08, y - h, w * 0.16, h);
     const cols = [['#e11d48', '#f8fafc'], ['#2563eb', '#f8fafc'], ['#16a34a', '#facc15'], ['#f8fafc', '#111827']][Math.floor(s * 4) % 4];
     c.fillStyle = cols[0]; c.beginPath(); c.moveTo(x + w * 0.08, y - h); c.lineTo(x + w * 1.5, y - h * 0.94); c.lineTo(x + w * 1.4, y - h * 0.72); c.lineTo(x + w * 0.08, y - h * 0.76); c.closePath(); c.fill();
     c.fillStyle = cols[1]; c.beginPath(); c.moveTo(x + w * 0.08, y - h * 0.88); c.lineTo(x + w * 1.45, y - h * 0.83); c.lineTo(x + w * 1.42, y - h * 0.77); c.lineTo(x + w * 0.08, y - h * 0.82); c.closePath(); c.fill();
   } },
-  tire: { a: 0.5, w: 0.5, draw(c, x, y, w, h) {
+  tire: { a: 0.8, w: 0.35, draw(c, x, y, w, h) {
     for (let r = 0; r < 3; r++) for (let i = 0; i < 3 - r; i++) {
       const tx = x + (i - (2 - r) / 2) * w * 0.34, ty = y - h * 0.18 - r * h * 0.3;
       c.fillStyle = '#16171b'; c.beginPath(); c.ellipse(tx, ty, w * 0.17, h * 0.17, 0, 0, 6.2832); c.fill();
@@ -5839,7 +5839,7 @@ function buildRacerTrack(def) {
   const addSeg = (curve, y) => {
     const n = segs.length;
     segs.push({
-      index: n, curve, cars: [], sprites: [], alt: Math.floor(n / RC.RUMBLE) % 2, fog: 1, clip: RC.H, line: null,
+      index: n, curve, cars: [], sprites: [], alt: Math.floor(n / RC.RUMBLE) % 2, dash: Math.floor(n / RC.RUMBLE) % 3 === 0, fog: 1, clip: RC.H, line: null,
       p1: { world: { y: lastY(), z: n * RC.SEG }, camera: {}, screen: {} },
       p2: { world: { y, z: (n + 1) * RC.SEG }, camera: {}, screen: {} },
     });
@@ -5919,7 +5919,14 @@ function rcPlayerZ() { return rcInc(rc.position + RC.PLAYER_Z, 0, rc.track.lengt
 let racerPrep = null;
 // 對手在這條賽道上的極速（km/h）：由弱到強照 skill 在 kmhMin～kmhMax 之間分布
 function rcRivalKmh(r, tdef) { return rcInterp(tdef.kmhMin, tdef.kmhMax, rcClamp((r.skill - 0.6) / 0.35, 0, 1)); }
-function rcCatch(rank) { return (rc.mode === 'race' || rc.mode === 'duel') ? RC.CATCH * (rcClamp(rank, 1, rc.fieldSize) - 1) / (rc.fieldSize - 1) : 0; }
+// 後追加速：落後的車，速度上限會往「第一名的最高車速」靠攏——第 2 名比第一名多一點點，最後一名可以比第一名快 10%（中間平均分配）。
+// 領先的人沒有加成，所以後面的車一定追得上前面，想守住領先要靠駕駛技術
+// 離領先者 10 公尺以內時加成會淡出、40 公尺以外才全額加成——整個車隊緊追在後，但不會全部擠成一團穿在一起
+function rcCatchMul(rank, vbase, leaderV, gapU) {
+  if (rank <= 1 || !(vbase > 0)) return 1;
+  const full = Math.max(1, leaderV * (1 + RC.CATCH * (rcClamp(rank, 1, rc.fieldSize) - 1) / (rc.fieldSize - 1)) / vbase);
+  return 1 + (full - 1) * rcClamp((gapU / 200 - 10) / 30, 0, 1);
+}
 function rcWeatherSpd(env) { return 1 - 0.05 * env.intensity; }           // 下雨視線差、路面濕，大家都慢一點
 function rcWindF(along) { return along >= 0 ? 1 + 0.004 * along : 1 + 0.009 * along; } // 逆風的阻力比順風的推力大，所以一圈下來風總是讓人變慢
 function rcAiEnvF(env) { return rcWeatherSpd(env) * env.surface.spd; }
@@ -5966,7 +5973,7 @@ function rcSetupSession(modeIn) {
   const attack = modeIn === 'attack', mode = attack ? 'quali' : modeIn; // 計時賽（單獨跑一趟）沿用排位賽的流程
   if (!racerPrep || racerPrep.trackId !== racerSave.track) racerNewPrep();
   const tdef = racerFindTrack(racerSave.track);
-  RC.ROAD = tdef.road; RC.CAR_W = 600 / tdef.road;                 // 每條賽道的路寬不同，但車子的實際大小不變
+  RC.ROAD = tdef.road; RC.CAR_W = RC.CARU / tdef.road;             // 比例尺 1 公尺 ≈ 200 單位：車寬約 1.9 公尺；每條賽道的路寬不同，但車子的實際大小不變
   rc.edge = tdef.wall ? tdef.wall.off - RC.CAR_W / 2 : 0;         // 護牆／護欄：車子中心最多能開到哪裡（再過去就撞上去）
   rc.aiEdge = tdef.wall ? rc.edge - 0.03 : 1.05;
   const T = buildRacerTrack(tdef), len = T.length, startZ = T.startZ, p2p = T.p2p;
@@ -6044,7 +6051,7 @@ function rcStepAI(car, dt, playerSeg) {
   if (rc.state === 'countdown') return;
   const len = rc.track.length;
   // 後追加速：名次越後面，額外速度越多（第 1 名 0%、第 10 名 +10%）；領先的人沒有減速，所以想守住領先會越來越難
-  const k = car.finished ? 1 : 1 + rcCatch(car.rank || rc.fieldSize);
+  const k = car.finished ? 1 : (car.catchMul || 1);
   const oldSeg = rcFindSeg(car.z);
   const w = rcWindAt(car.z, rc.time);
   // 下雨時對手也會偶爾在彎道打滑
@@ -6126,18 +6133,24 @@ function rcStep(dt) {
   if (rc.lapFlash > 0) rc.lapFlash -= dt;
 
   const playerSeg = rcFindSeg(rc.position + RC.PLAYER_Z);
-  if (rc.mode === 'race' || rc.mode === 'duel') { // 即時名次（含起跑格），給後追加速用
-    const live = rc.frozen || rcStandings();
-    live.forEach((e, i) => { if (e.me) rc.liveRank = i + 1; else { const c = rc.cars.find(x => x.id === e.id); if (c) c.rank = i + 1; } });
-  } else rc.liveRank = 1;
-  rc.catchK = rcCatch(rc.liveRank || 1);
-  for (const car of rc.cars) rcStepAI(car, dt, playerSeg);
-
-  // 車況對速度的影響：耐久越低越慢（最低剩 6 成）；風、胎種、天氣、路面也會加減速
+  // 車況對速度的影響：耐久越低越慢（最低剩 6 成）；風、胎種、天氣、路面也會加減速（這是還沒加後追加速前的最高車速）
   const w = rcWindAt(rcPlayerZ(), rc.time);
   rc.windAlong = w.along; rc.windCross = w.cross;
   const df = 0.6 + 0.4 * rc.dur;
-  const top = rc.topEff = rc.topUnits * df * (1 + rc.catchK) * rcWindF(w.along) * (rc.tire === 'rain' ? 0.94 : 1) * rcWeatherSpd(env) * env.surface.spd;
+  const topBase = rc.topUnits * df * rcWindF(w.along) * (rc.tire === 'rain' ? 0.94 : 1) * rcWeatherSpd(env) * env.surface.spd;
+  rc.catchMul = 1;
+  if (rc.mode === 'race' || rc.mode === 'duel') { // 即時名次（含起跑格）→ 依第一名的車速算每台車的後追加速
+    const live = rc.frozen || rcStandings();
+    rc.cars.forEach(c => { const w0 = rcWindAt(c.z, rc.time); c.vbase = c.target * rcWindF(w0.along) * (c.slipT > 0 ? 0.8 : 1); c.catchMul = 1; });
+    const lead = live[0], leaderV = lead.me ? topBase : (rc.cars.find(x => x.id === lead.id) || { vbase: topBase }).vbase;
+    live.forEach((e, i) => {
+      if (e.me) { rc.liveRank = i + 1; rc.catchMul = rcCatchMul(i + 1, topBase, leaderV, lead.dist - e.dist); }
+      else { const c = rc.cars.find(x => x.id === e.id); if (c) { c.rank = i + 1; c.catchMul = c.finished ? 1 : Math.min(1.45, rcCatchMul(i + 1, c.vbase, leaderV, lead.dist - e.dist)); } } // 對手最多追到自己原本速度的 1.45 倍：不然 100 km/h 的車追得上改裝到 200 km/h 的領先者，改裝就沒意義了
+    });
+  } else rc.liveRank = 1;
+  rc.catchK = rc.catchMul - 1;
+  for (const car of rc.cars) rcStepAI(car, dt, playerSeg);
+  const top = rc.topEff = topBase * rc.catchMul;
   rc.grip = rcGripNow();
   const G = rc.grip;
 
@@ -6181,12 +6194,15 @@ function rcStep(dt) {
       rc.speed *= 1 - 0.3 * dt;
     }
 
-    for (const car of playerSeg.cars) { // 追撞前車：被擋住減速，耐久受損
-      if (!rcOverlap(rc.playerX, RC.CAR_W, car.offset, RC.CAR_W, 0.8)) continue;
-      if (rc.speed > car.speed) {
+    const pz = rcPlayerZ();
+    for (const car of rc.cars) { // 追撞前車／並排擦撞：車身有長度（約 3.4 公尺），距離小於車長才算碰到
+      let dz = car.z - pz;
+      if (dz > len / 2) dz -= len; else if (dz < -len / 2) dz += len;
+      if (Math.abs(dz) >= RC.CARLEN || !rcOverlap(rc.playerX, RC.CAR_W, car.offset, RC.CAR_W, 0.8)) continue;
+      if (dz > 0 && rc.speed > car.speed) {
         const rel = rc.speed - car.speed;
         rc.speed = car.speed * (car.speed / rc.speed);
-        rc.position = rcInc(car.z, -RC.PLAYER_Z, len);
+        rc.position = rcInc(car.z, -RC.PLAYER_Z - RC.CARLEN, len);
         rc.crashT = 0.25;
         rcDamage(0.012 + 0.45 * rel / RC.MAX, (car.offset - rc.playerX) * 60);
         break;
@@ -6340,7 +6356,7 @@ function rcDrawSeg(c, seg, def, pal, rain) {
     const e1 = p1.w * 0.035, e2 = p2.w * 0.035;
     c.fillStyle = 'rgba(245,245,245,0.8)';
     [-1, 1].forEach(s => { c.beginPath(); c.moveTo(p1.x + s * p1.w * 0.985, y1); c.lineTo(p1.x + s * (p1.w * 0.985 - e1 * s), y1); c.lineTo(p2.x + s * (p2.w * 0.985 - e2 * s), y2); c.lineTo(p2.x + s * p2.w * 0.985, y2); c.closePath(); c.fill(); });
-    if (alt === 0) {
+    if (seg.dash) {
       const lw1 = p1.w * 2 / RC.LANES, lw2 = p2.w * 2 / RC.LANES, m1 = p1.w / Math.max(32, 8 * RC.LANES), m2 = p2.w / Math.max(32, 8 * RC.LANES);
       let lx1 = p1.x - p1.w + lw1, lx2 = p2.x - p2.w + lw2;
       for (let l = 1; l < RC.LANES; l++, lx1 += lw1, lx2 += lw2) rcPoly(c, lx1 - m1 / 2, y1, lx1 + m1 / 2, y1, lx2 + m2 / 2, y2, lx2 - m2 / 2, y2, pal.lane);
@@ -6494,7 +6510,7 @@ function rcRender() {
       if (!(sc > 0)) continue;
       const sw = sc * sd.w * RC.REF * W / 2;
       if (sw < 3) continue;
-      const sh = sw * sd.a, side = sp.offset > 0 ? 1 : -1;
+      const aa = sd.ha ? sd.ha(sp.seed) : sd.a, sh = sw * aa, side = sp.offset > 0 ? 1 : -1;
       const sx = seg.p1.screen.x + sc * sp.offset * RC.ROAD * W / 2 + side * sw / 2;
       const sy = seg.p1.screen.y;
       if (sx + sw < 0 || sx - sw > W) continue;
@@ -6503,7 +6519,7 @@ function rcRender() {
         const m = Math.max(1, Math.round(sd.depth * sd.w * RC.REF / RC.SEG));
         if (n + m < drawN) {
           const sF = segs[(seg.index + m) % segs.length], scF = sF.p1.screen.scale;
-          if (scF > 0 && sF.p1.camera.z > RC.CAM_DEPTH) geo = { fx: sF.p1.screen.x + scF * sp.offset * RC.ROAD * W / 2, fy: sF.p1.screen.y, fh: scF * sd.w * RC.REF * W / 2 * sd.a };
+          if (scF > 0 && sF.p1.camera.z > RC.CAM_DEPTH) geo = { fx: sF.p1.screen.x + scF * sp.offset * RC.ROAD * W / 2, fy: sF.p1.screen.y, fh: scF * sd.w * RC.REF * W / 2 * aa };
         }
       }
       const clipIt = sy > seg.clip;
@@ -7019,7 +7035,7 @@ function renderRacerPrep() {
     <div class="rc-card">${rcCondBarHtml('車身', cd.dur)}${rcCondBarHtml('輪胎', cd.tire)}
       <div class="rc-claim-txt" style="margin-top:8px">目前車況使極速／加速約為全新時的 ${Math.round(durF * 100)}%。${wearTxt}</div>
       <button class="rc-btn-sm" style="margin-top:10px" onclick="racerOpenTune(true)">🔧 前往維修</button></div>
-    <div class="rc-card" style="margin-top:12px"><div class="rc-claim-txt">🚀 <b>後追加速</b>：名次越後面，速度加成越多（最後一名最多 +10%、第 1 名沒有），所有車（包含你）都一樣——落後的人追得很快，領先的人要守住很不容易。</div></div>
+    <div class="rc-card" style="margin-top:12px"><div class="rc-claim-txt">🚀 <b>後追加速</b>：落後的車，速度上限會往「第一名的最高車速」靠攏——最後一名可以比第一名快 10%，中間按名次平均分配。所有車（包含你）都一樣，所以落後的一定追得上，領先的人要靠駕駛技術守住。</div></div>
     <div class="rc-sec-title">🛞 選擇輪胎<small>雨胎免費</small></div>
     ${tireCard('normal', '🛞', '一般胎', '速度快；乾地抓地好。<b>下雨天很容易打滑</b>。', !rain)}
     ${tireCard('rain', '🌧️', '熱熔雨胎（免費）', `雨天抓地強、<b>不易打滑</b>；但速度慢約 7%，在乾地上磨得特別快。`, rain)}
