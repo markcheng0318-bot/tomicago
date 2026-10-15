@@ -129,6 +129,7 @@
   }
 
   .nav-item.active { color: var(--red); }
+  .icon-btn.add-car-btn { background: var(--red); color: #fff; border-color: var(--red); }
   .nav-item svg { width: 22px; height: 22px; }
   .nav-label { font-size: 10px; letter-spacing: 0.5px; }
 
@@ -1277,6 +1278,9 @@
   .rh-stats > div { background: rgba(0,0,0,0.28); border-radius: 12px; padding: 8px 6px; text-align: center; }
   .rh-stats b { display: block; font-size: 15px; }
   .rh-stats small { font-size: 10px; opacity: 0.75; }
+  .rh-cta small { display: block; font-size: 11px; font-weight: 600; opacity: 0.75; letter-spacing: 0; margin-top: 3px; }
+  .rh-wanted summary { cursor: pointer; margin-bottom: 0; }
+  .rh-wanted[open] summary { margin-bottom: 8px; }
   .rh-cta { width: 100%; border: none; border-radius: 14px; padding: 14px; font-size: 16px; font-weight: 900; background: #fff; color: #b91c1c; cursor: pointer; letter-spacing: 1px; }
   .rh-links { display: flex; gap: 8px; margin-top: 10px; }
   .rh-link-btn { flex: 1; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.1); color: #fff; border-radius: 12px; padding: 9px 6px; font-size: 12px; font-weight: 700; cursor: pointer; }
@@ -1333,6 +1337,11 @@
   .rc-road-btns .rc-btn-sm:disabled { opacity: 0.45; }
   .rc-credit { font-size: 10px; color: var(--text3); line-height: 1.6; margin-top: 18px; text-align: center; }
   /* ── 大獎賽 ── */
+  #racer-modal { bottom: 0; padding-bottom: var(--safe-bottom); }
+  body.rc-open #bottom-nav { display: none; }
+  .rc-pause { position: absolute; inset: 0; z-index: 6; background: rgba(0,0,0,0.72); display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .rc-pause-card { width: 100%; max-width: 320px; background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 22px 18px; text-align: center; display: flex; flex-direction: column; gap: 10px; }
+  .rc-pause-t { font-weight: 900; font-size: 20px; }
   .rc-header {
     display: flex; align-items: center; gap: 10px; flex-shrink: 0;
     padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px; border-bottom: 1px solid var(--border);
@@ -1359,8 +1368,20 @@
   .rc-track-kind { font-size: 10px; font-weight: 800; margin-top: 2px; opacity: 0.8; letter-spacing: 0; }
   .rc-env-sub { font-size: 12px; font-weight: 700; margin: -4px 0 8px; opacity: 0.85; }
   .rc-track-sub { font-size: 11px; margin-top: 4px; font-weight: 700; opacity: 0.85; line-height: 1.4; }
-  .rc-cars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .rc-car { position: relative; background: var(--card); border: 2px solid var(--border); border-radius: 14px; padding: 10px; cursor: pointer; }
+  .rc-tracks, .rc-cars { position: relative; }
+  .rc-cars { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: none; }
+  .rc-cars::-webkit-scrollbar { display: none; }
+  .rc-sel-cond { margin-top: 2px; font-size: 12px; font-weight: 700; color: var(--text2); }
+  .rc-fold { margin-top: 18px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 4px 12px 10px; }
+  .rc-fold summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--text2); padding: 10px 0; list-style: none; }
+  .rc-fold summary::after { content: '▾'; float: right; }
+  .rc-fold[open] summary::after { content: '▴'; }
+  .rc-start-bar .btn-submit small { display: block; text-transform: none; letter-spacing: 0; font-size: 11px; font-weight: 500; opacity: 0.85; margin-top: 2px; }
+  .rc-start-bar .btn-submit { flex-direction: column; align-items: center; justify-content: center; line-height: 1.25; }
+  .rc-start-bar .rc-bar-row { display: flex; gap: 10px; max-width: 532px; margin: 0 auto; }
+  .rc-start-bar .rc-bar-row .btn-submit { flex: 1; width: auto; }
+  .rc-start-bar .btn-ghost { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+  .rc-car { flex: 0 0 150px; position: relative; background: var(--card); border: 2px solid var(--border); border-radius: 14px; padding: 10px; cursor: pointer; }
   .rc-car.sel { border-color: var(--red); background: var(--red-dim); }
   .rc-car canvas { display: block; width: 100%; height: auto; background: linear-gradient(#323847, #161922); border-radius: 8px; }
   .rc-car-name { font-weight: 700; font-size: 13px; margin-top: 8px; }
@@ -1382,7 +1403,7 @@
   .rc-rival-sub { font-size: 11px; color: var(--text3); }
   .rc-rival-st { margin-left: auto; font-size: 11px; font-weight: 700; white-space: nowrap; color: var(--text3); }
   .rc-rival-st.done { color: #22C55E; }
-  .rc-result { position: relative; flex: 1; min-height: 0; width: 100%; max-width: 560px; margin: 0 auto; overflow-y: auto; padding: 20px 16px 24px; text-align: center; }
+  .rc-result { position: relative; flex: 1; min-height: 0; width: 100%; max-width: 560px; margin: 0 auto; overflow-y: auto; padding: 20px 16px 110px; text-align: center; }
   .rc-res-rank { font-family: 'Bebas Neue', sans-serif; font-size: 64px; letter-spacing: 3px; color: var(--gold); line-height: 1.1; }
   .rc-res-sub { font-size: 13px; color: var(--text2); margin-top: 4px; }
   .rc-res-list { text-align: left; margin-top: 16px; }
@@ -1433,10 +1454,10 @@
   .rc-quick { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .rc-env { padding: 14px; border: none; margin-top: 0; }
   .rc-env-title { font-weight: 900; font-size: 17px; margin-bottom: 8px; }
-  .rc-env-grid { display: grid; gap: 8px; }
-  .rc-env-grid > div { background: rgba(255,255,255,0.55); border-radius: 10px; padding: 8px 10px; }
-  .rc-env-grid b { display: block; font-size: 14px; }
-  .rc-env-grid small { display: block; font-size: 11px; opacity: 0.8; margin-top: 2px; line-height: 1.45; }
+  .rc-env-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .rc-env-grid > div { background: rgba(255,255,255,0.55); border-radius: 10px; padding: 7px 8px; min-width: 0; }
+  .rc-env-grid b { display: block; font-size: 13px; }
+  .rc-env-grid small { display: block; font-size: 10px; opacity: 0.8; margin-top: 2px; line-height: 1.4; }
   .rc-tire { display: flex; gap: 12px; align-items: center; padding: 12px; background: var(--card); border: 2px solid var(--border); border-radius: 12px; margin-bottom: 8px; cursor: pointer; }
   .rc-tire.sel { border-color: var(--red); background: var(--red-dim); }
   .rc-tire-icon { font-size: 28px; }
@@ -1452,6 +1473,9 @@
   .rc-dstyle.locked canvas { filter: grayscale(0.9) brightness(0.55); }
   .rc-dstyle canvas { display: block; width: 100%; height: auto; border-radius: 10px; }
   .rc-dstyle-name { font-weight: 800; font-size: 13px; margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .rc-seg { display: flex; gap: 4px; padding: 4px; margin: 14px 0 6px; background: var(--bg3); border: 1px solid var(--border); border-radius: 14px; position: sticky; top: -1px; z-index: 3; }
+  .rc-seg button { flex: 1; border: none; background: none; color: var(--text2); font-size: 13px; font-weight: 700; padding: 9px 4px; border-radius: 10px; cursor: pointer; font-family: inherit; }
+  .rc-seg button.on { background: var(--red); color: #fff; }
   .rc-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
   .rc-tabs::-webkit-scrollbar { display: none; }
   .rc-tab { flex: 0 0 auto; font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg3); color: var(--text2); cursor: pointer; }
@@ -1607,6 +1631,9 @@
       <div class="page-header">
         <div class="page-title">我的<span>車庫</span></div>
         <div class="header-actions">
+          <div class="icon-btn add-car-btn" onclick="goTo('upload')" title="新增車輛">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
           <div class="icon-btn" onclick="toggleMultiSelect()" title="多選">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           </div>
@@ -1707,7 +1734,8 @@
 
     <!-- UPLOAD SCREEN -->
     <div class="screen" id="screen-upload">
-      <div class="page-header">
+      <div class="page-header" style="justify-content:flex-start">
+        <div class="header-actions" style="margin-right:10px"><div class="icon-btn" onclick="goTo('garage')" title="回車庫"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div></div>
         <div class="page-title">新增<span>車輛</span></div>
       </div>
       <div class="upload-form">
@@ -2031,10 +2059,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span class="nav-label">車庫</span>
       </button>
-      <button class="nav-item" id="nav-upload" onclick="requireLogin('upload')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12l4-4 4 4"/></svg>
-        <span class="nav-label">新增</span>
-      </button>
       <button class="nav-item" id="nav-settings" onclick="requireLogin('settings')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
         <span class="nav-label" id="nav-settings-label">設定</span>
@@ -2144,7 +2168,7 @@
     <div class="icon-btn" onclick="racerBack()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
     </div>
-    <div class="rc-title">TOMICA<span> 大獎賽</span></div>
+    <div class="rc-title">TOMICA<span id="racer-title"> 大獎賽</span></div>
     <div class="rc-chip" id="racer-progress">💰 0　🏁 0/9</div>
   </div>
   <div id="racer-hub" class="rc-hub"></div>
@@ -2152,15 +2176,22 @@
   <div id="racer-prep" class="rc-hub" style="display:none"></div>
   <div id="racer-board" class="rc-hub" style="display:none"></div>
   <div id="racer-solo" class="rc-hub" style="display:none"></div>
-  <div class="rc-start-bar" id="racer-start-bar">
-    <button class="btn-submit" onclick="racerOpenPrep()">🏁 賽前準備・出發</button>
-  </div>
+  <div class="rc-start-bar" id="racer-start-bar"></div>
   <div id="racer-stage" style="display:none;flex:1;min-height:0">
     <div id="racer-wrap" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">
       <canvas id="racer-canvas" style="touch-action:none;border-radius:14px;border:1px solid var(--border);background:#111"></canvas>
     </div>
   </div>
   <div id="racer-result" class="rc-result" style="display:none"></div>
+  <div id="racer-pause" class="rc-pause" style="display:none">
+    <div class="rc-pause-card">
+      <div style="font-size:34px">⏸️</div>
+      <div class="rc-pause-t">比賽暫停</div>
+      <div class="rc-claim-txt">離開的話這場不計成績與獎金，但已經發生的車損和輪胎磨耗照算。</div>
+      <button class="btn-submit" onclick="rcResume()">▶ 繼續比賽</button>
+      <button class="btn-submit btn-ghost" style="background:var(--bg3);color:var(--text);border:1px solid var(--border)" onclick="rcQuit()">離開比賽</button>
+    </div>
+  </div>
 </div>
 
 <!-- GAME MODAL -->
@@ -2796,7 +2827,8 @@ window.renderGarage = () => {
       <div class="empty-state" style="grid-column:1/-1">
         <div class="empty-icon">🚗</div>
         <div class="empty-title">${document.getElementById('garage-search')?.value ? '找不到符合的車' : currentFilter === 'fav' ? '還沒有最愛' : '車庫是空的'}</div>
-        <div class="empty-sub">${document.getElementById('garage-search')?.value ? '' : '點下方＋按鈕新增第一台車'}</div>
+        <div class="empty-sub">${document.getElementById('garage-search')?.value ? '' : '點右上角紅色「＋」新增第一台車'}</div>
+        ${document.getElementById('garage-search')?.value || currentFilter !== 'all' ? '' : `<button class="btn-submit" style="margin-top:16px;max-width:220px" onclick="goTo('upload')">＋ 新增第一台車</button>`}
       </div>`;
     return;
   }
@@ -5800,24 +5832,23 @@ function renderRacerHome() {
   el.innerHTML = `<div class="rh-hero">
       <div class="rh-hero-top"><div class="rh-avatar">🏎️</div><div style="flex:1;min-width:0"><div class="rh-name">${escapeHtml(name)}</div><div class="rh-rank">${racerTitleOf(n)}・已擊敗 ${n} / 9 位對手</div></div></div>
       <div class="rh-stats"><div><b>💰 ${racerBalance().toLocaleString()}</b><small>改裝積分</small></div><div><b>🏆 ${racerSave.wins}</b><small>冠軍</small></div><div><b>⏱ ${lapCount}/${RACER_TRACKS.length}</b><small>賽場有圈速</small></div></div>
-      <button class="rh-cta" onclick="openRacer()">🏁 進入大獎賽</button>
+      <button class="rh-cta" onclick="openRacer()">🏁 進入大獎賽<small>${target ? `🎯 下一個目標：${target.name}（${RACER_CARS[target.car].name}）` : '🌟 已擊敗全部對手，去刷最快圈速吧'}</small></button>
       <div class="rh-links"><button class="rh-link-btn" onclick="openRacerSolo()">🏔️ 地區個人賽</button><button class="rh-link-btn" onclick="openRacerBoard()">🏆 排行榜</button><button class="rh-link-btn" onclick="openRacerTune()">🔧 改裝</button></div>
-      ${target ? `<div class="rh-next">🎯 下一個挑戰目標：<b>${target.name}</b>（${RACER_CARS[target.car].name}）</div>` : '<div class="rh-next">🌟 已擊敗全部對手，去刷出各賽場的最快圈速吧！</div>'}
     </div>
-    <div class="rh-sec"><div class="rh-sec-title">🚗 我的賽車</div>
+    <div class="rh-sec"><div class="rh-sec-title">🚗 我的賽車<button class="rc-btn-sm" onclick="openRacerTune()">🔧 改裝・維修</button></div>
       <div class="rh-car"><canvas id="rh-car-cv" width="360" height="220"></canvas>
         <div class="rh-car-info"><div class="rh-car-name">${car.name}</div><div class="rh-car-sub">${car.maker}${racerOwnsReal(id) ? '・⭐ 有收藏同款' : ''}</div>
           ${rcStatBar('極速', (st.kmh - 100) / 150, `${Math.round(st.kmh)}`)}${rcStatBar('加速', (st.acc - 0.9) / 1.0, st.acc.toFixed(2))}${rcStatBar('操控', (st.hnd - 0.9) / 1.1, st.hnd.toFixed(2))}${rcCondBarHtml('車身', cd.dur)}${rcCondBarHtml('輪胎', cd.tire)}</div></div></div>
     <div class="rh-sec"><div class="rh-sec-title">🧩 收藏連動<small>收藏越多、賽車越強</small></div>${linkCards}
-      ${wanted ? `<div class="rh-wanted"><div class="rh-wanted-t">收藏這些車款的 Tomica 就能解鎖同款賽車：</div><div class="rh-chips">${wanted}</div></div>` : ''}</div>
+      ${wanted ? `<details class="rh-wanted"><summary class="rh-wanted-t">還沒收藏的車款（${Object.keys(RACER_CARS).length - linked.length}）：收藏同款 Tomica 就能解鎖</summary><div class="rh-chips">${wanted}</div></details>` : ''}</div>
     <div class="rh-sec"><div class="rh-sec-title">🌍 世界巡迴賽<small>街道賽 × 專屬賽道</small></div><div class="rh-venues">${venues}</div></div>`;
   const cv = document.getElementById('rh-car-cv');
   if (cv) { const x = cv.getContext('2d'); drawRacerCar(x, racerCarView(id), cv.width / 2, cv.height - 26, 150, { yaw: -0.5, pitch: 0.42, dmg: 1 - cd.dur / 100 }); }
 }
 window.openRacerAt = (tid) => { const t = RACER_TRACKS.find(x => x.id === tid); if (t && racerUnlockedTrack(t)) { racerSave.track = tid; saveRacerSave(); } else if (t) showToast(`累計擊敗 ${t.need} 位對手才能解鎖「${t.city}」`); openRacer(); };
-window.openRacerBoard = () => { openRacer(); racerOpenBoard(); };
-window.openRacerSolo = () => { openRacer(); racerOpenSolo(); };
-window.openRacerTune = () => { openRacer(); racerOpenTune(); };
+window.openRacerBoard = () => { openRacer(); racerOpenBoard(); rc.entry = 'home'; };
+window.openRacerSolo = () => { openRacer(); racerOpenSolo(); rc.entry = 'home'; };
+window.openRacerTune = () => { openRacer(); racerOpenTune(); rc.entry = 'home'; };
 
 // ── 遊戲選單上的小標籤 ──
 function updateGameMenuMeta() {
@@ -5904,7 +5935,7 @@ const rc = {
   cdLeft: 0, time: 0, goFlash: 0, position: 0, playerX: 0, speed: 0, steer: 0, lap: -1, prevZ: 0, pdist: 0,
   finished: false, finishCount: 0, myOrder: 0, resultAt: 0, resultShown: false, rank: 10, cutoffAt: null, timeUp: false, frozen: null,
   cars: [], skyOffset: 0, hillOffset: 0, crashT: 0, drawN: RC.DRAW, slow: 0, sparks: [], smoke: [], drops: [], dmgTaken: 0,
-  touch: { l: 0, r: 0 }, keys: { l: 0, r: 0 }, ptrs: new Map(),
+  touch: { l: 0, r: 0, b: 0 }, keys: { l: 0, r: 0, b: 0 }, ptrs: new Map(), braking: false,
 };
 function rcFindSeg(z) {
   const n = rc.track.segs.length;
@@ -5940,16 +5971,21 @@ function rcCornerLimit(z, aCap, vm, segsIn) {
 }
 function rcWeatherSpd(env) { return 1 - 0.05 * env.intensity; }           // 下雨視線差、路面濕，大家都慢一點
 function rcWindF(along) { return along >= 0 ? 1 + 0.004 * along : 1 + 0.009 * along; } // 逆風的阻力比順風的推力大，所以一圈下來風總是讓人變慢
-// 山道傳奇車手的參考時間：用跟對手 AI 同一套邏輯（極速＋彎道自動減速）沿著路線預先跑一遍
-function racerRivalMs(tdef, env) {
-  const T = buildRacerTrack(tdef), rv = tdef.rival, envF = rcAiEnvF(env), top = rcKmhToUnits(rv.kmh) * envF;
-  const aCap = (tdef.need != null ? 9.5 * (0.95 + 0.1 * (tdef.rival.pw != null ? tdef.rival.pw : tdef.need)) : 11) * tdef.surface.grip * (env.weather === 'rain' ? 1 - 0.3 * env.intensity : 1);
-  const dt = 0.1; let z = T.startZ, v = 0, t = 0;
-  while (z - T.startZ < T.routeLen && t < 900) {
+// 對手 AI 跑一段路要多久：跟實際比賽同一套邏輯（極速＋彎道自動減速），預先沿著路線算一遍。
+// 排位賽的對手成績、山道傳奇車手的參考時間都用它，所以時間會跟實際跑起來的差不多
+function rcAiTimeMs(tdef, env, kmh, aCapBase, dist) {
+  const T = buildRacerTrack(tdef), envF = rcAiEnvF(env), top = rcKmhToUnits(kmh) * envF;
+  const aCap = aCapBase * tdef.surface.grip * (env.weather === 'rain' ? 1 - 0.3 * env.intensity : 1);
+  const dt = 0.1; let z = T.startZ, v = top * 0.5, t = 0;
+  while (z - T.startZ < dist && t < 1500) {
     const tgt = Math.min(top, rcCornerLimit(z % T.length, aCap, v / 200, T.segs) * 200);
     v += rcClamp(tgt - v, -top * 0.5 * dt, top * 0.25 * dt); z += v * dt; t += dt;
   }
   return Math.round(t * 1000);
+}
+function racerRivalMs(tdef, env) {
+  const T = buildRacerTrack(tdef), rv = tdef.rival;
+  return rcAiTimeMs(tdef, env, rv.kmh, 9.5 * (0.95 + 0.1 * (rv.pw != null ? rv.pw : tdef.need)), T.routeLen);
 }
 function rcAiEnvF(env) { return rcWeatherSpd(env) * env.surface.spd; }
 function racerRollEnv(tdef) {
@@ -5961,10 +5997,9 @@ function racerRollEnv(tdef) {
 }
 function racerNewPrep() {
   const tdef = racerFindTrack(racerSave.track);
-  const T = buildRacerTrack(tdef), env = racerRollEnv(tdef), ai = {}, f = rcAiEnvF(env);
+  const env = racerRollEnv(tdef), ai = {};
   if (tdef.kind !== 'touge') RACER_RIVALS.forEach(r => { // 山道個人賽沒有排位賽
-    const sp = rcKmhToUnits(rcRivalKmh(r, tdef)) * f;
-    ai[r.id] = Math.round(T.length / sp * 1000 * (1 + (Math.random() - 0.5) * 0.04) + 600); // 對手排位成績：跑一圈的時間再加一點隨機
+    ai[r.id] = Math.round(rcAiTimeMs(tdef, env, rcRivalKmh(r, tdef), 11, buildRacerTrack(tdef).length) * (1 + (Math.random() - 0.5) * 0.04)); // 對手排位成績：用 AI 的跑法預先算一圈的時間，再加一點隨機
   });
   racerPrep = { trackId: tdef.id, env, tire: env.weather === 'rain' ? 'rain' : 'normal', ai, meMs: null, qualiTries: 0, solo: null };
   return racerPrep;
@@ -6198,16 +6233,12 @@ function rcStep(dt) {
     const vm = rc.speed / 200, halfW = RC.ROAD / 200, gC = rcClamp(G, 0.5, 1.15);
     const steerV = rc.steer * (5 + 5 * pct) * (0.9 + 0.1 * st.hnd) * Math.min(1, G) * (slipping ? 0.35 : 1) / halfW;   // 方向盤能給的橫向速度（約 7 m/s），換算成「路寬的幾倍／秒」
     const pushV = vm * vm * curve * 0.009 * 0.4 / (halfW * st.hnd * gC);                                               // 彎道把沒人操控的車往外甩的速度
-    const aCap = 9.5 * st.hnd * gC;
     rc.pushV = pushV;
-    if (racing) { // 彎道輔助：看前方的彎，車子會自動收油／煞車到過得去的速度（改裝操控、抓地越好，彎道過得越快）
-      const vLim = rcCornerLimit(rcPlayerZ(), aCap, vm) * 200;
-      rc.braking = rc.speed > vLim; rc.vLim = vLim;
-    }
+    rc.braking = racing && !!(rc.touch.b || rc.keys.b) && rc.speed > 30; // 煞車踏板（畫面右下角）：沒有任何自動減速，彎道要自己判斷、自己踩
     rc.vx += (steerV - pushV + w.cross * 0.12 * (0.4 + pct) / halfW + (slipping ? rc.slipDir * (2 + 4 * pct) / halfW : 0) - rc.vx) * Math.min(1, dt * 5);
     rc.playerX += rc.vx * dt;
     if (!racing) { rc.speed *= 1 - dt * 0.7; rc.vx *= 1 - dt * 2; }
-    else if (rc.braking) { rc.speed = Math.max(rc.vLim, rc.speed - 1800 * dt); } // 前方有彎：放開油門、全力煞車到過得去的速度
+    else if (rc.braking) rc.speed = Math.max(0, rc.speed - 2000 * Math.min(1.1, gC) * dt); // 踩煞車：放開油門，約 10 m/s² 的減速度（抓地不好、下雨會比較煞不住）
     else {
       rc.speed = Math.min(top, rc.speed + (top / 5) * st.acc * (1 + rc.catchK * 2) * (0.7 + 0.3 * df) * dt * (1.15 - 0.3 * rc.speed / top));
       if (rc.speed > top) rc.speed -= (rc.speed - top) * Math.min(1, dt * 3);
@@ -6685,6 +6716,12 @@ function rcCondBar(c, x, y, w, h, frac) {
   c.fillStyle = frac > 0.5 ? '#34d399' : frac > 0.25 ? '#fbbf24' : '#ef4444';
   if (frac > 0.01) { rcRR(c, x, y, Math.max(h, w * frac), h, h / 2); c.fill(); }
 }
+// 儀表板上的車況：車身耐久、輪胎耐久（三種款式都有）；label 左側的小字說明是哪一條
+function rcDashCond(c, x, y, inf) { // 儀表板最上緣一條細細的車況列：左＝車身、右＝輪胎
+  c.font = "700 9px 'Noto Sans TC', sans-serif"; c.textAlign = 'left'; c.fillStyle = '#e5e9f0';
+  c.fillText('車身', x + 10, y + 11); c.fillText('輪胎', x + 210, y + 11);
+  rcCondBar(c, x + 36, y + 5, 114, 7, inf.dur); rcCondBar(c, x + 236, y + 5, 114, 7, inf.tire);
+}
 function drawRacerDash(c, x, y, style, tier, kmh, rpm, gear, info) {
   const D = RACER_DASH[tier], inf = info || { dur: 1, tire: 1 };
   c.drawImage(racerDashFace(style, tier), x, y, 360, 112);
@@ -6696,6 +6733,7 @@ function drawRacerDash(c, x, y, style, tier, kmh, rpm, gear, info) {
     c.fillStyle = over ? '#ff5a5a' : '#fff'; c.textAlign = 'center';
     c.font = "900 40px 'Bebas Neue', 'Noto Sans TC', sans-serif";
     c.fillText(String(gear), x + 180, y + 72);
+    rcDashCond(c, x, y, inf);
   } else if (style === 'hybrid') {
     rcNeedle(c, x + 62, y + 60, 36, rcDialAngle(kmh / D.spdMax), '#ff5a5a');
     rcNeedle(c, x + 298, y + 60, 36, rcDialAngle((rpm + wob) / D.rpmMax), over ? '#ff5a5a' : '#ffd23f');
@@ -6717,8 +6755,9 @@ function drawRacerDash(c, x, y, style, tier, kmh, rpm, gear, info) {
     c.textAlign = 'center'; c.fillStyle = over ? '#ff5a5a' : D.accent; c.font = "900 38px 'Bebas Neue', 'Noto Sans TC', sans-serif";
     c.fillText(String(gear), x + 180, y + 91);
     rcCondBar(c, x + 252, y + 52, 94, 7, inf.dur); rcCondBar(c, x + 252, y + 76, 94, 7, inf.tire);
-    c.textAlign = 'right'; c.fillStyle = '#9aa4b5'; c.font = "700 8px 'Noto Sans TC', sans-serif";
-    c.fillText(`${Math.round(inf.dur * 100)}%`, x + 346, y + 48); c.fillText(`${Math.round(inf.tire * 100)}%`, x + 346, y + 72);
+    c.fillStyle = '#9aa4b5'; c.font = "700 8px 'Noto Sans TC', sans-serif";
+    c.textAlign = 'left'; c.fillText('車身', x + 252, y + 48); c.fillText('輪胎', x + 252, y + 72);
+    c.textAlign = 'right'; c.fillText(`${Math.round(inf.dur * 100)}%`, x + 346, y + 48); c.fillText(`${Math.round(inf.tire * 100)}%`, x + 346, y + 72);
   }
 }
 
@@ -6753,8 +6792,8 @@ function rcMapAt(M, z, len) { // z（沿賽道的位置）→ 地圖上的點
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 }
 function rcDrawMap(c, x, y, size) {
-  const M = racerMapPath(rc.track), pad = 9, S = size - pad * 2, len = rc.track.length;
-  rcPill(c, x, y, size, size, 'rgba(8,12,20,0.62)');
+  const M = racerMapPath(rc.track), pad = 9, S = size - pad * 2, len = rc.track.length, e = rc.env;
+  rcPill(c, x, y, size, size + (e ? 40 : 0), 'rgba(8,12,20,0.62)');
   const P = p => [x + pad + p[0] * S, y + pad + p[1] * S];
   c.lineJoin = 'round'; c.lineCap = 'round';
   c.beginPath(); M.pts.forEach((p, i) => { const q = P(p); i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); });
@@ -6768,23 +6807,36 @@ function rcDrawMap(c, x, y, size) {
   rc.cars.forEach(car => { if (!car.isTarget) dot(car.z, 2.6, car.design.body); });
   rc.cars.forEach(car => { if (car.isTarget) dot(car.z, 3.4, car.design.body, '#ff4d4d'); });
   dot(rcPlayerZ(), 4.4, '#ffd23f', '#fff'); // 自己：黃色大圓點
+  if (e) { // 地圖下方：天氣、胎種、風（原本獨立的環境卡片合併到這裡）
+    const sy = y + size + 2;
+    c.fillStyle = 'rgba(255,255,255,0.12)'; c.fillRect(x + 8, sy - 3, size - 16, 1);
+    c.textAlign = 'left'; c.font = "700 10px 'Noto Sans TC', sans-serif"; c.fillStyle = '#fff';
+    c.fillText(`${e.weather === 'rain' ? '🌧' : '☀️'} ${rc.tire === 'rain' ? '雨胎' : '一般胎'}`, x + 9, sy + 12);
+    const al = rc.windAlong, flat = Math.abs(al) < 0.8;
+    c.fillStyle = flat ? '#cbd5e1' : al > 0 ? '#4ade80' : '#fb923c';
+    const cross = Math.abs(rc.windCross) > 1.2 ? (rc.windCross > 0 ? ' ⇢' : ' ⇠') : '';
+    c.fillText(`💨 ${flat ? '微風' : al > 0 ? '順風' : '逆風'} ${Math.abs(al).toFixed(1)}${cross}`, x + 9, sy + 28);
+  }
 }
 
 // ── HUD：左上名次，右上圈數／圈速／即時地圖，左下一張「環境＆車況」小卡（天氣、胎種、風、耐久都收在這裡）──
 function rcPill(c, x, y, w, h, fill) { c.fillStyle = fill || 'rgba(0,0,0,0.55)'; rcRR(c, x, y, w, h, Math.min(12, h / 2)); c.fill(); }
-function rcDrawEnvCard(c) {
-  const e = rc.env, W = RC.W, x = 6, h = 58, y = RC.H - 112 - h - 6, w = 108;
-  if (!e) return;
-  rcPill(c, x, y, w, h, 'rgba(8,12,20,0.6)');
-  c.textAlign = 'left'; c.font = "700 11px 'Noto Sans TC', sans-serif"; c.fillStyle = '#fff';
-  c.fillText(`${e.weather === 'rain' ? '🌧' : '☀️'} ${rc.tire === 'rain' ? '雨胎' : '一般胎'}`, x + 8, y + 16);
-  const al = rc.windAlong, flat = Math.abs(al) < 0.8;
-  c.fillStyle = flat ? '#cbd5e1' : al > 0 ? '#4ade80' : '#fb923c';
-  const cross = Math.abs(rc.windCross) > 1.2 ? (rc.windCross > 0 ? ' ⇢' : ' ⇠') : '';
-  c.fillText(`💨 ${flat ? '微風' : al > 0 ? '順風' : '逆風'} ${Math.abs(al).toFixed(1)}${cross}`, x + 8, y + 32);
-  c.font = "10px 'Noto Sans TC', sans-serif"; c.fillStyle = '#fff';
-  c.fillText('🔧', x + 7, y + 49); c.fillText('🛞', x + 57, y + 49);
-  rcCondBar(c, x + 22, y + 43, 30, 5, rc.dur); rcCondBar(c, x + 72, y + 43, 30, 5, rc.tireDur);
+// 煞車踏板（右下角）：按住就減速；踩下時亮紅燈。左側的 ◀ ▶ 提示轉向區，起跑前幾秒才顯示
+function rcDrawControls(c) {
+  const P = RC_PEDAL, down = !!(rc.touch.b || rc.keys.b);
+  c.save();
+  c.globalAlpha = down ? 0.95 : 0.62;
+  c.fillStyle = down ? '#ef4444' : 'rgba(15,20,30,0.78)'; rcRR(c, P.bx, P.by, P.bw, P.bh, 14); c.fill();
+  c.strokeStyle = down ? '#fecaca' : 'rgba(255,255,255,0.4)'; c.lineWidth = 2; c.stroke();
+  c.strokeStyle = down ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.2)'; c.lineWidth = 3; // 踏板防滑紋
+  for (let i = 0; i < 4; i++) { const yy = P.by + 18 + i * 11; c.beginPath(); c.moveTo(P.bx + 12, yy); c.lineTo(P.bx + P.bw - 12, yy); c.stroke(); }
+  c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = "800 12px 'Noto Sans TC', sans-serif";
+  c.fillText('煞車', P.bx + P.bw / 2, P.by + P.bh - 8);
+  c.restore();
+  if (rc.state === 'race' && rc.time < 7 || rc.state === 'countdown') {
+    c.save(); c.globalAlpha = (rc.state === 'race' ? Math.max(0, 1 - (rc.time - 5) / 2) : 1) * 0.55; c.fillStyle = '#fff'; c.font = "900 30px 'Noto Sans TC', sans-serif"; c.textAlign = 'center';
+    c.fillText('◀', 40, RC.H - 112 - 22); c.fillText('▶', 122, RC.H - 112 - 22); c.restore();
+  }
 }
 function rcDrawHud(c) {
   const W = RC.W, H = RC.H, quali = rc.mode === 'quali';
@@ -6848,7 +6900,7 @@ function rcDrawHud(c) {
   let my = 66;
   if (rc.bestLap) { rcPill(c, rx, my, 88, 18, 'rgba(0,0,0,0.45)'); c.fillStyle = '#ffd23f'; c.font = "700 10px 'Noto Sans TC', sans-serif"; c.fillText(`最快 ${racerFmtLap(rc.bestLap)}`, rx + 44, my + 13); my += 22; }
   rcDrawMap(c, rx, my + 2, 88);
-  rcDrawEnvCard(c);
+  rcDrawControls(c);
   // 狀態警告
   c.textAlign = 'center';
   if (rc.state === 'race') {
@@ -6873,7 +6925,7 @@ function rcDrawHud(c) {
     }
     c.fillStyle = 'rgba(255,255,255,0.9)'; c.font = "600 13px 'Noto Sans TC', sans-serif";
     c.strokeStyle = 'rgba(0,0,0,0.5)'; c.lineWidth = 3;
-    c.strokeText('按住畫面左／右半邊轉向，自動加速', W / 2, 268); c.fillText('按住畫面左／右半邊轉向，自動加速', W / 2, 268);
+    c.strokeText('左手按左／右半邊轉向、右手踩煞車（油門自動）', W / 2, 268); c.fillText('左手按左／右半邊轉向、右手踩煞車（油門自動）', W / 2, 268);
   } else if (rc.goFlash > 0) {
     c.globalAlpha = Math.min(1, rc.goFlash * 2);
     c.fillStyle = '#22C55E'; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 6; c.font = "900 84px 'Bebas Neue', 'Noto Sans TC', sans-serif";
@@ -6890,6 +6942,7 @@ function rcDrawHud(c) {
 
 function rcLoop(ts) {
   rc.raf = requestAnimationFrame(rcLoop);
+  if (rc.paused) { rc.last = ts; return; }
   const rawDt = (ts - rc.last) / 1000;
   rc.last = ts;
   rc.frameDt = Math.min(0.05, rawDt) || 0.016;
@@ -6904,12 +6957,17 @@ function rcLoop(ts) {
   if (rc.ctx && rc.track) rcRender();
 }
 
-// ── 輸入：按住畫面左／右半邊轉向（自動加速），電腦用 ←→ 或 A／D ──
+// ── 輸入：左手按住畫面左／右半邊轉向、右手踩右下角煞車踏板（油門自動）；電腦用 ←→（或 A／D）轉向、↓（S／空白鍵）煞車 ──
+const RC_PEDAL = { x0: RC.W - 92, y0: 300, bx: RC.W - 76, by: RC.H - 112 - 104, bw: 66, bh: 96 }; // 右側煞車區（觸控範圍）與踏板圖示位置
 function rcUpdateTouch() {
-  const rect = rc.canvas.getBoundingClientRect();
-  let l = 0, r = 0;
-  for (const x of rc.ptrs.values()) { if (x - rect.left < rect.width / 2) l = 1; else r = 1; }
-  rc.touch.l = l; rc.touch.r = r;
+  const rect = rc.canvas.getBoundingClientRect(), k = RC.W / rect.width;
+  let l = 0, r = 0, b = 0;
+  for (const p of rc.ptrs.values()) {
+    const x = (p.x - rect.left) * k, y = (p.y - rect.top) * k;
+    if (x >= RC_PEDAL.x0 && y >= RC_PEDAL.y0) b = 1;            // 右側：煞車踏板
+    else if (x < (RC_PEDAL.x0) / 2) l = 1; else r = 1;           // 其餘：左半邊向左、右半邊向右
+  }
+  rc.touch.l = l; rc.touch.r = r; rc.touch.b = b;
 }
 function rcSetupCanvas() {
   rc.canvas = document.getElementById('racer-canvas');
@@ -6919,8 +6977,8 @@ function rcSetupCanvas() {
   rc.canvas.width = RC.W * dpr; rc.canvas.height = RC.H * dpr;
   rc.ctx = rc.canvas.getContext('2d');
   rc.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  rc.canvas.addEventListener('pointerdown', e => { e.preventDefault(); try { rc.canvas.setPointerCapture(e.pointerId); } catch (x) {} rc.ptrs.set(e.pointerId, e.clientX); rcUpdateTouch(); });
-  rc.canvas.addEventListener('pointermove', e => { if (rc.ptrs.has(e.pointerId)) { rc.ptrs.set(e.pointerId, e.clientX); rcUpdateTouch(); } });
+  rc.canvas.addEventListener('pointerdown', e => { e.preventDefault(); try { rc.canvas.setPointerCapture(e.pointerId); } catch (x) {} rc.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); rcUpdateTouch(); });
+  rc.canvas.addEventListener('pointermove', e => { if (rc.ptrs.has(e.pointerId)) { rc.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); rcUpdateTouch(); } });
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => rc.canvas.addEventListener(ev, e => { rc.ptrs.delete(e.pointerId); rcUpdateTouch(); }));
 }
 function rcSizeCanvas() {
@@ -6936,23 +6994,27 @@ window.addEventListener('keydown', e => {
   if (!document.getElementById('racer-modal')?.classList.contains('open') || rc.panel !== 'stage') return;
   if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { rc.keys.l = 1; e.preventDefault(); }
   else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { rc.keys.r = 1; e.preventDefault(); }
+  else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S' || e.key === ' ') { rc.keys.b = 1; e.preventDefault(); }
 });
 window.addEventListener('keyup', e => {
   if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') rc.keys.l = 0;
   else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') rc.keys.r = 0;
+  else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S' || e.key === ' ') rc.keys.b = 0;
 });
 
 // ── 選單／賽前準備／改裝維修／排行榜／結算畫面 ──
+const RC_TITLES = { hub: '大獎賽', prep: '賽前準備', tune: '改裝工廠', board: '排行榜', solo: '個人賽', stage: '比賽中', result: '結算' };
 const RC_PANELS = { solo: 'racer-solo', hub: 'racer-hub', tune: 'racer-tune', prep: 'racer-prep', board: 'racer-board', stage: 'racer-stage', result: 'racer-result' };
 function rcShowPanel(name) {
   rc.panel = name;
+  const ti = document.getElementById('racer-title'); if (ti) ti.textContent = ' ' + (RC_TITLES[name] || '大獎賽');
   Object.entries(RC_PANELS).forEach(([k, id]) => {
     const el = document.getElementById(id);
     if (el) el.style.display = k === name ? (k === 'stage' ? 'flex' : k === 'result' ? 'block' : '') : 'none';
   });
-  document.getElementById('racer-start-bar').style.display = name === 'hub' ? '' : 'none';
+  if (name !== 'hub' && name !== 'prep' && name !== 'result') rcSetBar('');
 }
-function rcStopLoop() { if (rc.raf) { cancelAnimationFrame(rc.raf); rc.raf = 0; } rc.ptrs.clear(); rc.touch.l = rc.touch.r = 0; rc.keys.l = rc.keys.r = 0; }
+function rcStopLoop() { if (rc.raf) { cancelAnimationFrame(rc.raf); rc.raf = 0; } rc.ptrs.clear(); rc.touch.l = rc.touch.r = rc.touch.b = 0; rc.keys.l = rc.keys.r = rc.keys.b = 0; rc.braking = false; }
 function updateRacerChip() {
   document.getElementById('racer-progress').textContent = `💰 ${racerBalance().toLocaleString()}　🏁 ${racerSave.defeated.length}/9`;
 }
@@ -6981,28 +7043,30 @@ function rcCommitCondition() {
 function renderRacerHub() {
   const defeated = new Set(racerSave.defeated), target = racerTarget();
   updateRacerChip();
+  const hub = document.getElementById('racer-hub');
+  const keepTracks = hub.querySelector('.rc-tracks'), keepCars = hub.querySelector('.rc-cars');
+  const kx = keepTracks ? keepTracks.scrollLeft : null, kc = keepCars ? keepCars.scrollLeft : null, ky = hub.scrollTop;
   const targetCard = target
-    ? `<div class="rc-target"><div class="rc-target-icon">🎯</div><div><div class="rc-target-title">目前挑戰目標：${target.name}</div>
-        <div class="rc-target-sub">在正賽中跑贏他，就能解鎖他的座駕「${RACER_CARS[target.car].name}」。每場比賽只會推進一個目標，要一個一個慢慢來。</div></div></div>`
-    : `<div class="rc-target"><div class="rc-target-icon">🏆</div><div><div class="rc-target-title">你已擊敗全部 9 位對手！</div>
-        <div class="rc-target-sub">繼續挑戰各賽道的最快圈速，或把愛車改裝到極限。</div></div></div>`;
+    ? `<div class="rc-target"><div class="rc-target-icon">🎯</div><div><div class="rc-target-title">挑戰目標：${target.name}</div>
+        <div class="rc-target-sub">正賽跑贏他，就能解鎖他的座駕「${RACER_CARS[target.car].name}」。</div></div></div>`
+    : `<div class="rc-target"><div class="rc-target-icon">🏆</div><div><div class="rc-target-title">已擊敗全部 9 位對手！</div>
+        <div class="rc-target-sub">繼續刷各賽道的最快圈速，或把愛車改裝到極限。</div></div></div>`;
   const tracks = RACER_TRACKS.map(t => {
     const ok = racerUnlockedTrack(t), best = racerSave.bestPos[t.id], lap = racerSave.bestLap[t.id];
     return `<div class="rc-track ${racerSave.track === t.id ? 'sel' : ''} ${ok ? '' : 'locked'}" onclick="racerPickTrack('${t.id}')" style="color:${t.ink};background:linear-gradient(160deg,${t.sky[0]},${t.sky[1]})">
       <div class="rc-track-icon">${t.icon}</div><div class="rc-track-name">${t.flag} ${t.city}</div><div class="rc-track-kind">${t.kind === 'street' ? '🏙️ 街道賽' : '🏁 專屬賽道'}・${(t.data.realLen / 1000).toFixed(1)} km</div>
-      <div class="rc-track-sub">${ok ? (best ? `最佳 第 ${best} 名` : '尚未完賽') : `🔒 累計擊敗 ${t.need} 位對手解鎖`}${ok && lap ? `<br>⏱ ${racerFmtLap(lap)}` : ''}</div></div>`;
+      <div class="rc-track-sub">${ok ? (best ? `最佳 第 ${best} 名` : '尚未完賽') : `🔒 擊敗 ${t.need} 位對手解鎖`}${ok && lap ? `<br>⏱ ${racerFmtLap(lap)}` : ''}</div></div>`;
   }).join('');
   const carsHtml = Object.keys(RACER_CARS).map(id => {
     const car = RACER_CARS[id], ok = racerUnlockedCar(id), rival = RACER_RIVALS.find(r => r.car === id);
-    const tune = racerSave.tunes[id] || {}, st = racerStats(id, tune), cd = racerCond(id);
+    const tune = racerSave.tunes[id] || {}, st = racerStats(id, tune);
     const lv = RACER_PART_IDS.reduce((s, k) => s + (tune[k] || 0), 0);
     return `<div class="rc-car ${racerSave.car === id ? 'sel' : ''}" onclick="racerPickCar('${id}')">
       <canvas width="288" height="180" data-car="${id}"></canvas>
-      <div class="rc-car-name">${car.name}</div><div class="rc-car-maker">${car.maker}${lv ? ` ・ 🔧 改裝 ${lv} 級` : ''}</div>
-      ${rcStatBar('極速', (st.kmh - 100) / 150, `${Math.round(st.kmh)}`)}${rcStatBar('加速', (st.acc - 0.9) / 1.0, st.acc.toFixed(2))}${rcStatBar('操控', (st.hnd - 0.9) / 1.1, st.hnd.toFixed(2))}
-      ${ok ? `${rcCondBarHtml('車身', cd.dur)}${rcCondBarHtml('輪胎', cd.tire)}` : ''}
-      ${racerOwnsReal(id) ? '<div class="rc-own">⭐ 收藏同款</div>' : ''}
-      ${ok ? '' : `<div class="rc-lock">🔒<br>擊敗「${rival.name}」<br>或收藏同款 Tomica<br>解鎖</div>`}</div>`;
+      <div class="rc-car-name">${car.name}</div><div class="rc-car-maker">${car.maker}${lv ? ` ・ 🔧 ${lv} 級` : ''}</div>
+      ${rcStatBar('極速', (st.kmh - 100) / 150, `${Math.round(st.kmh)}`)}${rcStatBar('操控', (st.hnd - 0.9) / 1.1, st.hnd.toFixed(2))}
+      ${racerOwnsReal(id) ? '<div class="rc-own">⭐ 收藏</div>' : ''}
+      ${ok ? '' : `<div class="rc-lock">🔒<br>擊敗「${rival.name}」<br>或收藏同款<br>Tomica 解鎖</div>`}</div>`;
   }).join('');
   const rivals = RACER_RIVALS.map(r => {
     const done = defeated.has(r.id), isTarget = target && target.id === r.id;
@@ -7010,20 +7074,24 @@ function renderRacerHub() {
       <div><div class="rc-rival-name">${r.name}</div><div class="rc-rival-sub">${RACER_CARS[r.car].name}・實力 ${'★'.repeat(Math.ceil(r.skill * 5 - 2))}</div></div>
       <div class="rc-rival-st ${done ? 'done' : isTarget ? 'now' : ''}">${done ? '✅ 已擊敗' : isTarget ? '🎯 挑戰中' : '🔒 尚未輪到'}</div></div>`;
   }).join('');
-  const sel = RACER_CARS[racerSave.car];
-  const hub = document.getElementById('racer-hub');
+  const sel = RACER_CARS[racerSave.car], st0 = racerSave.track, tsel = RACER_TRACKS.find(t => t.id === st0) || RACER_TRACKS[0], cd = racerCond(racerSave.car);
   hub.innerHTML = `${targetCard}
-    <div class="rc-quick"><button class="rc-btn-sm" onclick="racerOpenSolo()">🏔️ 地區個人賽</button><button class="rc-btn-sm" onclick="racerOpenBoard()">🏆 圈速排行榜</button><button class="rc-btn-sm" onclick="racerOpenTune()">🔧 改裝・維修・儀表板</button></div>
-    <div class="rc-sec-title">🏁 選擇賽道</div><div class="rc-tracks">${tracks}</div>
-    <div class="rc-sec-title">🚗 選擇座駕<button class="rc-btn-sm" onclick="racerOpenTune()">🔧 改裝「${sel.name}」</button></div>
-    <div class="rc-cars">${carsHtml}</div>
-    <div class="rc-sec-title">⚔️ 對手（共 9 台，加上你一共 10 台）</div>${rivals}
-    <div class="rc-credit">賽道資料：F1 賽道的真實路線 © bacinger/f1-circuits（MIT）；山道路線 © OpenStreetMap contributors（ODbL）；高程 SRTM（OpenTopoData）。轉角與高低差依真實資料，長度依比例縮短、過尖的彎會拉長，方便遊玩。</div>`;
+    <div class="rc-sec-title">🏁 ① 選賽道<button class="rc-btn-sm" onclick="racerOpenBoard()">🏆 排行榜</button></div><div class="rc-tracks">${tracks}</div>
+    <div class="rc-sec-title">🚗 ② 選座駕<button class="rc-btn-sm" onclick="racerOpenTune()">🔧 改裝・維修</button></div><div class="rc-cars">${carsHtml}</div>
+    <div class="rc-sel-cond">${sel.name}　${rcCondBarHtml('車身', cd.dur)}${rcCondBarHtml('輪胎', cd.tire)}</div>
+    <details class="rc-fold"><summary>⚔️ 對手名單（9 位）</summary>${rivals}</details>
+    <div class="rc-credit">賽道資料：F1 賽道的真實路線 © bacinger/f1-circuits（MIT）；山道路線 © OpenStreetMap contributors（ODbL）；高程 SRTM（OpenTopoData）。</div>`;
   hub.querySelectorAll('canvas[data-car]').forEach(cv => {
     const x = cv.getContext('2d'), u = cv.width * 0.4;
     drawRacerCar(x, cv.dataset.rival ? RACER_CARS[cv.dataset.car] : racerCarView(cv.dataset.car), cv.width / 2, cv.height - 14, u, racerPreviewOpt());
   });
+  const t2 = hub.querySelector('.rc-tracks'), c2 = hub.querySelector('.rc-cars');
+  const center = (box) => { const e = box && box.querySelector('.sel'); if (e) box.scrollLeft = e.offsetLeft - (box.clientWidth - e.offsetWidth) / 2; };
+  if (kx === null) { center(t2); center(c2); } else { t2.scrollLeft = kx; c2.scrollLeft = kc; hub.scrollTop = ky; }
+  rcSetBar(`<button class="btn-submit" onclick="racerOpenPrep()">🏁 下一步：賽前準備<small>${tsel.flag} ${tsel.city}・${sel.name}</small></button>`);
 }
+// 底部固定的主要動作列（每個畫面自己決定按鈕）
+function rcSetBar(html) { const b = document.getElementById('racer-start-bar'); b.innerHTML = html; b.style.display = html ? '' : 'none'; }
 window.racerPickTrack = (id) => {
   const t = RACER_TRACKS.find(x => x.id === id);
   if (!racerUnlockedTrack(t)) { showToast(`累計擊敗 ${t.need} 位對手才能解鎖「${t.name}」`); return; }
@@ -7050,27 +7118,28 @@ function renderRacerPrep() {
   const qualiHtml = solo ? '' : `<div class="rc-sec-title">⏱ 排位賽<small>決定正賽起跑位置</small></div>
     <div class="rc-card">
       ${P.meMs ? `<div class="rc-quali-time">${racerFmtLap(P.meMs)}</div><div class="rc-claim-txt">你的排位成績　→　正賽 <b>P${pos}</b> 起跑${pos === 1 ? '（竿位！）' : ''}</div>`
-        : `<div class="rc-claim-txt">單獨跑一圈計時（滾動起跑），成績最快的排在最前面；像 F1 一樣兩列交錯起跑。<br>沒跑排位賽就會從<b>最後一位 P10</b> 起跑。</div>`}
-      <div class="rc-res-btns" style="margin-top:12px"><button class="btn-submit" onclick="racerStartQuali()">⏱ ${P.meMs ? '再跑一次排位' : '開始排位賽'}</button></div>
-      <div class="rc-res-btns" style="margin-top:8px"><button class="btn-submit" style="background:${P.meMs ? 'var(--red)' : 'var(--bg3)'};color:${P.meMs ? '#fff' : 'var(--text)'}" onclick="racerStartRace()">🏁 ${P.meMs ? `開始正賽（P${pos} 起跑）` : '跳過排位，直接正賽（P10 起跑）'}</button></div>
+        : `<div class="rc-claim-txt">單獨跑一圈計時，成績最快的排在最前面。<b>沒跑排位賽就從最後一位 P10 起跑</b>，不過落後的車會有後追加速。</div>`}
     </div>`;
+  rcSetBar(solo
+    ? `<div class="rc-bar-row"><button class="btn-submit btn-ghost" onclick="racerSoloPrep('${tdef.id}','${P.solo === 'attack' ? 'duel' : 'attack'}')">${P.solo === 'attack' ? '⚔️ 改單挑' : '⏱ 改計時賽'}</button><button class="btn-submit" onclick="${P.solo === 'attack' ? 'racerStartAttack()' : 'racerStartDuel()'}">${P.solo === 'attack' ? '⏱ 開始計時賽' : '⚔️ 開始單挑'}</button></div>`
+    : `<div class="rc-bar-row"><button class="btn-submit ${P.meMs ? 'btn-ghost' : ''}" onclick="racerStartQuali()">⏱ ${P.meMs ? '再跑排位' : '排位賽'}${P.meMs ? '' : '<small>建議先跑</small>'}</button><button class="btn-submit ${P.meMs ? '' : 'btn-ghost'}" onclick="racerStartRace()">🏁 正賽<small>${P.meMs ? `P${pos} 起跑` : 'P10 起跑'}</small></button></div>`);
   el.innerHTML = `<div class="rc-card rc-env" style="background:linear-gradient(160deg,${tdef.sky[0]},${tdef.sky[1]});color:${tdef.ink}">
       <div class="rc-env-title">${tdef.icon} ${tdef.name}</div><div class="rc-env-sub">${tdef.flag} ${solo ? racerCountryOf(tdef).name : `${tdef.city}・${tdef.country}`}　${solo ? '🏔️ 山道（路窄、護欄、連續彎）' : tdef.kind === 'street' ? '🏙️ 街道賽（兩側護牆，撞上去會受損）' : '🏁 專屬賽道（路寬、有路肩與草地緩衝）'}</div>
       ${solo ? '' : `<div class="rc-claim-txt" style="margin:-2px 0 8px;color:inherit;opacity:.85">📏 真實賽道 ${(tdef.data.realLen / 1000).toFixed(2)} km・🌀 ${tdef.data.corners} 個彎・海拔高低差 ${tdef.data.elevMax - tdef.data.elevMin} m</div>`}
       <div class="rc-env-grid">
-        <div><b>${rain ? '🌧️ 雨天' : '☀️ 晴天'}</b><small>${rain ? `雨量 ${Math.round(env.intensity * 100)}%，路面濕滑` : '乾燥路面'}</small></div>
-        <div><b>💨 ${env.wind.toFixed(1)} m/s</b><small>每一段的風向不同：順風加速、逆風減速、側風會推車</small></div>
-        <div><b>🛣️ ${sf.name}</b><small>抓地 ${Math.round(sf.grip * 100)}%・輪胎損耗 ×${sf.wear}・撞擊損傷 ×${sf.dmg}${sf.rough ? '・路面粗糙會慢慢傷車' : ''}</small></div>
+        <div><b>${rain ? '🌧️ 雨天' : '☀️ 晴天'}</b><small>${rain ? `雨量 ${Math.round(env.intensity * 100)}%・路面濕滑` : '路面乾燥'}</small></div>
+        <div><b>💨 ${env.wind.toFixed(1)} m/s</b><small>順風加速、逆風減速、側風推車</small></div>
+        <div><b>🛣️ ${sf.name}</b><small>抓地 ${Math.round(sf.grip * 100)}%・胎耗 ×${sf.wear}${sf.rough ? '・粗糙傷車' : ''}</small></div>
       </div></div>
     <div class="rc-sec-title">🚗 ${car.name} 車況</div>
     <div class="rc-card">${rcCondBarHtml('車身', cd.dur)}${rcCondBarHtml('輪胎', cd.tire)}
       <div class="rc-claim-txt" style="margin-top:8px">目前車況使極速／加速約為全新時的 ${Math.round(durF * 100)}%。${wearTxt}</div>
       <button class="rc-btn-sm" style="margin-top:10px" onclick="racerOpenTune(true)">🔧 前往維修</button></div>
-    <div class="rc-card" style="margin-top:12px"><div class="rc-claim-txt">🚀 <b>後追加速</b>：落後的車，速度上限會往「第一名的最高車速」靠攏——最後一名可以比第一名快 10%，中間按名次平均分配。所有車（包含你）都一樣，所以落後的一定追得上，領先的人要靠駕駛技術守住。</div></div>
     <div class="rc-sec-title">🛞 選擇輪胎<small>雨胎免費</small></div>
     ${tireCard('normal', '🛞', '一般胎', '速度快；乾地抓地好。<b>下雨天很容易打滑</b>。', !rain)}
     ${tireCard('rain', '🌧️', '熱熔雨胎（免費）', `雨天抓地強、<b>不易打滑</b>；但速度慢約 7%，在乾地上磨得特別快。`, rain)}
-    ${solo ? soloPrepBottom(tdef, P) : qualiHtml}`;
+    ${solo ? soloPrepBottom(tdef, P) : qualiHtml}
+    <div class="rc-claim-txt" style="margin-top:14px;opacity:.8">🚀 後追加速：落後的車會自動追趕（最後一名最多比第一名快 10%），所有車都一樣；領先的人要靠技術守住。</div>`;
   el.scrollTop = keep;
 }
 window.racerPickTire = (k) => { racerPrep.tire = k; renderRacerPrep(); };
@@ -7114,7 +7183,7 @@ function renderRacerSolo() {
         <div class="rc-road-btns"><button class="rc-btn-sm" ${ok ? '' : 'disabled'} onclick="racerSoloPrep('${t.id}','duel')">⚔️ 單挑</button><button class="rc-btn-sm" ${ok ? '' : 'disabled'} onclick="racerSoloPrep('${t.id}','attack')">⏱ 計時賽</button></div></div></div>`;
   }).join('');
   el.innerHTML = `<div class="rc-card" style="margin-top:0"><div class="rc-card-title">🏔️ 地區個人賽<small>已贏 ${wins} / ${total} 場單挑</small></div>
-      <div class="rc-claim-txt">選一個區域、一個國家，挑戰當地的知名山道。每條山道有一位在地傳奇車手，跑贏他就能解鎖更難、更有名的山道；也可以單獨跑計時賽，把紀錄上排行榜。</div></div>
+      <div class="rc-claim-txt">選區域與國家，挑戰當地知名山道：跑贏傳奇車手就解鎖更難的路，也能單跑計時賽、把紀錄放上排行榜。</div></div>
     <div class="rc-regions">${regTabs}</div>
     <div class="rc-tabs" style="margin-top:10px">${chips}</div>
     ${cards || '<div class="rh-empty" style="padding:20px 4px">這個國家目前還沒有山道。</div>'}
@@ -7140,9 +7209,7 @@ function soloPrepBottom(tdef, P) {
     <div class="rc-sec-title">${duel ? '⚔️ 單挑對手' : '⏱ 計時賽'}</div>
     <div class="rc-card">${duel
       ? `<div class="rc-card-title">${rv.name}<small>${RACER_CARS[rv.car].name}</small></div><div class="rc-claim-txt">「${rv.quote}」<br>跑贏他就算贏下這條山道，會解鎖更難的山道。名次越後面速度加成越多，領先的人要守住很不容易。</div>`
-      : `<div class="rc-claim-txt">單獨跑一趟，成績會計入這條山道的排行榜。傳奇車手大約跑 <b>${racerFmtLap(refMs)}</b>，你能比他快嗎？<br>你的紀錄：<b>${racerSave.bestLap[tdef.id] ? racerFmtLap(racerSave.bestLap[tdef.id]) : '尚無'}</b></div>`}
-      <div class="rc-res-btns" style="margin-top:12px"><button class="btn-submit" onclick="${duel ? 'racerStartDuel()' : 'racerStartAttack()'}">${duel ? '⚔️ 開始單挑' : '⏱ 開始計時賽'}</button></div>
-      <div class="rc-res-btns" style="margin-top:8px"><button class="btn-submit" style="background:var(--bg3);color:var(--text)" onclick="racerSoloPrep('${tdef.id}','${duel ? 'attack' : 'duel'}')">${duel ? '⏱ 改跑計時賽' : '⚔️ 改成單挑'}</button></div></div>
+      : `<div class="rc-claim-txt">單獨跑一趟，成績會計入這條山道的排行榜。傳奇車手大約跑 <b>${racerFmtLap(refMs)}</b>，你能比他快嗎？<br>你的紀錄：<b>${racerSave.bestLap[tdef.id] ? racerFmtLap(racerSave.bestLap[tdef.id]) : '尚無'}</b></div>`}</div>
     <div class="rc-credit">路線資料：© OpenStreetMap contributors（ODbL）；高程：SRTM（OpenTopoData）。</div>`;
 }
 
@@ -7174,8 +7241,8 @@ function rcShowDuel() {
     ${!win ? `<div class="rc-miss">${rv.name}說：「${rv.quote}」——去改裝工廠升級愛車，或換個天氣／輪胎再挑戰。</div>` : ''}
     <div class="rc-card" style="text-align:left;margin-top:12px"><div class="rc-card-title" style="font-size:13px">🔧 賽後車況</div>${rcCondBarHtml('車身', rc.dur * 100)}${rcCondBarHtml('輪胎', rc.tireDur * 100)}
       <div class="rc-claim-txt" style="margin-top:6px">這場耐久 −${dDur}%、輪胎 −${dTire}%。</div></div>
-    <div class="rc-res-btns"><button class="btn-submit" onclick="racerSoloPrep('${t.id}','duel')">🔁 再單挑一次</button><button class="btn-submit" style="background:var(--bg3);color:var(--text)" onclick="racerOpenTune(true)">🛠️ 維修／改裝</button></div>
-    <div class="rc-res-btns" style="margin-top:8px"><button class="btn-submit" style="background:var(--bg3);color:var(--text)" onclick="racerOpenSolo()">返回山道列表</button></div>`;
+    `;
+  rcSetBar(`<div class="rc-bar-row"><button class="btn-submit btn-ghost" onclick="racerOpenTune(true)">🛠️ 維修・改裝</button><button class="btn-submit" onclick="racerSoloPrep('${t.id}','duel')">🔁 再單挑一次</button></div>`);
   updateRacerChip();
   rcShowPanel('result');
   document.getElementById('racer-result').scrollTop = 0;
@@ -7196,8 +7263,8 @@ function rcShowAttack() {
     ${r.improved ? `<div class="rc-claim-txt" style="color:#4ade80;margin-top:6px">🏆 刷新你的個人紀錄！${prevBest ? `（快了 ${((prevBest - ms) / 1000).toFixed(3)} 秒）` : ''}${currentUser ? '已更新排行榜' : '（登入後會上傳排行榜）'}</div>` : ''}
     ${ms ? `<div class="rc-claim-txt" style="margin-top:8px">傳奇車手「${t.rival.name}」約 ${racerFmtLap(refMs)}　${beat ? '——你比他快！' : '——再練練就能超越他。'}</div>` : ''}
     <div class="rc-res-sub" style="margin-top:6px">這一趟：車身 ${Math.round(rc.dur * 100)}%　輪胎 ${Math.round(rc.tireDur * 100)}%</div>
-    <div class="rc-res-btns" style="margin-top:16px"><button class="btn-submit" onclick="racerSoloPrep('${t.id}','attack')">🔁 再跑一次</button><button class="btn-submit" style="background:var(--bg3);color:var(--text)" onclick="racerSoloPrep('${t.id}','duel')">⚔️ 去單挑</button></div>
-    <div class="rc-res-btns" style="margin-top:8px"><button class="btn-submit" style="background:var(--bg3);color:var(--text)" onclick="racerOpenSolo()">返回山道列表</button></div>`;
+    `;
+  rcSetBar(`<div class="rc-bar-row"><button class="btn-submit btn-ghost" onclick="racerSoloPrep('${t.id}','duel')">⚔️ 去單挑</button><button class="btn-submit" onclick="racerSoloPrep('${t.id}','attack')">🔁 再跑一次</button></div>`);
   updateRacerChip();
   rcShowPanel('result');
   document.getElementById('racer-result').scrollTop = 0;
@@ -7205,10 +7272,12 @@ function rcShowAttack() {
 
 // ── 改裝・維修・儀表板 ──
 window.racerOpenTune = (toRepair) => {
+  if (rc.panel !== 'tune') rc.tuneFrom = rc.panel;
+  rc.tuneTab = toRepair === true ? 'repair' : (rc.tuneTab || 'parts');
   rcShowPanel('tune'); renderRacerTune();
   const el = document.getElementById('racer-tune');
   el.scrollTop = 0;
-  if (toRepair === true) { const r = document.getElementById('tune-repair'); if (r) el.scrollTop = r.offsetTop - 70; }
+  if (toRepair === true) { const r = el.querySelector('.rc-seg'); if (r) el.scrollTop = r.offsetTop - 6; }
 };
 // ── 改裝零件圖示：每個零件都畫成擬真的小插圖（渦輪引擎、避震彈簧、輪胎鋁圈、排氣管、碳纖維板、防滾籠），
 // 等級越高外觀越高級（顏色、零件數量、材質都會變），而且會動（渦輪旋轉、彈簧彈跳、輪子轉動、尾管噴火）──
@@ -7408,10 +7477,18 @@ function renderRacerTune() {
   const needBody = Math.ceil((100 - cd.dur) / RACER_REPAIR.body.pct), needTire = Math.ceil((100 - cd.tire) / RACER_REPAIR.tire.pct);
   const claimTxt = currentUser
     ? `你的收藏：已收藏 ${cl.owned} 台、公開展示 ${cl.pub} 台。每多收藏一台、每多公開展示一台，各可換 ${RACER_COLLECT_PTS} 積分。只計算「超過你歷史最高紀錄」的部分，所以新增後再刪除不會重複領取。`
-    : '登入後，到「新增」把你的 Tomica 收藏上傳到車庫、或公開到展示廳，就能換到改裝積分。';
+    : '登入後，到「車庫」按右上角「＋」把你的 Tomica 收藏新增進來、或公開到展示廳，就能換到改裝積分。';
+  const tab = rc.tuneTab || 'parts';
+  const tabBar = `<div class="rc-seg">${[['parts', '🔧 零件'], ['repair', '🛠️ 維修'], ['look', '🎨 外觀・儀表']].map(([k, n]) => `<button class="${tab === k ? 'on' : ''}" onclick="racerTuneTab('${k}')">${n}</button>`).join('')}</div>`;
   el.innerHTML = `<div class="rc-preview"><canvas id="tune-car" width="720" height="380"></canvas></div>
     <div class="rc-card"><div class="rc-card-title">${car.name}　<small>目前積分 💰 ${bal.toLocaleString()}</small></div>${stats}${st.own ? `<div class="rc-claim-txt" style="margin-top:8px;color:var(--gold)">⭐ 你收藏了「${escapeHtml((racerCollectionLinks()[id][0].name) || '')}」→ 實車加成：極速 +3、加速 +3%、操控 +3%</div>` : ''}</div>
-    <div class="rc-sec-title" id="tune-repair">🛠️ 維修廠<small>每次只能修固定％</small></div>
+    ${tabBar}
+    ${tab === 'parts' ? `    <div class="rc-sec-title">🔧 改裝零件</div>${parts}
+    <div class="rc-sec-title">💰 賺取積分</div>
+    <div class="rc-card"><div class="rc-claim-txt">🏁 比賽獎金：名次越前獎金越高，後面的賽道倍率更高，雨戰再加成；第一次勝過挑戰目標還有額外 ${RACER_TARGET_BONUS} 積分，排位賽拿竿位並完賽再加 ${RACER_POLE_BONUS}。</div>
+      <div class="rc-claim-txt" style="margin-top:8px">🚗 ${claimTxt}</div>
+      <button class="btn-submit" style="margin-top:12px" ${cl.pts ? '' : 'disabled'} onclick="racerClaim()">${cl.pts ? `領取收藏獎勵 +${cl.pts} 積分` : '目前沒有可領取的收藏積分'}</button></div>` : ''}
+    ${tab === 'repair' ? `    <div class="rc-sec-title" id="tune-repair">🛠️ 維修廠<small>每次只能修固定％</small></div>
     <div class="rc-card">
       ${rcCondBarHtml('車身', cd.dur)}
       <div class="rc-repair"><div class="rc-claim-txt">撞擊會讓耐久下降，耐久越低車越慢（最低剩 6 成）。每次維修 +${RACER_REPAIR.body.pct}%，費用 ${costBody} 積分；修到全新還需要 ${needBody} 次。</div>
@@ -7421,18 +7498,15 @@ function renderRacerTune() {
       <div class="rc-repair"><div class="rc-claim-txt">輪胎會隨比賽磨損，磨光後仍可出賽但很容易打滑。每次更換 +${RACER_REPAIR.tire.pct}%，費用 ${costTire} 積分；換到全新還需要 ${needTire} 次。</div>
         <button class="rc-buy" ${cd.tire >= 99.95 || bal < payTire ? 'disabled' : ''} onclick="racerRepair('tire')">${cd.tire >= 99.95 ? '全新' : `換胎 💰${payTire}`}</button></div>
     </div>
-    <div class="rc-sec-title">🎛️ 儀表板款式<small>引擎等級越高，可選越現代</small></div>
-    <div class="rc-dstyles">${dashCards}</div>
-    <div class="rc-dash-chips">${dashChips}</div>
-    <div class="rc-sec-title">🔧 改裝零件</div>${parts}
-    <div class="rc-sec-title">🎨 車身顏色</div>
+` : ''}
+    ${tab === 'look' ? `    <div class="rc-sec-title">🎨 車身顏色</div>
     <div class="rc-card"><div class="rc-swatches">${swatches}</div>
       <div class="rc-color-row"><label>自訂顏色 <input type="color" value="${cur}" onchange="racerSetColor(this.value)"></label>
       <button class="rc-btn-sm" onclick="racerResetColor()">還原原廠色</button></div></div>
-    <div class="rc-sec-title">💰 賺取積分</div>
-    <div class="rc-card"><div class="rc-claim-txt">🏁 比賽獎金：名次越前獎金越高，後面的賽道倍率更高，雨戰再加成；第一次勝過挑戰目標還有額外 ${RACER_TARGET_BONUS} 積分，排位賽拿竿位並完賽再加 ${RACER_POLE_BONUS}。</div>
-      <div class="rc-claim-txt" style="margin-top:8px">🚗 ${claimTxt}</div>
-      <button class="btn-submit" style="margin-top:12px" ${cl.pts ? '' : 'disabled'} onclick="racerClaim()">${cl.pts ? `領取收藏獎勵 +${cl.pts} 積分` : '目前沒有可領取的收藏積分'}</button></div>`;
+    <div class="rc-sec-title">🎛️ 儀表板款式<small>引擎等級越高，可選越現代</small></div>
+    <div class="rc-dstyles">${dashCards}</div>
+    <div class="rc-dash-chips">${dashChips}</div>
+` : ''}`;
   rcStartTurntable(document.getElementById('tune-car'), id, 1 - cd.dur / 100);
   rcStartPartLoop();
   el.querySelectorAll('canvas[data-style]').forEach(c2 => {
@@ -7441,6 +7515,7 @@ function renderRacerTune() {
   });
   el.scrollTop = keep;
 }
+window.racerTuneTab = (k) => { rc.tuneTab = k; renderRacerTune(); document.getElementById('racer-tune').scrollTop = 0; };
 window.racerBuy = (partId) => {
   const id = racerSave.car, part = RACER_PARTS.find(p => p.id === partId);
   if (!racerSave.tunes[id]) racerSave.tunes[id] = racerNormTune({});
@@ -7574,8 +7649,10 @@ async function racerSyncTrackList() {
 window.openRacer = () => {
   racerSyncTrackList();
   const modal = document.getElementById('racer-modal');
-  rcShowPanel('hub'); renderRacerHub();
+  rc.entry = null;
+  document.body.classList.add('rc-open');
   modal.style.display = 'flex';
+  rcShowPanel('hub'); renderRacerHub();
   requestAnimationFrame(() => modal.classList.add('open'));
 };
 function rcAbortSession() { // 中途離開：已經發生的磨損和損壞照算，但沒有成績和獎金
@@ -7585,23 +7662,44 @@ function rcAbortSession() { // 中途離開：已經發生的磨損和損壞照�
 window.closeRacer = () => {
   const modal = document.getElementById('racer-modal');
   modal.classList.remove('open');
+  document.body.classList.remove('rc-open');
   setTimeout(() => { if (!modal.classList.contains('open')) modal.style.display = 'none'; }, 350);
+  rc.paused = false; document.getElementById('racer-pause').style.display = 'none';
   rcAbortSession();
   saveRacerSave();
   updateGameMenuMeta();
 };
 window.racerBack = () => {
   if (rc.panel === 'hub') { closeRacer(); return; }
-  if (rc.panel === 'stage') { rcAbortSession(); saveRacerSave(); rcShowPanel('prep'); renderRacerPrep(); return; }
+  if (rc.panel === 'stage') { // 比賽中按返回：先暫停，問清楚要不要離開
+    if (!rc.resultShown && (rc.state === 'race' || rc.state === 'countdown')) rcPause(); else rcQuit();
+    return;
+  }
+  if (rc.entry === 'home' && (rc.panel === 'board' || rc.panel === 'solo' || rc.panel === 'tune')) { closeRacer(); return; }
+  if (rc.panel === 'tune' && rc.tuneFrom === 'prep' && racerPrep) { rcShowPanel('prep'); renderRacerPrep(); return; }
+  if (rc.panel === 'tune' && rc.tuneFrom === 'result' && racerPrep) { rcShowPanel('prep'); renderRacerPrep(); return; }
   if (rc.panel === 'result' && (rc.mode === 'duel' || rc.attack)) { racerOpenSolo(); return; }
   if (rc.panel === 'prep' && racerPrep && racerPrep.solo) { racerOpenSolo(); return; }
   if (rc.panel === 'result' && rc.mode === 'quali' && !rc.backToHub) { rcShowPanel('prep'); renderRacerPrep(); return; }
   rcStopLoop(); rcShowPanel('hub'); renderRacerHub();
 };
+// 暫停／繼續／離開（比賽中按返回、或切到別的 App 時會自動暫停）
+window.rcPause = () => {
+  if (rc.paused || rc.panel !== 'stage') return;
+  rc.paused = true; rc.ptrs.clear(); rc.touch.l = rc.touch.r = rc.touch.b = 0; rc.keys.l = rc.keys.r = rc.keys.b = 0;
+  document.getElementById('racer-pause').style.display = 'flex';
+};
+window.rcResume = () => { rc.paused = false; rc.last = performance.now(); rc.acc = 0; document.getElementById('racer-pause').style.display = 'none'; };
+window.rcQuit = () => {
+  rc.paused = false; document.getElementById('racer-pause').style.display = 'none';
+  rcAbortSession(); saveRacerSave();
+  if (racerPrep) { rcShowPanel('prep'); renderRacerPrep(); } else { rcShowPanel('hub'); renderRacerHub(); }
+};
+document.addEventListener('visibilitychange', () => { if (document.hidden && rc.panel === 'stage' && !rc.resultShown && (rc.state === 'race' || rc.state === 'countdown')) rcPause(); });
 function rcBeginStage(mode) {
   rcSetupCanvas();
   rcSetupSession(mode);
-  rc.committed = false; rc.backToHub = false;
+  rc.committed = false; rc.backToHub = false; rc.paused = false; document.getElementById('racer-pause').style.display = 'none';
   rcShowPanel('stage');
   rcSizeCanvas();
   rc.last = performance.now(); rc.acc = 0;
@@ -7635,9 +7733,8 @@ function rcShowQuali() {
     <div class="rc-res-sub">${rc.tdef.icon} ${rc.tdef.name} ・ 排位賽　${ms ? `→ 正賽 <b>P${pos}</b> 起跑${pole ? '（竿位）' : ''}` : '→ 沒完成一圈，將從 P10 起跑'}</div>${note}
     <div class="rc-res-sub" style="margin-top:6px">這一圈：車身 ${Math.round(rc.dur * 100)}%　輪胎 ${Math.round(rc.tireDur * 100)}%</div>
     <div class="rc-res-list">${rows}</div>
-    <div class="rc-res-btns"><button class="btn-submit" onclick="racerStartRace()">🏁 開始正賽（P${pos}）</button></div>
-    <div class="rc-res-btns" style="margin-top:8px"><button class="btn-submit" style="background:var(--bg3);color:var(--text)" onclick="racerStartQuali()">⏱ 再跑一次排位</button>
-      <button class="btn-submit" style="background:var(--bg3);color:var(--text)" onclick="racerBack()">🛞 換胎／維修</button></div>`;
+    <div class="rc-claim-txt" style="margin-top:14px"><a href="#" onclick="racerBack();return false" style="color:var(--text2)">🛞 想換胎或維修？回賽前準備</a></div>`;
+  rcSetBar(`<div class="rc-bar-row"><button class="btn-submit btn-ghost" onclick="racerStartQuali()">⏱ 再跑排位</button><button class="btn-submit" onclick="racerStartRace()">🏁 開始正賽<small>P${pos} 起跑</small></button></div>`);
   saveRacerSave();
   updateRacerChip();
   rcShowPanel('result');
@@ -7694,8 +7791,8 @@ function rcShowResult() {
       <div class="rc-claim-txt" style="margin-top:6px">這場耐久 −${dDur}%、輪胎 −${dTire}%。${lowCond ? '車況偏低，建議先到維修廠花積分修一修再出賽。' : ''}</div></div>
     ${unlockHtml}${missMsg}
     <div class="rc-res-list">${rows}</div>
-    <div class="rc-res-btns"><button class="btn-submit" onclick="racerAgain()">🔁 再跑一場</button><button class="btn-submit" style="background:var(--bg3);color:var(--text)" onclick="racerOpenTune(true)">🛠️ 維修／改裝</button></div>
-    <div class="rc-res-btns" style="margin-top:8px"><button class="btn-submit" style="background:var(--bg3);color:var(--text)" onclick="rc.backToHub=true;racerBack()">返回選單</button></div>`;
+    `;
+  rcSetBar(`<div class="rc-bar-row"><button class="btn-submit btn-ghost" onclick="racerOpenTune(true)">🛠️ 維修・改裝</button><button class="btn-submit" onclick="racerAgain()">🔁 再跑一場</button></div>`);
   updateRacerChip();
   rcShowPanel('result');
   document.getElementById('racer-result').scrollTop = 0;
@@ -8148,7 +8245,7 @@ window.goTo = (screen) => {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + screen).classList.add('active');
   document.querySelectorAll('.nav-item, .nav-fab').forEach(n => n.classList.remove('active'));
-  const navEl = document.getElementById('nav-' + screen);
+  const navEl = document.getElementById('nav-' + (screen === 'upload' ? 'garage' : screen));
   if (navEl) navEl.classList.add('active');
   if (screen === 'settings') { updatePlanCard(); if (statsPanelOpen) renderStatsPanel(); }
   if (screen === 'wiki') loadShowroom();
