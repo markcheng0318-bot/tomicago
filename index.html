@@ -4694,6 +4694,8 @@ const RC = {
 };
 RC.MAX = RC.MAX_KMH * RC.UPK; // 速度上限（單位／秒），用來換算轉向與彎道推力的比例；1 km/h ＝ 55 單位／秒
 RC.PLAYER_Z = RC.CAM_H * RC.CAM_DEPTH;
+RC.PUSH = 0.28; RC.ACAPK = 0.4 / RC.PUSH; // 彎道外推係數（越小越好過彎）；對手的抓地上限跟著同比例放大，兩邊的比例不變
+RC.STEER_UP = 3.5; RC.STEER_DOWN = 9; // 方向盤打開／回正的速度（每秒）
 function rcKmhToUnits(k) { return k * RC.UPK; }
 
 // 車輛：前 5 台是一開始就能選的經典轎車，後 9 台是對手的座駕（擊敗該對手後解鎖）
@@ -5985,7 +5987,7 @@ function rcAiTimeMs(tdef, env, kmh, aCapBase, dist) {
 }
 function racerRivalMs(tdef, env) {
   const T = buildRacerTrack(tdef), rv = tdef.rival;
-  return rcAiTimeMs(tdef, env, rv.kmh, 9.5 * (0.95 + 0.1 * (rv.pw != null ? rv.pw : tdef.need)), T.routeLen);
+  return rcAiTimeMs(tdef, env, rv.kmh, 9.5 * RC.ACAPK * (0.95 + 0.1 * (rv.pw != null ? rv.pw : tdef.need)), T.routeLen);
 }
 function rcAiEnvF(env) { return rcWeatherSpd(env) * env.surface.spd; }
 function racerRollEnv(tdef) {
@@ -5999,7 +6001,7 @@ function racerNewPrep() {
   const tdef = racerFindTrack(racerSave.track);
   const env = racerRollEnv(tdef), ai = {};
   if (tdef.kind !== 'touge') RACER_RIVALS.forEach(r => { // 山道個人賽沒有排位賽
-    ai[r.id] = Math.round(rcAiTimeMs(tdef, env, rcRivalKmh(r, tdef), 11, buildRacerTrack(tdef).length) * (1 + (Math.random() - 0.5) * 0.04)); // 對手排位成績：用 AI 的跑法預先算一圈的時間，再加一點隨機
+    ai[r.id] = Math.round(rcAiTimeMs(tdef, env, rcRivalKmh(r, tdef), 11 * RC.ACAPK, buildRacerTrack(tdef).length) * (1 + (Math.random() - 0.5) * 0.04)); // 對手排位成績：用 AI 的跑法預先算一圈的時間，再加一點隨機
   });
   racerPrep = { trackId: tdef.id, env, tire: env.weather === 'rain' ? 'rain' : 'normal', ai, meMs: null, qualiTries: 0, solo: null };
   return racerPrep;
@@ -6045,7 +6047,7 @@ function rcSetupSession(modeIn) {
   const slot = grid ? grid.findIndex(g => g.id === 'me') : 0;
   const rivalDef = duel ? tdef.rival : null;
   Object.assign(rc, {
-    mode, attack, p2p, startZ, lapsGP: !p2p && tdef.data.realLen < 4000 ? 2 : 1, aiCap: (duel && tdef.need != null ? 9.5 * (0.95 + 0.1 * (tdef.rival.pw != null ? tdef.rival.pw : tdef.need)) : 11) * tdef.surface.grip * (P.env.weather === 'rain' ? 1 - 0.3 * P.env.intensity : 1),
+    mode, attack, p2p, startZ, lapsGP: !p2p && tdef.data.realLen < 4000 ? 2 : 1, aiCap: (duel && tdef.need != null ? 9.5 * RC.ACAPK * (0.95 + 0.1 * (tdef.rival.pw != null ? tdef.rival.pw : tdef.need)) : 11 * RC.ACAPK) * tdef.surface.grip * (P.env.weather === 'rain' ? 1 - 0.3 * P.env.intensity : 1),
     raceDist: p2p ? T.routeLen : (mode === 'quali' || tdef.data.realLen >= 4000 ? 1 : 2) * len, fieldSize: duel ? 2 : 10,
     lapsTotal: p2p || mode === 'quali' || tdef.data.realLen >= 4000 ? 1 : 2,
     track: T, tdef, carId, carDef, stat, topUnits: rcKmhToUnits(stat.kmh), dashTier: stat.dash, dashStyle: racerDashStyle(carId), targetId: gp && target ? target.id : duel ? 'duel' : null,
@@ -6217,7 +6219,8 @@ function rcStep(dt) {
     const racing = rc.state === 'race';
     const pct = rc.speed / RC.MAX, curve = playerSeg.curve;
     const input = !racing ? 0 : (rc.touch.r || rc.keys.r ? 1 : 0) - (rc.touch.l || rc.keys.l ? 1 : 0);
-    rc.steer += (input - rc.steer) * Math.min(1, dt * 10);
+    // 方向盤是漸進的：按住越久打得越多（約 0.3 秒到底），放開很快回正；短按只會微調，不會一下子甩過頭
+    rc.steer += (input - rc.steer) * Math.min(1, dt * ((input !== 0 && Math.abs(input) > Math.abs(rc.steer) && input * rc.steer >= 0) ? RC.STEER_UP : RC.STEER_DOWN));
     // 打滑：抓地不夠（下雨用一般胎、輪胎磨光、路面差）又在高速過彎時，會隨機打滑——失控往外飄、掉速度
     if (racing && rc.slipT <= 0) {
       rc.slipCd -= dt;
@@ -6231,8 +6234,8 @@ function rcStep(dt) {
     // 高速要靠操控（懸吊／輪胎）才壓得住離心力，抓地不好時更難壓住
     // 全部換成真實尺度：1 段＝1 公尺。彎道需要的側向加速度 a＝v²×曲率；車子的抓地上限約 9.5 m/s²×操控×抓地
     const vm = rc.speed / 200, halfW = RC.ROAD / 200, gC = rcClamp(G, 0.5, 1.15);
-    const steerV = rc.steer * (5 + 5 * pct) * (0.9 + 0.1 * st.hnd) * Math.min(1, G) * (slipping ? 0.35 : 1) / halfW;   // 方向盤能給的橫向速度（約 7 m/s），換算成「路寬的幾倍／秒」
-    const pushV = vm * vm * curve * 0.009 * 0.4 / (halfW * st.hnd * gC);                                               // 彎道把沒人操控的車往外甩的速度
+    const steerV = rc.steer * (4.6 + 3.4 * pct) * (0.9 + 0.1 * st.hnd) * Math.min(1, G) * (slipping ? 0.35 : 1) / halfW;   // 方向盤能給的橫向速度（約 7 m/s），換算成「路寬的幾倍／秒」
+    const pushV = vm * vm * curve * 0.009 * RC.PUSH / (halfW * st.hnd * gC);                                               // 彎道把沒人操控的車往外甩的速度
     rc.pushV = pushV;
     rc.braking = racing && !!(rc.touch.b || rc.keys.b) && rc.speed > 30; // 煞車踏板（畫面右下角）：沒有任何自動減速，彎道要自己判斷、自己踩
     rc.vx += (steerV - pushV + w.cross * 0.12 * (0.4 + pct) / halfW + (slipping ? rc.slipDir * (2 + 4 * pct) / halfW : 0) - rc.vx) * Math.min(1, dt * 5);
@@ -6833,10 +6836,43 @@ function rcDrawControls(c) {
   c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = "800 12px 'Noto Sans TC', sans-serif";
   c.fillText('煞車', P.bx + P.bw / 2, P.by + P.bh - 7);
   c.restore();
-  if (rc.state === 'race' && rc.time < 7 || rc.state === 'countdown') {
-    c.save(); c.globalAlpha = (rc.state === 'race' ? Math.max(0, 1 - (rc.time - 5) / 2) : 1) * 0.55; c.fillStyle = '#fff'; c.font = "900 30px 'Noto Sans TC', sans-serif"; c.textAlign = 'center';
-    c.fillText('◀', 60, RC.H - 112 - 22); c.fillText('▶', 215, RC.H - 112 - 22); c.restore();
+  // 左右兩側的轉向鍵（按畫面左半邊＝向左、右半邊＝向右，按鍵只是標示位置）
+  [[0, '◀', rc.touch.l || rc.keys.l], [1, '▶', rc.touch.r || rc.keys.r]].forEach(([side, ch, on]) => {
+    const bx = side ? RC.W - 70 : 12, by = RC.H - 112 - 84;
+    c.save(); c.globalAlpha = on ? 0.9 : 0.5;
+    c.fillStyle = on ? '#fbbf24' : 'rgba(15,20,30,0.78)'; rcRR(c, bx, by, 58, 70, 16); c.fill();
+    c.strokeStyle = on ? '#fff' : 'rgba(255,255,255,0.4)'; c.lineWidth = 2; c.stroke();
+    c.fillStyle = on ? '#1a1200' : '#fff'; c.textAlign = 'center'; c.font = "900 28px 'Noto Sans TC', sans-serif"; c.fillText(ch, bx + 29, by + 46);
+    c.restore();
+  });
+}
+
+// 前方彎道提示：只是告訴你「前面有彎、建議多快過」，不會替你減速或轉向
+function rcCornerAhead(z, aCap, vm) {
+  const segs = rc.track.segs, n = segs.length, i0 = Math.floor(z / RC.SEG) % n, L = rcClamp(Math.ceil(vm * vm / 18) + 12, 14, 160);
+  let best = null;
+  for (let j = 0; j < L; j++) {
+    const sg = segs[(i0 + j) % n], c = Math.abs(sg.curve); if (c < 0.12) continue;
+    const vs = Math.sqrt(aCap / (c * 0.009)), va = Math.sqrt(vs * vs + 18 * j);
+    if (!best || va < best.va) best = { va, vs, dir: Math.sign(sg.curve), dist: j };
   }
+  return best;
+}
+function rcDrawCornerHint(c) {
+  if (rc.state !== 'race' || rc.finished) return;
+  const gC = rcClamp(rc.grip, 0.5, 1.15), aCap = 9.5 * RC.ACAPK * rc.stat.hnd * gC, vm = rc.speed / 200;
+  const b = rcCornerAhead(rcPlayerZ(), aCap, vm);
+  if (!b) return;
+  const kmh = rc.speed / RC.UPK, allowed = b.va * 200 / RC.UPK, corner = b.vs * 200 / RC.UPK;
+  if (allowed > kmh * 1.3) return;                 // 離需要減速還很遠就先不打擾
+  const over = kmh > allowed * 1.0, flash = over && Math.floor(rc.time * 6) % 2 === 0;
+  const w = 128, x = 116, y = 12;
+  rcPill(c, x, y, w, 38, over ? (flash ? 'rgba(220,38,38,0.92)' : 'rgba(153,27,27,0.88)') : 'rgba(180,83,9,0.82)');
+  c.fillStyle = '#fff'; c.textAlign = 'center';
+  c.font = "800 12px 'Noto Sans TC', sans-serif";
+  c.fillText(`${b.dir > 0 ? '▶' : '◀'} ${over ? '煞車！' : '前方彎道'}`, x + w / 2, y + 16);
+  c.font = "700 11px 'Noto Sans TC', sans-serif";
+  c.fillText(`過彎約 ${Math.max(10, Math.round(corner / 5) * 5)} km/h`, x + w / 2, y + 31);
 }
 function rcDrawHud(c) {
   const W = RC.W, H = RC.H, quali = rc.mode === 'quali';
@@ -6901,6 +6937,7 @@ function rcDrawHud(c) {
   if (rc.bestLap) { rcPill(c, rx, my, 88, 18, 'rgba(0,0,0,0.45)'); c.fillStyle = '#ffd23f'; c.font = "700 10px 'Noto Sans TC', sans-serif"; c.fillText(`最快 ${racerFmtLap(rc.bestLap)}`, rx + 44, my + 13); my += 22; }
   rcDrawMap(c, rx, my + 2, 88);
   rcDrawControls(c);
+  rcDrawCornerHint(c);
   // 狀態警告
   c.textAlign = 'center';
   if (rc.state === 'race') {
@@ -6958,7 +6995,7 @@ function rcLoop(ts) {
 }
 
 // ── 輸入：按住畫面左半邊向左轉、右半邊向右轉，右下角踏板煞車（油門自動）；電腦用 ←→（或 A／D）轉向、↓（S／空白鍵）煞車 ──
-const RC_PEDAL = { x0: RC.W - 82, y0: RC.H - 112 - 112, bx: RC.W - 68, by: RC.H - 112 - 92, bw: 58, bh: 84 }; // 右側煞車區（觸控範圍）與踏板圖示位置
+const RC_PEDAL = { x0: 204, y0: RC.H - 112 - 112, x1: 272, bx: 210, by: RC.H - 112 - 92, bw: 58, bh: 84 }; // 右側煞車區（觸控範圍）與踏板圖示位置
 function rcUpdateTouch() {
   const rect = rc.canvas.getBoundingClientRect(), k = RC.W / rect.width;
   let l = 0, r = 0, b = 0;
@@ -6980,7 +7017,7 @@ function rcSetupCanvas() {
   rc.canvas.addEventListener('pointerdown', e => {
     e.preventDefault(); try { rc.canvas.setPointerCapture(e.pointerId); } catch (x) {}
     const rect = rc.canvas.getBoundingClientRect(), k = RC.W / rect.width, px = (e.clientX - rect.left) * k, py = (e.clientY - rect.top) * k;
-    rc.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, role: px >= RC_PEDAL.x0 && py >= RC_PEDAL.y0 && py < RC.H - 112 + 4 ? 'b' : 's' });
+    rc.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, role: px >= RC_PEDAL.x0 && px < RC_PEDAL.x1 && py >= RC_PEDAL.y0 && py < RC.H - 112 + 4 ? 'b' : 's' });
     rcUpdateTouch();
   });
   rc.canvas.addEventListener('pointermove', e => { if (rc.ptrs.has(e.pointerId)) { rc.ptrs.get(e.pointerId).x = e.clientX; rc.ptrs.get(e.pointerId).y = e.clientY; rcUpdateTouch(); } });
