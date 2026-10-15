@@ -149,6 +149,7 @@
     box-shadow: 0 4px 16px rgba(232,0,29,0.4);
     transition: transform 0.2s, box-shadow 0.2s;
   }
+  .nav-fab.active { box-shadow: 0 0 0 3px rgba(232,0,29,0.35), 0 4px 16px rgba(232,0,29,0.4); }
   .nav-fab:active { transform: scale(0.93); box-shadow: 0 2px 8px rgba(232,0,29,0.3); }
   .nav-fab svg { width: 24px; height: 24px; color: white; }
 
@@ -1265,6 +1266,48 @@
     background: rgba(0,0,0,0.34); padding: 4px 11px; border-radius: 20px;
   }
 
+  /* ── 賽車首頁 ── */
+  .rc-home { padding: 0 16px 8px; display: flex; flex-direction: column; gap: 14px; }
+  .rh-hero { border-radius: 20px; padding: 16px; background: linear-gradient(150deg, #b91c1c, #1e293b 78%); color: #fff; box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
+  .rh-hero-top { display: flex; align-items: center; gap: 12px; }
+  .rh-avatar { width: 46px; height: 46px; border-radius: 14px; background: rgba(255,255,255,0.16); display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; }
+  .rh-name { font-weight: 900; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rh-rank { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+  .rh-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+  .rh-stats > div { background: rgba(0,0,0,0.28); border-radius: 12px; padding: 8px 6px; text-align: center; }
+  .rh-stats b { display: block; font-size: 15px; }
+  .rh-stats small { font-size: 10px; opacity: 0.75; }
+  .rh-cta { width: 100%; border: none; border-radius: 14px; padding: 14px; font-size: 16px; font-weight: 900; background: #fff; color: #b91c1c; cursor: pointer; letter-spacing: 1px; }
+  .rh-links { display: flex; gap: 8px; margin-top: 10px; }
+  .rh-link-btn { flex: 1; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.1); color: #fff; border-radius: 12px; padding: 9px 6px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .rh-next { margin-top: 12px; font-size: 12px; opacity: 0.92; }
+  .rh-sec { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px; }
+  .rh-sec-title { font-weight: 800; font-size: 14px; display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .rh-sec-title small { font-size: 11px; color: var(--text3); font-weight: 500; }
+  .rh-car { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .rh-car canvas { width: 150px; max-width: 46%; height: auto; border-radius: 12px; background: linear-gradient(#323847, #161922); flex-shrink: 0; }
+  .rh-car-info { flex: 1; min-width: 150px; }
+  .rh-car-name { font-weight: 800; font-size: 15px; }
+  .rh-car-sub { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .rh-link { display: flex; gap: 10px; align-items: center; padding: 8px; border-radius: 12px; background: var(--bg3); margin-bottom: 8px; }
+  .rh-link-img { width: 52px; height: 52px; border-radius: 10px; overflow: hidden; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .rh-link-img img { width: 100%; height: 100%; object-fit: cover; }
+  .rh-link-name { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rh-link-sub { font-size: 11px; color: var(--gold); margin-top: 2px; }
+  .rh-empty { font-size: 12px; color: var(--text2); line-height: 1.6; }
+  .rh-wanted { margin-top: 8px; }
+  .rh-wanted-t { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+  .rh-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rh-chip { font-size: 11px; padding: 3px 9px; border-radius: 20px; background: var(--bg3); border: 1px solid var(--border); color: var(--text2); }
+  .rh-venues { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .rh-venues::-webkit-scrollbar { display: none; }
+  .rh-venue { position: relative; flex: 0 0 78px; text-align: center; padding: 10px 4px; border-radius: 12px; background: var(--bg3); border: 1px solid var(--border); cursor: pointer; }
+  .rh-venue.locked { opacity: 0.5; }
+  .rh-venue-flag { font-size: 26px; }
+  .rh-venue-name { font-size: 12px; font-weight: 800; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rh-venue-kind { font-size: 10px; color: var(--text3); }
+  .rh-venue-lock { position: absolute; top: 4px; right: 5px; font-size: 10px; color: var(--text2); }
+  .rc-own { position: absolute; top: 8px; right: 8px; font-size: 10px; font-weight: 800; background: var(--gold); color: #1a1200; padding: 2px 8px; border-radius: 10px; }
   /* ── 大獎賽 ── */
   .rc-header {
     display: flex; align-items: center; gap: 10px; flex-shrink: 0;
@@ -1448,7 +1491,7 @@
   <div id="main-app" style="display:flex;flex:1;overflow:hidden;flex-direction:column">
 
     <!-- NEWS SCREEN -->
-    <div class="screen active" id="screen-news">
+    <div class="screen" id="screen-news">
       <div class="page-header">
         <div class="page-title">最新<span>資訊</span></div>
         <div class="header-actions">
@@ -1517,19 +1560,12 @@
     </div>
 
     <!-- GAMES SCREEN -->
-    <div class="screen" id="screen-games">
+    <div class="screen active" id="screen-games">
       <div class="page-header">
-        <div class="page-title">小<span>遊戲</span></div>
+        <div class="page-title">TOMICA<span> 賽車</span></div>
       </div>
-      <div class="game-menu">
-        <div class="game-card" onclick="openRacer()" style="--g1:#b91c1c;--g2:#1e293b">
-          <div class="game-card-icon">🏎️</div>
-          <div class="game-card-body">
-            <div class="game-card-name">Tomica 大獎賽</div>
-            <div class="game-card-desc">類 3D 賽車！排位賽決定起跑順位、雨戰換雨胎、撞擊會受損要維修；贏獎金改裝愛車，圈速上排行榜</div>
-            <div class="game-card-meta" id="game-meta-racer">已擊敗 0 / 9 台對手</div>
-          </div>
-        </div>
+      <div id="rc-home" class="rc-home"></div>
+      <div class="game-menu" style="padding-top:0">
         <div class="game-card" onclick="openGame()" style="--g1:#1d4ed8;--g2:#0f172a">
           <div class="game-card-icon">🚧</div>
           <div class="game-card-body">
@@ -1953,7 +1989,7 @@
 
     <!-- BOTTOM NAV -->
     <nav id="bottom-nav">
-      <button class="nav-item active" id="nav-news" onclick="goTo('news')">
+      <button class="nav-item" id="nav-news" onclick="goTo('news')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8V6Z"/></svg>
         <span class="nav-label">資訊</span>
       </button>
@@ -1961,15 +1997,15 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><rect x="9" y="12" width="6" height="10"/><circle cx="12" cy="7" r="1"/></svg>
         <span class="nav-label">展示廳</span>
       </button>
-      <button class="nav-item" id="nav-games" onclick="goTo('games')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg>
-        <span class="nav-label">遊戲</span>
-      </button>
       <div class="nav-center">
-        <button class="nav-fab" id="nav-garage" onclick="requireLogin('garage')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <button class="nav-fab active" id="nav-games" onclick="goTo('games')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4"/><path d="M4 4h16l-3 4 3 4H4"/><path d="M8 4v8M12 4v8M16 4v8" opacity=".55"/></svg>
         </button>
       </div>
+      <button class="nav-item" id="nav-garage" onclick="requireLogin('garage')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="nav-label">車庫</span>
+      </button>
       <button class="nav-item" id="nav-upload" onclick="requireLogin('upload')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12l4-4 4 4"/></svg>
         <span class="nav-label">新增</span>
@@ -2685,6 +2721,7 @@ function loadCars() {
   const q = query(collection(db, 'users', currentUser.uid, 'cars'), orderBy('addedAt', 'desc'));
   carsUnsub = onSnapshot(q, snap => {
     cars = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (typeof updateGameMenuMeta === 'function') updateGameMenuMeta();
     renderGarage();
     updateStats();
     updatePlanCard();
@@ -2718,7 +2755,7 @@ function resetUserState() {
   // 如果登出當下停在需要登入的畫面，導回資訊頁
   const activeId = document.querySelector('.screen.active')?.id;
   if (['screen-garage', 'screen-upload', 'screen-settings'].includes(activeId)) {
-    goTo('news');
+    goTo('games');
   }
 }
 
@@ -4258,6 +4295,8 @@ const ACHIEVEMENTS = [
   { id: 'race-all', icon: '🌟', name: '全場無敵', desc: '擊敗全部 9 台對手', check: () => racerSave.defeated.length >= 9 },
   { id: 'race-pole', icon: '🚩', name: '竿位車手', desc: '在排位賽拿下竿位並完成正賽', check: () => racerSave.poles >= 1 },
   { id: 'race-rain', icon: '☔', name: '雨神', desc: '在雨戰拿下第一名', check: () => racerSave.rainWins >= 1 },
+  { id: 'race-link', icon: '🧩', name: '收藏連動', desc: '用收藏的 Tomica 解鎖同款賽車', check: () => racerLinkCount() >= 1 },
+  { id: 'race-link5', icon: '🏁', name: '車隊老闆', desc: '收藏連動的賽車達 5 台', check: () => racerLinkCount() >= 5 },
   { id: 'race-tune', icon: '🔧', name: '改裝達人', desc: '把任一台車的引擎改裝到最高等級', check: () => Object.values(racerSave.tunes).some(x => x.engine >= 4) },
 ];
 
@@ -4589,7 +4628,7 @@ window.addEventListener('keydown', e => {
 const RC = {
   W: 360, H: 560, HORIZON: 215, VS: 0.77, SEG: 200, ROAD: 1200, RUMBLE: 3, LANES: 3,
   CAM_H: 1000, CAM_DEPTH: 0.84, DRAW: 240, UPK: 55, MAX_KMH: 260, CAR_W: 0.5, LAPS: 2, CUTOFF_SEC: 30, QUALI_CUTOFF: 150,
-  GRID_GAP: 430, GRID_POLE: 1000, CAR_LEN: 800, REF: 1200,
+  GRID_GAP: 760, GRID_POLE: 1000, CAR_LEN: 800, REF: 1200,
 };
 RC.MAX = RC.MAX_KMH * RC.UPK; // 速度上限（單位／秒），用來換算轉向與彎道推力的比例；1 km/h ＝ 55 單位／秒
 RC.PLAYER_Z = RC.CAM_H * RC.CAM_DEPTH;
@@ -4787,44 +4826,66 @@ function rcBlob(c, x, y, r, color) { c.fillStyle = color; c.beginPath(); c.arc(x
 // 每一幀用偏航（yaw：車頭朝向）和俯角（pitch：從上往下看的角度）把所有頂點轉過去、投影、背面剔除、由遠到近畫出來，
 // 所以不管車在畫面哪裡、轉成什麼角度，結構都是對的，不會有貼圖錯位的問題。玩家、對手、選單預覽共用。
 // 座標：x 向右、y 向上、z 向車頭；車寬約 1，車長 2，後保險桿中心貼地處是 (0,0,0)
-const RACER_PROFILES = {
-  // [z, 頂面高度 y, 頂面半寬, 這一段（從上一圈到這一圈）的種類]
-  sedan: [[0, 0.47, 0.44, ''], [0.05, 0.49, 0.45, 'deck'], [0.5, 0.5, 0.44, 'deck'], [0.8, 0.87, 0.34, 'rear'], [1.0, 0.89, 0.33, 'roof'], [1.06, 0.89, 0.33, 'pillar'],
-    [1.28, 0.89, 0.33, 'roof'], [1.62, 0.54, 0.42, 'front'], [1.72, 0.51, 0.45, 'deck'], [1.94, 0.44, 0.44, 'hood'], [2.0, 0.37, 0.41, 'hood']],
-  hatch: [[0, 0.5, 0.44, ''], [0.06, 0.55, 0.44, 'deck'], [0.18, 0.6, 0.43, 'deck'], [0.62, 0.9, 0.35, 'rear'], [0.98, 0.92, 0.34, 'roof'], [1.04, 0.92, 0.34, 'pillar'],
-    [1.3, 0.92, 0.34, 'roof'], [1.64, 0.54, 0.42, 'front'], [1.74, 0.51, 0.45, 'deck'], [1.94, 0.43, 0.44, 'hood'], [2.0, 0.36, 0.41, 'hood']],
-  coupe: [[0, 0.45, 0.44, ''], [0.05, 0.47, 0.45, 'deck'], [0.4, 0.48, 0.44, 'deck'], [0.95, 0.78, 0.34, 'rear'], [1.12, 0.8, 0.33, 'roof'], [1.18, 0.8, 0.33, 'pillar'],
-    [1.3, 0.8, 0.33, 'roof'], [1.62, 0.47, 0.42, 'front'], [1.72, 0.45, 0.45, 'deck'], [1.95, 0.39, 0.44, 'hood'], [2.0, 0.33, 0.41, 'hood']],
+// ── 真實車款規格：每台車依實車的車長／車寬／車高／軸距、車廂與引擎蓋的位置、燈具造型、尾翼、寬體等特徵建模 ──
+// L／W／H＝車長／車寬／車高（mm）、wb＝軸距、ro＝後懸（後輪中心到車尾）
+// tE＝行李廂結束位置、rS／rE＝車頂開始／結束位置、wB＝擋風玻璃底部位置（都是占車長的比例，0＝車尾、1＝車頭）
+// belt＝腰線高度占車高的比例、nose＝車頭高度占腰線的比例、tail／head＝尾燈／頭燈造型、wing＝尾翼、其他是外觀特徵
+// 車長會再縮成 82%（Tomica 小車那種圓滾滾的比例）
+const RACER_SPECS = {
+  crown:    { L: 4690, W: 1695, H: 1440, wb: 2690, ro: 950, tE: 0.20, rS: 0.36, rE: 0.64, wB: 0.78, belt: 0.58, nose: 0.92, tail: 'tall',  head: 'round', chrome: true,  wing: 'none' },
+  skyline:  { L: 4430, W: 1595, H: 1385, wb: 2640, ro: 880, tE: 0.20, rS: 0.37, rE: 0.63, wB: 0.77, belt: 0.58, nose: 0.9,  tail: 'round', head: 'round', chrome: true,  wing: 'none' },
+  civic:    { L: 4000, W: 1695, H: 1335, wb: 2620, ro: 760, tE: 0.05, rS: 0.12, rE: 0.62, wB: 0.76, belt: 0.57, nose: 0.9,  tail: 'rect',  head: 'rect',  chrome: false, wing: 'none' },
+  ae86:     { L: 4180, W: 1625, H: 1335, wb: 2400, ro: 860, tE: 0.05, rS: 0.22, rE: 0.56, wB: 0.74, belt: 0.55, nose: 0.82, tail: 'slat',  head: 'popup', chrome: false, wing: 'none' },
+  bluebird: { L: 4400, W: 1650, H: 1390, wb: 2550, ro: 920, tE: 0.21, rS: 0.37, rE: 0.64, wB: 0.78, belt: 0.58, nose: 0.9,  tail: 'rect',  head: 'rect',  chrome: false, wing: 'none' },
+  familia:  { L: 3900, W: 1650, H: 1385, wb: 2400, ro: 760, tE: 0.04, rS: 0.1,  rE: 0.64, wB: 0.78, belt: 0.58, nose: 0.9,  tail: 'rect',  head: 'rect',  chrome: false, wing: 'none' },
+  galant:   { L: 4125, W: 1580, H: 1310, wb: 2420, ro: 800, tE: 0.26, rS: 0.42, rE: 0.6,  wB: 0.72, belt: 0.56, nose: 0.82, tail: 'slat',  head: 'rect',  chrome: true,  wing: 'duck' },
+  celica:   { L: 4370, W: 1650, H: 1295, wb: 2500, ro: 880, tE: 0.12, rS: 0.32, rE: 0.56, wB: 0.74, belt: 0.56, nose: 0.82, tail: 'rect',  head: 'popup', chrome: false, wing: 'none' },
+  silvia:   { L: 4470, W: 1690, H: 1290, wb: 2475, ro: 940, tE: 0.24, rS: 0.4,  rE: 0.6,  wB: 0.76, belt: 0.56, nose: 0.82, tail: 'bar',   head: 'rect',  chrome: false, wing: 'lip' },
+  integra:  { L: 4380, W: 1695, H: 1330, wb: 2620, ro: 880, tE: 0.08, rS: 0.3,  rE: 0.6,  wB: 0.76, belt: 0.56, nose: 0.84, tail: 'rect',  head: 'rect',  chrome: false, wing: 'gt' },
+  chaser:   { L: 4750, W: 1760, H: 1405, wb: 2730, ro: 1000, tE: 0.21, rS: 0.37, rE: 0.65, wB: 0.8, belt: 0.58, nose: 0.9,  tail: 'bar',   head: 'rect',  chrome: false, wing: 'lip' },
+  rx7:      { L: 4285, W: 1760, H: 1230, wb: 2425, ro: 900, tE: 0.08, rS: 0.4,  rE: 0.62, wB: 0.7,  belt: 0.55, nose: 0.72, tail: 'round', head: 'popup', chrome: false, wing: 'gt',  flares: true },
+  lancer:   { L: 4310, W: 1770, H: 1415, wb: 2510, ro: 900, tE: 0.21, rS: 0.37, rE: 0.64, wB: 0.78, belt: 0.58, nose: 0.88, tail: 'rect',  head: 'rect',  chrome: false, wing: 'evo', flares: true, scoop: true },
+  gtr:      { L: 4545, W: 1755, H: 1340, wb: 2615, ro: 950, tE: 0.23, rS: 0.4,  rE: 0.62, wB: 0.76, belt: 0.56, nose: 0.84, tail: 'round', head: 'rect',  chrome: false, wing: 'gt',  flares: true },
 };
-const RACER_WHEELS = { sedan: [0.42, 1.55], hatch: [0.4, 1.52], coupe: [0.4, 1.58] };
+Object.keys(RACER_CARS).forEach(k => { RACER_CARS[k].id = k; });
 const RC_BODY_C = [0, 0.45, 1];
 function rcCross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
-function rcFaceN(vs, outHint) {
+function rcFaceN(vs, outHint, c0) {
   const a = vs[0], b = vs[1], d = vs[2];
   const n = rcCross([b[0] - a[0], b[1] - a[1], b[2] - a[2]], [d[0] - a[0], d[1] - a[1], d[2] - a[2]]);
   const l = Math.hypot(n[0], n[1], n[2]);
   if (l < 1e-7) return null;
   n[0] /= l; n[1] /= l; n[2] /= l;
   const cx = vs.reduce((s, p) => s + p[0], 0) / vs.length, cy = vs.reduce((s, p) => s + p[1], 0) / vs.length, cz = vs.reduce((s, p) => s + p[2], 0) / vs.length;
-  const h = outHint || [cx - RC_BODY_C[0], cy - RC_BODY_C[1], cz - RC_BODY_C[2]];
+  const cc = c0 || RC_BODY_C, h = outHint || [cx - cc[0], cy - cc[1], cz - cc[2]];
   if (n[0] * h[0] + n[1] * h[1] + n[2] * h[2] < 0) { n[0] = -n[0]; n[1] = -n[1]; n[2] = -n[2]; }
   return n;
 }
 const racerModelCache = {};
-function racerCarModel(shape, spoiler, stripe) {
-  const key = `${shape}|${spoiler ? 1 : 0}|${stripe ? 1 : 0}`;
+function racerCarModel(carId, stripe) {
+  const key = `${carId}|${stripe ? 1 : 0}`;
   if (racerModelCache[key]) return racerModelCache[key];
-  const prof = RACER_PROFILES[shape] || RACER_PROFILES.sedan;
+  const S = RACER_SPECS[carId] || RACER_SPECS.crown, U = 0.98 / 1700;
+  const Lm = S.L * U * 0.82, Wm = S.W * U, Hm = S.H * U, hw = Wm / 2;
+  const yb = 0.13, belt = S.belt * Hm, roofY = Hm * 0.985, deckY = belt * 1.03, cowlY = belt * 1.07, noseY = belt * S.nose;
+  const wb = hw * 0.86, ws = hw, wDeck = hw * 0.92, wRoof = hw * (carId === 'rx7' ? 0.74 : 0.7);
+  const ym = Math.min(0.3, belt - 0.04);
+  const cc = [0, belt * 0.9, Lm / 2];
   const faces = [], extra = [];
-  const add = (list, vs, kind, hint, extraInfo) => { const n = rcFaceN(vs, hint); if (n) list.push({ v: vs, n, kind, ...(extraInfo || {}) }); };
-  // 每個剖面是 8 個點：左下、左側下、左腰線、左頂、右頂、右腰線、右側下、右下
-  const rings = prof.map(p => {
-    const top = p[1], wt = p[2], belt = Math.min(0.47, top), z = p[0];
-    const wb = 0.42, ws = z < 0.04 ? 0.47 : z > 1.9 ? 0.45 : 0.48;
-    return [[-wb, 0.17, z], [-ws, Math.min(0.3, belt - 0.02), z], [-ws, belt, z], [-wt, top, z], [wt, top, z], [ws, belt, z], [ws, Math.min(0.3, belt - 0.02), z], [wb, 0.17, z]];
+  const add = (list, vs, kind, hint, info) => { const n = rcFaceN(vs, hint, cc); if (n) list.push({ v: vs, n, kind, ...(info || {}) }); };
+  // 剖面（knots）：[z, 頂面高度, 頂面半寬, 這一段的種類]
+  const P = f => f * Lm, bz = P(S.rS + (S.rE - S.rS) * 0.55);
+  const duck = S.wing === 'duck' ? 0.05 : 0;
+  const knots = [[0, belt * 0.98, wDeck * 0.96, ''], [P(0.03), deckY + duck, wDeck, 'deck'], [P(S.tE), deckY + duck * 0.4, wDeck * 0.97, 'deck'], [P(S.rS), roofY, wRoof, 'rear'],
+    [bz - 0.02, roofY, wRoof, 'roof'], [bz + 0.02, roofY, wRoof, 'pillar'], [P(S.rE), roofY * 0.995, wRoof, 'roof'], [P(S.wB), cowlY, wDeck * 0.96, 'front'],
+    [P(Math.min(0.97, S.wB + 0.04)), belt * 1.04, wDeck, 'deck'], [P(0.97), noseY * 1.02, wDeck * 0.96, 'hood'], [Lm, noseY * 0.92, wDeck * 0.9, 'hood']];
+  const rings = knots.map((p, i) => {
+    const top = p[1], z = p[0], bl = Math.min(belt, top);
+    const sw = z < 0.04 ? ws * 0.98 : z > Lm - 0.08 ? ws * 0.95 : ws;
+    return [[-wb, yb, z], [-sw, ym, z], [-sw, bl, z], [-p[2], top, z], [p[2], top, z], [sw, bl, z], [sw, ym, z], [wb, yb, z]];
   });
   for (let i = 1; i < rings.length; i++) {
-    const a = rings[i - 1], b = rings[i], seg = prof[i][3];
+    const a = rings[i - 1], b = rings[i], seg = knots[i][3];
     for (let j = 0; j < 7; j++) {
       const vs = [a[j], a[j + 1], b[j + 1], b[j]];
       let kind = 'body';
@@ -4833,53 +4894,82 @@ function racerCarModel(shape, spoiler, stripe) {
       else if (j === 3 && (seg === 'rear' || seg === 'front')) kind = 'glass';
       else if (j === 3) kind = seg === 'roof' ? 'roof' : 'body';
       add(faces, vs, kind, null, { seg, j });
-      if (stripe && j === 3 && (seg === 'deck' || seg === 'hood' || seg === 'roof' || seg === 'pillar')) { // 賽車中線條紋
+      if (stripe && j === 3 && (seg === 'deck' || seg === 'hood' || seg === 'roof' || seg === 'pillar')) {
         const s0 = 0.055, y0 = a[3][1] + 0.004, y1 = b[3][1] + 0.004;
         add(extra, [[-s0, y0, a[3][2]], [s0, y0, a[3][2]], [s0, y1, b[3][2]], [-s0, y1, b[3][2]]], 'stripe', [0, 1, 0], { layer: 1 });
       }
     }
   }
-  // 前後蓋板
   const rear = rings[0], front = rings[rings.length - 1];
   add(faces, rear.slice().reverse(), 'rearcap', [0, 0, -1], { cap: 'rear' });
   add(faces, front.slice(), 'frontcap', [0, 0, 1], { cap: 'front' });
-  // ── 後面板上的細節（貼在 z=-0.004 的平面上）──
+  // ── 後面板細節（貼在 z=-0.004 的平面）──
   const R = (vs, kind, info) => add(extra, vs.map(p => [p[0], p[1], -0.004]), kind, [0, 0, -1], { layer: 1, plane: 'rear', ...(info || {}) });
-  R([[-0.42, 0.17, 0], [0.42, 0.17, 0], [0.43, 0.27, 0], [-0.43, 0.27, 0]], 'trim');                         // 下保險桿
-  R([[-0.34, 0.18, 0], [0.34, 0.18, 0], [0.34, 0.255, 0], [-0.34, 0.255, 0]], 'diff');                       // 擴散器
-  for (let i = -3; i <= 3; i++) if (i) R([[i * 0.075 - 0.004, 0.18, 0], [i * 0.075 + 0.004, 0.18, 0], [i * 0.085 + 0.004, 0.255, 0], [i * 0.085 - 0.004, 0.255, 0]], 'fin');
+  const bumpK = S.chrome ? 'chrome' : 'trim', ly0 = belt - 0.135, ly1 = belt - 0.03;
+  R([[-wb, yb, 0], [wb, yb, 0], [wb * 1.02, yb + 0.1, 0], [-wb * 1.02, yb + 0.1, 0]], bumpK);                         // 下保險桿
+  R([[-wb * 0.8, yb + 0.01, 0], [wb * 0.8, yb + 0.01, 0], [wb * 0.8, yb + 0.085, 0], [-wb * 0.8, yb + 0.085, 0]], 'diff');
+  for (let i = -3; i <= 3; i++) if (i) R([[i * 0.075 - 0.004, yb + 0.01, 0], [i * 0.075 + 0.004, yb + 0.01, 0], [i * 0.085 + 0.004, yb + 0.085, 0], [i * 0.085 - 0.004, yb + 0.085, 0]], 'fin');
+  const lampX0 = hw * 0.4, lampX1 = hw * 0.93;
   [-1, 1].forEach(s => {
-    const x0 = s * 0.2, x1 = s * 0.455, ya = shape === 'hatch' ? 0.34 : 0.35, yb = ya + 0.1;
-    R([[x0, ya, 0], [x1, ya, 0], [x1 * 0.99, yb, 0], [x0, yb, 0]], 'lamp', { side: s });                      // 尾燈
-    R([[x0 + s * 0.02, ya + 0.045, 0], [x1 - s * 0.02, ya + 0.045, 0], [x1 - s * 0.02, ya + 0.065, 0], [x0 + s * 0.02, ya + 0.065, 0]], 'led');
+    if (S.tail === 'round') { // 兩顆圓形尾燈疊在一起（GT-R／RX-7／Skyline 的招牌）
+      [0.72, 0.35].forEach((f, k) => {
+        const cx = s * (lampX0 + (lampX1 - lampX0) * f), cy = (ly0 + ly1) / 2, r = (ly1 - ly0) * (k ? 0.42 : 0.46), pts = [];
+        for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832; pts.push([cx + Math.cos(a) * r * 1.05, cy + Math.sin(a) * r, 0]); }
+        R(pts, 'lamp', { side: s });
+        const pi = []; for (let i = 0; i < 8; i++) { const a = i / 8 * 6.2832; pi.push([cx + Math.cos(a) * r * 0.45, cy + Math.sin(a) * r * 0.45, 0]); } R(pi, 'led');
+      });
+    } else if (S.tail === 'tall') { // 皇冠的直立長方形尾燈
+      R([[s * lampX0, ly0 - 0.02, 0], [s * lampX1, ly0 - 0.02, 0], [s * lampX1, ly1 + 0.02, 0], [s * lampX0, ly1 + 0.02, 0]], 'lamp', { side: s });
+      R([[s * (lampX0 + 0.03), ly0 + 0.01, 0], [s * (lampX0 + 0.07), ly0 + 0.01, 0], [s * (lampX0 + 0.07), ly1 + 0.01, 0], [s * (lampX0 + 0.03), ly1 + 0.01, 0]], 'led');
+    } else if (S.tail === 'slat') { // 橫向百葉式尾燈（AE86、Galant GTO）
+      for (let k = 0; k < 3; k++) { const ya = ly0 + k * (ly1 - ly0) / 3; R([[s * lampX0, ya, 0], [s * lampX1, ya, 0], [s * lampX1, ya + (ly1 - ly0) / 3 - 0.012, 0], [s * lampX0, ya + (ly1 - ly0) / 3 - 0.012, 0]], k === 1 ? 'led' : 'lamp', { side: s }); }
+    } else { // 一般長條形（含貫穿式燈條）
+      const x0 = S.tail === 'bar' ? hw * 0.05 : lampX0;
+      R([[s * x0, ly0, 0], [s * lampX1, ly0, 0], [s * lampX1 * 0.99, ly1, 0], [s * x0, ly1, 0]], 'lamp', { side: s });
+      R([[s * (x0 + 0.02), ly0 + (ly1 - ly0) * 0.4, 0], [s * (lampX1 - 0.02), ly0 + (ly1 - ly0) * 0.4, 0], [s * (lampX1 - 0.02), ly0 + (ly1 - ly0) * 0.62, 0], [s * (x0 + 0.02), ly0 + (ly1 - ly0) * 0.62, 0]], 'led');
+    }
   });
-  R([[-0.2, 0.385, 0], [0.2, 0.385, 0], [0.2, 0.41, 0], [-0.2, 0.41, 0]], 'bar');                              // 中央連燈條
-  R([[-0.11, 0.285, 0], [0.11, 0.285, 0], [0.11, 0.345, 0], [-0.11, 0.345, 0]], 'plate');                      // 車牌
-  R([[-0.095, 0.325, 0], [0.095, 0.325, 0], [0.095, 0.335, 0], [-0.095, 0.335, 0]], 'platetxt');
-  [-1, 1].forEach(s => { // 排氣尾管（小橢圓）
-    const o = [], q = [];
-    for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832; o.push([s * 0.26 + Math.cos(a) * 0.05, 0.215 + Math.sin(a) * 0.04, 0]); q.push([s * 0.26 + Math.cos(a) * 0.034, 0.215 + Math.sin(a) * 0.026, 0]); }
+  if (S.tail !== 'bar') R([[-lampX0 * 0.9, ly0 + (ly1 - ly0) * 0.4, 0], [lampX0 * 0.9, ly0 + (ly1 - ly0) * 0.4, 0], [lampX0 * 0.9, ly0 + (ly1 - ly0) * 0.62, 0], [-lampX0 * 0.9, ly0 + (ly1 - ly0) * 0.62, 0]], 'bar');
+  const py0 = yb + 0.12, py1 = py0 + 0.06;
+  R([[-0.11, py0, 0], [0.11, py0, 0], [0.11, py1, 0], [-0.11, py1, 0]], 'plate');
+  R([[-0.095, py0 + 0.02, 0], [0.095, py0 + 0.02, 0], [0.095, py0 + 0.03, 0], [-0.095, py0 + 0.03, 0]], 'platetxt');
+  [-1, 1].forEach(s => {
+    const o = [], q = [], ex = s * hw * 0.55, ey = yb + 0.06;
+    for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832; o.push([ex + Math.cos(a) * 0.05, ey + Math.sin(a) * 0.04, 0]); q.push([ex + Math.cos(a) * 0.034, ey + Math.sin(a) * 0.026, 0]); }
     R(o, 'pipe', { tip: s }); R(q, 'pipein');
   });
-  // ── 前面板（開到側面看得到車頭時才會用到）──
-  const F = (vs, kind) => add(extra, vs.map(p => [p[0], p[1], 2.004]), kind, [0, 0, 1], { layer: 1, plane: 'front' });
-  [-1, 1].forEach(s => F([[s * 0.2, 0.2, 0], [s * 0.43, 0.2, 0], [s * 0.43, 0.3, 0], [s * 0.2, 0.3, 0]], 'head'));
-  F([[-0.16, 0.2, 0], [0.16, 0.2, 0], [0.16, 0.29, 0], [-0.16, 0.29, 0]], 'grille');
-  // ── 盒子：尾翼、後照鏡 ──
+  // ── 前面板細節 ──
+  const F = (vs, kind, info) => add(extra, vs.map(p => [p[0], p[1], Lm + 0.004]), kind, [0, 0, 1], { layer: 1, plane: 'front', ...(info || {}) });
+  const fy0 = Math.min(noseY * 0.5, belt * 0.5), fy1 = noseY * 0.9;
+  F([[-wb, yb, 0], [wb, yb, 0], [wb * 1.01, yb + 0.1, 0], [-wb * 1.01, yb + 0.1, 0]], bumpK);                         // 前保險桿
+  F([[-hw * 0.38, yb + 0.1, 0], [hw * 0.38, yb + 0.1, 0], [hw * 0.38, fy1 * 0.95, 0], [-hw * 0.38, fy1 * 0.95, 0]], 'grille');
+  F([[-0.1, yb + 0.015, 0], [0.1, yb + 0.015, 0], [0.1, yb + 0.07, 0], [-0.1, yb + 0.07, 0]], 'plate');
+  [-1, 1].forEach(s => {
+    if (S.head === 'round') { const cx = s * hw * 0.68, cy = (fy0 + fy1) / 2 + 0.03, r = (fy1 - fy0) * 0.34, pts = []; for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832; pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r, 0]); } F(pts, 'head'); }
+    else if (S.head === 'popup') { F([[s * hw * 0.42, fy1 * 0.88, 0], [s * hw * 0.9, fy1 * 0.88, 0], [s * hw * 0.9, fy1 * 0.97, 0], [s * hw * 0.42, fy1 * 0.97, 0]], 'trim'); } // 收起的隱藏式頭燈
+    else { F([[s * hw * 0.42, fy0 + 0.04, 0], [s * hw * 0.92, fy0 + 0.04, 0], [s * hw * 0.9, fy1 * 0.95, 0], [s * hw * 0.42, fy1 * 0.95, 0]], 'head'); }
+  });
+  // ── 盒子：尾翼、後照鏡、引擎蓋進氣、寬體葉子板 ──
   const box = (x0, x1, y0, y1, z0, z1, kind) => {
-    const P = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]];
-    [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [3, 2, 6, 7], [4, 5, 1, 0]].forEach(f => add(extra, f.map(i => P[i]), kind, [0, 0, 0], { layer: 2, boxC: [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2] }));
+    const Pp = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]];
+    const cb = [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2];
+    [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [3, 2, 6, 7], [4, 5, 1, 0]].forEach(f => add(extra, f.map(i => Pp[i]), kind, [0, 0, 0], { layer: 2, boxC: cb }));
   };
-  if (spoiler) {
-    const yw = shape === 'hatch' ? 0.82 : shape === 'coupe' ? 0.64 : 0.68, y0 = shape === 'hatch' ? 0.58 : 0.5;
-    [-1, 1].forEach(s => box(s * 0.27 - 0.02, s * 0.27 + 0.02, y0, yw, 0.1, 0.15, 'carbon'));
-    box(-0.47, 0.47, yw, yw + 0.045, 0.02, 0.3, 'wing');
-    [-1, 1].forEach(s => box(s * 0.47 - (s > 0 ? 0.02 : 0), s * 0.47 + (s > 0 ? 0 : 0.02), yw - 0.03, yw + 0.1, 0.0, 0.32, 'carbon'));
-  }
-  [-1, 1].forEach(s => box(s * 0.5 - (s > 0 ? 0 : 0.085), s * 0.5 + (s > 0 ? 0.085 : 0), 0.5, 0.58, 1.25, 1.36, 'mirror'));
-  // 方塊面的朝外方向要用方塊自己的中心來判斷，這裡重新算一次
+  const wingX = hw * 0.97;
+  if (S.wing === 'gt' || S.wing === 'evo') {
+    const big = S.wing === 'evo', yw = deckY + (big ? 0.26 : 0.19), zw0 = 0.02, zw1 = big ? 0.34 : 0.28;
+    [-1, 1].forEach(s => box(s * hw * 0.55 - 0.02, s * hw * 0.55 + 0.02, deckY - 0.01, yw, 0.1, 0.15, 'carbon'));
+    box(-wingX, wingX, yw, yw + 0.045, zw0, zw1, 'wing');
+    [-1, 1].forEach(s => box(s * wingX - (s > 0 ? 0.02 : 0), s * wingX + (s > 0 ? 0 : 0.02), yw - 0.03, yw + 0.1, 0.0, zw1 + 0.02, 'carbon'));
+  } else if (S.wing === 'lip') box(-wDeck * 0.9, wDeck * 0.9, deckY, deckY + 0.04, 0.0, 0.14, 'wing');
+  if (S.scoop) box(-hw * 0.22, hw * 0.22, noseY * 1.0, noseY * 1.0 + 0.04, Lm * 0.8, Lm * 0.92, 'trim');
+  [-1, 1].forEach(s => box(s * hw - (s > 0 ? 0 : 0.085), s * hw + (s > 0 ? 0.085 : 0), belt + 0.03, belt + 0.1, P(S.wB) - 0.16, P(S.wB) - 0.04, 'mirror'));
+  // 輪子：位置依軸距與後懸
+  const rZ = S.ro * U * 0.82, fZ = (S.ro + S.wb) * U * 0.82, wr = carId === 'rx7' ? 0.185 : 0.18;
+  const wheels = [rZ, fZ].map(z => ({ z, r: wr, hw: 0.082 }));
+  if (S.flares) [rZ, fZ].forEach(z => [-1, 1].forEach(s => box(s > 0 ? hw : -hw - 0.035, s > 0 ? hw + 0.035 : -hw, yb + 0.08, ym + 0.18, z - 0.27, z + 0.27, 'low')));
   extra.forEach(f => { if (f.boxC) { const c = f.boxC, v = f.v, ce = [0, 1, 2, 3].reduce((s, i) => [s[0] + v[i][0] / 4, s[1] + v[i][1] / 4, s[2] + v[i][2] / 4], [0, 0, 0]); const h = [ce[0] - c[0], ce[1] - c[1], ce[2] - c[2]]; const n = f.n; if (n[0] * h[0] + n[1] * h[1] + n[2] * h[2] < 0) f.n = [-n[0], -n[1], -n[2]]; } });
-  return (racerModelCache[key] = { faces, extra, wz: RACER_WHEELS[shape] || RACER_WHEELS.sedan });
+  return (racerModelCache[key] = { faces, extra, wheels, L: Lm, hw, S });
 }
 
 const RC_LIGHT = (() => { const v = [-0.42, 0.78, -0.46], l = Math.hypot(...v); return v.map(x => x / l); })();
@@ -4905,10 +4995,10 @@ function drawRacerCar(c, car, cx, by, w, opt) {
     c.fillStyle = '#ff3b3b'; c.fillRect(-u * 0.42, -u * 0.4, u * 0.2, u * 0.1); c.fillRect(u * 0.22, -u * 0.4, u * 0.2, u * 0.1);
     c.restore(); return;
   }
-  const M = racerCarModel(car.shape, car.spoiler, car.stripe);
+  const M = racerCarModel(car.id || 'crown', !!car.stripe);
   const yaw = o.yaw || 0, pitch = rcClamp(o.pitch == null ? 0.7 : o.pitch, 0.1, 1.15);
   const cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
-  const k = w / 0.98, D = 7, LC = 1.0, fine = w > 38, wetK = o.wet ? 1 : 0;
+  const k = w / 0.98, D = 7, LC = M.L / 2, fine = w > 38, wetK = o.wet ? 1 : 0, hwM = M.hw;
   // 把車身座標轉到「看的人」座標系：先繞車中心偏航、再往下俯視
   const tfv = (p) => { const z = p[2] - LC; const x1 = p[0] * cyw + z * syw, z1 = -p[0] * syw + z * cyw + LC; return [x1, p[1] * cp + z1 * sp, z1 * cp - p[1] * sp]; };
   const proj = (v) => { const f = D / (D + v[2]); return [v[0] * k * f, -v[1] * k * f]; };
@@ -4918,9 +5008,9 @@ function drawRacerCar(c, car, cx, by, w, opt) {
   const stripeRgb = car.stripe ? (() => { const n = parseInt(car.stripe.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; })() : [255, 255, 255];
   const twoRgb = twoCol ? (() => { const n = parseInt(twoCol.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; })() : null;
   // 影子：車子投在地面的四邊形（兩層，外層較淡）
-  const gp = [[-0.55, 0, -0.08], [0.55, 0, -0.08], [0.55, 0, 2.08], [-0.55, 0, 2.08]].map(p => proj(tfv(p)));
+  const gp = [[-hwM - 0.07, 0, -0.08], [hwM + 0.07, 0, -0.08], [hwM + 0.07, 0, M.L + 0.08], [-hwM - 0.07, 0, M.L + 0.08]].map(p => proj(tfv(p)));
   rcFillPoly(c, gp, 'rgba(0,0,0,0.28)');
-  const gp2 = [[-0.46, 0, 0.0], [0.46, 0, 0.0], [0.46, 0, 2.0], [-0.46, 0, 2.0]].map(p => proj(tfv(p)));
+  const gp2 = [[-hwM, 0, 0.0], [hwM, 0, 0.0], [hwM, 0, M.L], [-hwM, 0, M.L]].map(p => proj(tfv(p)));
   rcFillPoly(c, gp2, 'rgba(0,0,0,0.3)');
 
   const eyeVis = (n, cv) => n[0] * cv[0] + n[1] * cv[1] + n[2] * (cv[2] + D);       // < 0 代表朝向鏡頭
@@ -4934,6 +5024,7 @@ function drawRacerCar(c, car, cx, by, w, opt) {
       case 'stripe': return rcMixRgb([stripeRgb[0] * 0.35, stripeRgb[1] * 0.35, stripeRgb[2] * 0.35], [Math.min(255, stripeRgb[0] * 1.1), Math.min(255, stripeRgb[1] * 1.1), Math.min(255, stripeRgb[2] * 1.1)], I);
       case 'carbon': case 'wing': return rcMixRgb([6, 6, 8], [58, 62, 72], lit);
       case 'mirror': return rcMixRgb([baseRgb[0] * 0.25, baseRgb[1] * 0.25, baseRgb[2] * 0.25], [baseRgb[0], baseRgb[1], baseRgb[2]], I);
+      case 'chrome': return rcMixRgb([62, 66, 76], [236, 240, 248], lit);
       case 'trim': case 'diff': return rcMixRgb([6, 7, 9], [34, 36, 42], lit);
       case 'fin': return '#2c2f37';
       case 'plate': return '#f2f2ea'; case 'platetxt': return '#26344c';
@@ -4954,16 +5045,16 @@ function drawRacerCar(c, car, cx, by, w, opt) {
   visible.sort((a, b) => b.depth - a.depth);
   // 車輪：先算每顆輪子的外側面朝不朝鏡頭，決定畫在車身前或後
   const wheels = [];
-  M.wz.forEach(z => [-1, 1].forEach(s => {
-    const outer = tfv([s * 0.515, 0.19, z]), nv = nview([s, 0, 0]);
-    wheels.push({ s, z, near: eyeVis(nv, outer) / Math.hypot(...outer.slice(0, 2), outer[2] + D) < -0.1, depth: outer[2] });
+  M.wheels.forEach(wh => [-1, 1].forEach(s => {
+    const outer = tfv([s * (hwM + 0.02), wh.r, wh.z]), nv = nview([s, 0, 0]);
+    wheels.push({ s, z: wh.z, r: wh.r, wid: wh.hw, near: eyeVis(nv, outer) / Math.hypot(outer[0], outer[1], outer[2] + D) < -0.1, depth: outer[2] });
   }));
   const wheelFill = (wl) => {
-    const R = 0.19, hw = 0.085, yc = 0.19, xc = wl.s * 0.43, N = fine ? 14 : 8;
+    const R = wl.r, hw = wl.wid, yc = wl.r, xc = wl.s * (hwM + 0.02 - hw), N = fine ? 14 : 8;
     const ring = (x, rr) => Array.from({ length: N }, (_, i) => { const a = i / N * 6.2832; return [x, yc + rr * Math.cos(a), wl.z + rr * Math.sin(a)]; });
     const xo = xc + wl.s * hw, xi = xc - wl.s * hw;
     // 輪弧（車身上的黑色弧形開口）
-    if (fine && wl.near) { const arch = Array.from({ length: 12 }, (_, i) => { const a = i / 12 * 6.2832; return [wl.s * 0.484, yc + R * 1.22 * Math.cos(a), wl.z + R * 1.22 * Math.sin(a)]; }).map(tfv); const nv = nview([wl.s, 0, 0]); const cen = arch[0]; if (eyeVis(nv, cen) < 0) rcFillPoly(c, arch.map(proj), '#050506'); }
+    if (fine && wl.near) { const arch = Array.from({ length: 12 }, (_, i) => { const a = i / 12 * 6.2832; return [wl.s * hwM * 0.995, yc + R * 1.22 * Math.cos(a), wl.z + R * 1.22 * Math.sin(a)]; }).map(tfv); const nv = nview([wl.s, 0, 0]); const cen = arch[0]; if (eyeVis(nv, cen) < 0) rcFillPoly(c, arch.map(proj), '#050506'); }
     const oR = ring(xo, R).map(tfv), iR = ring(xi, R).map(tfv);
     // 內側圓面（輪子的內側朝鏡頭時才畫）
     const nIn = nview([-wl.s, 0, 0]);
@@ -5438,7 +5529,7 @@ function racerNormalize(o) {
 let racerSave = (() => { try { return racerNormalize(JSON.parse(localStorage.getItem(RACER_SAVE_KEY) || 'null')); } catch (e) { return racerDefaultSave(); } })();
 
 function racerUnlockedCar(id) {
-  if (RACER_STARTERS.includes(id)) return true;
+  if (RACER_STARTERS.includes(id) || racerOwnsReal(id)) return true; // 收藏了同款 Tomica 也能直接解鎖
   const r = RACER_RIVALS.find(x => x.car === id);
   return !!r && racerSave.defeated.includes(r.id);
 }
@@ -5461,11 +5552,12 @@ function racerBalance() {
 // 改裝後的車輛能力值
 function racerStats(carId, tune) {
   const car = RACER_CARS[carId] || RACER_CARS.crown;
-  const t = racerNormTune(tune);
+  const t = racerNormTune(tune), own = racerOwnsReal(carId); // 收藏了同款 Tomica：實車加成 極速 +3、加速／操控 +3%
   return {
-    kmh: Math.min(RC.MAX_KMH, car.kmh + t.engine * 18 + t.exh * 4 + t.body * 2),
-    acc: car.acc * (1 + 0.12 * t.engine + 0.05 * t.exh + 0.05 * t.body + 0.03 * t.tire),
-    hnd: car.hnd * (1 + 0.10 * t.susp + 0.09 * t.tire + 0.04 * t.rigid + 0.02 * t.body),
+    own,
+    kmh: Math.min(RC.MAX_KMH, car.kmh + t.engine * 18 + t.exh * 4 + t.body * 2 + (own ? 3 : 0)),
+    acc: car.acc * (1 + 0.12 * t.engine + 0.05 * t.exh + 0.05 * t.body + 0.03 * t.tire) * (own ? 1.03 : 1),
+    hnd: car.hnd * (1 + 0.10 * t.susp + 0.09 * t.tire + 0.04 * t.rigid + 0.02 * t.body) * (own ? 1.03 : 1),
     crash: Math.min(0.7, 0.2 + 0.1 * t.rigid),          // 撞到路邊景物後還保留幾成速度
     grip: Math.max(0.4, 1 - 0.10 * t.tire - 0.05 * t.susp), // 衝出賽道時的減速係數（越小越好）
     dmgMul: 1 - 0.12 * t.rigid,                          // 車身剛性越高，撞擊時耐久損失越少
@@ -5548,12 +5640,71 @@ function mergeRacerSave(remoteRaw) {
   return racerSyncKey(merged) !== racerSyncKey(remote);
 }
 
+// ── 收藏連動：你收藏的 Tomica 如果是遊戲裡有的車款（皇冠、Skyline、AE86、GT-R…），就能直接解鎖同款賽車，並得到「實車加成」──
+const RACER_MATCH = [ // 比對順序很重要（先比對比較具體的，例如 GT-R 要在 Skyline 前面）
+  ['skyline', /kpgc?1?10|2000 ?gt|hakosuka|箱skyline|箱型/i], ['gtr', /gt-?r|gtr|r32|bnr32|r33|r34|戰神/i], ['skyline', /skyline|天際線|hakosuka|箱skyline|c10|ガンダ/i], ['rx7', /rx-?7|fd3s|fc3s|savanna|sa22/i],
+  ['lancer', /lancer|evolution|\bevo\b|藍瑟|ランエボ/i], ['ae86', /ae86|levin|trueno|sprinter|頭文字|頭文字d|ハチロク/i], ['integra', /integra|dc2|dc5|type ?r.*integra/i],
+  ['civic', /civic|思域|ef9|eg6|ek9|ek4/i], ['chaser', /chaser|追擊者|jzx100|jzx90/i], ['bluebird', /bluebird|青鳥|910/i], ['familia', /familia|法米利亞|法米莉亞/i],
+  ['galant', /galant|gto|加朗/i], ['celica', /celica|西利卡|賽利卡/i], ['silvia', /silvia|西爾維亞|s13|s14|s15|180sx/i], ['crown', /crown|皇冠/i],
+];
+let racerLinkMemo = { sig: '', map: {} };
+function racerCollectionLinks() {
+  const sig = cars.map(c => `${c.id}${c.status}`).join(',');
+  if (sig === racerLinkMemo.sig) return racerLinkMemo.map;
+  const map = {};
+  cars.forEach(c => {
+    if (c.status !== 'owned') return;
+    const text = `${c.name || ''} ${c.series || ''} ${c.cartype || ''} ${c.note || ''}`.toLowerCase();
+    const hit = RACER_MATCH.find(m => m[1].test(text));
+    if (hit) (map[hit[0]] = map[hit[0]] || []).push(c);
+  });
+  racerLinkMemo = { sig, map };
+  return map;
+}
+function racerOwnsReal(id) { return !!racerCollectionLinks()[id]; }
+function racerLinkCount() { return Object.keys(racerCollectionLinks()).length; }
+
+// ── 賽車首頁（App 主畫面）──
+function racerTitleOf(n) { return n >= 9 ? '傳奇車手' : n >= 6 ? '職業車手' : n >= 3 ? '地區好手' : n >= 1 ? '新秀車手' : '見習車手'; }
+function renderRacerHome() {
+  const el = document.getElementById('rc-home');
+  if (!el) return;
+  const target = racerTarget(), id = racerSave.car, car = RACER_CARS[id], st = racerStats(id, racerSave.tunes[id] || {}), cd = racerCond(id);
+  const links = racerCollectionLinks(), linked = Object.keys(links), n = racerSave.defeated.length;
+  const lapCount = Object.keys(racerSave.bestLap).length;
+  const name = currentUser ? (currentUser.displayName || '車手') : '訪客';
+  const venues = RACER_TRACKS.map(t => `<div class="rh-venue ${racerUnlockedTrack(t) ? '' : 'locked'}" onclick="openRacerAt('${t.id}')"><div class="rh-venue-flag">${t.flag}</div><div class="rh-venue-name">${t.city}</div><div class="rh-venue-kind">${t.kind === 'street' ? '街道賽' : '專屬賽道'}</div>${racerUnlockedTrack(t) ? '' : `<div class="rh-venue-lock">🔒${t.need}</div>`}</div>`).join('');
+  const linkCards = linked.length ? linked.map(cid => {
+    const c = links[cid][0];
+    return `<div class="rh-link"><div class="rh-link-img">${c.photoUrl ? `<img src="${escapeHtml(c.photoUrl)}" alt="">` : '🚗'}</div><div class="rh-link-body"><div class="rh-link-name">${escapeHtml(c.name || '')}</div><div class="rh-link-sub">→ 賽車「${RACER_CARS[cid].name}」已解鎖・實車加成 +3%</div></div></div>`;
+  }).join('') : `<div class="rh-empty">${currentUser ? '你的收藏裡還沒有遊戲裡有的車款。新增下列車款的 Tomica，就能直接解鎖同款賽車、還有實車加成！' : '登入並把你的 Tomica 收藏新增到車庫，遊戲裡同款的賽車會自動解鎖、還有實車加成！'}</div>`;
+  const wanted = Object.keys(RACER_CARS).filter(k => !links[k]).map(k => `<span class="rh-chip">${RACER_CARS[k].name}</span>`).join('');
+  el.innerHTML = `<div class="rh-hero">
+      <div class="rh-hero-top"><div class="rh-avatar">🏎️</div><div style="flex:1;min-width:0"><div class="rh-name">${escapeHtml(name)}</div><div class="rh-rank">${racerTitleOf(n)}・已擊敗 ${n} / 9 位對手</div></div></div>
+      <div class="rh-stats"><div><b>💰 ${racerBalance().toLocaleString()}</b><small>改裝積分</small></div><div><b>🏆 ${racerSave.wins}</b><small>冠軍</small></div><div><b>⏱ ${lapCount}/${RACER_TRACKS.length}</b><small>賽場有圈速</small></div></div>
+      <button class="rh-cta" onclick="openRacer()">🏁 進入大獎賽</button>
+      <div class="rh-links"><button class="rh-link-btn" onclick="openRacerBoard()">🏆 圈速排行榜</button><button class="rh-link-btn" onclick="openRacerTune()">🔧 改裝・維修</button></div>
+      ${target ? `<div class="rh-next">🎯 下一個挑戰目標：<b>${target.name}</b>（${RACER_CARS[target.car].name}）</div>` : '<div class="rh-next">🌟 已擊敗全部對手，去刷出各賽場的最快圈速吧！</div>'}
+    </div>
+    <div class="rh-sec"><div class="rh-sec-title">🚗 我的賽車</div>
+      <div class="rh-car"><canvas id="rh-car-cv" width="360" height="220"></canvas>
+        <div class="rh-car-info"><div class="rh-car-name">${car.name}</div><div class="rh-car-sub">${car.maker}${racerOwnsReal(id) ? '・⭐ 有收藏同款' : ''}</div>
+          ${rcStatBar('極速', (st.kmh - 100) / 150, `${Math.round(st.kmh)}`)}${rcStatBar('加速', (st.acc - 0.9) / 1.0, st.acc.toFixed(2))}${rcStatBar('操控', (st.hnd - 0.9) / 1.1, st.hnd.toFixed(2))}${rcCondBarHtml('車身', cd.dur)}${rcCondBarHtml('輪胎', cd.tire)}</div></div></div>
+    <div class="rh-sec"><div class="rh-sec-title">🧩 收藏連動<small>收藏越多、賽車越強</small></div>${linkCards}
+      ${wanted ? `<div class="rh-wanted"><div class="rh-wanted-t">收藏這些車款的 Tomica 就能解鎖同款賽車：</div><div class="rh-chips">${wanted}</div></div>` : ''}</div>
+    <div class="rh-sec"><div class="rh-sec-title">🌍 世界巡迴賽<small>街道賽 × 專屬賽道</small></div><div class="rh-venues">${venues}</div></div>`;
+  const cv = document.getElementById('rh-car-cv');
+  if (cv) { const x = cv.getContext('2d'); drawRacerCar(x, racerCarView(id), cv.width / 2, cv.height - 26, 150, { yaw: -0.5, pitch: 0.42, dmg: 1 - cd.dur / 100 }); }
+}
+window.openRacerAt = (tid) => { const t = RACER_TRACKS.find(x => x.id === tid); if (t && racerUnlockedTrack(t)) { racerSave.track = tid; saveRacerSave(); } else if (t) showToast(`累計擊敗 ${t.need} 位對手才能解鎖「${t.city}」`); openRacer(); };
+window.openRacerBoard = () => { openRacer(); racerOpenBoard(); };
+window.openRacerTune = () => { openRacer(); racerOpenTune(); };
+
 // ── 遊戲選單上的小標籤 ──
 function updateGameMenuMeta() {
   const a = document.getElementById('game-meta-dodge');
   if (a) a.textContent = gameStats.bestScore ? `最高分 ${gameStats.bestScore}` : '還沒玩過，來挑戰看看！';
-  const b = document.getElementById('game-meta-racer');
-  if (b) b.textContent = `已擊敗 ${racerSave.defeated.length} / 9 台對手` + (racerSave.races ? ` ・ 完賽 ${racerSave.races} 場` : '');
+  renderRacerHome();
 }
 
 // ── 建賽道 ──
@@ -6617,7 +6768,8 @@ function renderRacerHub() {
       <div class="rc-car-name">${car.name}</div><div class="rc-car-maker">${car.maker}${lv ? ` ・ 🔧 改裝 ${lv} 級` : ''}</div>
       ${rcStatBar('極速', (st.kmh - 100) / 150, `${Math.round(st.kmh)}`)}${rcStatBar('加速', (st.acc - 0.9) / 1.0, st.acc.toFixed(2))}${rcStatBar('操控', (st.hnd - 0.9) / 1.1, st.hnd.toFixed(2))}
       ${ok ? `${rcCondBarHtml('車身', cd.dur)}${rcCondBarHtml('輪胎', cd.tire)}` : ''}
-      ${ok ? '' : `<div class="rc-lock">🔒<br>擊敗「${rival.name}」<br>解鎖</div>`}</div>`;
+      ${racerOwnsReal(id) ? '<div class="rc-own">⭐ 收藏同款</div>' : ''}
+      ${ok ? '' : `<div class="rc-lock">🔒<br>擊敗「${rival.name}」<br>或收藏同款 Tomica<br>解鎖</div>`}</div>`;
   }).join('');
   const rivals = RACER_RIVALS.map(r => {
     const done = defeated.has(r.id), isTarget = target && target.id === r.id;
@@ -6634,7 +6786,7 @@ function renderRacerHub() {
     <div class="rc-cars">${carsHtml}</div>
     <div class="rc-sec-title">⚔️ 對手（共 9 台，加上你一共 10 台）</div>${rivals}`;
   hub.querySelectorAll('canvas[data-car]').forEach(cv => {
-    const x = cv.getContext('2d'), u = cv.width * 0.46;
+    const x = cv.getContext('2d'), u = cv.width * 0.4;
     drawRacerCar(x, cv.dataset.rival ? RACER_CARS[cv.dataset.car] : racerCarView(cv.dataset.car), cv.width / 2, cv.height - 14, u, racerPreviewOpt());
   });
 }
@@ -6744,7 +6896,7 @@ function renderRacerTune() {
     ? `你的收藏：已收藏 ${cl.owned} 台、公開展示 ${cl.pub} 台。每多收藏一台、每多公開展示一台，各可換 ${RACER_COLLECT_PTS} 積分。只計算「超過你歷史最高紀錄」的部分，所以新增後再刪除不會重複領取。`
     : '登入後，到「新增」把你的 Tomica 收藏上傳到車庫、或公開到展示廳，就能換到改裝積分。';
   el.innerHTML = `<div class="rc-preview"><canvas id="tune-car" width="720" height="380"></canvas></div>
-    <div class="rc-card"><div class="rc-card-title">${car.name}　<small>目前積分 💰 ${bal.toLocaleString()}</small></div>${stats}</div>
+    <div class="rc-card"><div class="rc-card-title">${car.name}　<small>目前積分 💰 ${bal.toLocaleString()}</small></div>${stats}${st.own ? `<div class="rc-claim-txt" style="margin-top:8px;color:var(--gold)">⭐ 你收藏了「${escapeHtml((racerCollectionLinks()[id][0].name) || '')}」→ 實車加成：極速 +3、加速 +3%、操控 +3%</div>` : ''}</div>
     <div class="rc-sec-title" id="tune-repair">🛠️ 維修廠<small>每次只能修固定％</small></div>
     <div class="rc-card">
       ${rcCondBarHtml('車身', cd.dur)}
@@ -7014,6 +7166,8 @@ function rcShowResult() {
   rcShowPanel('result');
   document.getElementById('racer-result').scrollTop = 0;
 }
+
+setTimeout(() => updateGameMenuMeta(), 0); // 開 App 就先畫好賽車首頁
 
 // ── 展示廳排行榜 ──
 let showroomViewMode = 'gallery'; // 'gallery' | 'leaderboard'
@@ -7459,7 +7613,7 @@ window.goTo = (screen) => {
   }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + screen).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-item, .nav-fab').forEach(n => n.classList.remove('active'));
   const navEl = document.getElementById('nav-' + screen);
   if (navEl) navEl.classList.add('active');
   if (screen === 'settings') { updatePlanCard(); if (statsPanelOpen) renderStatsPanel(); }
