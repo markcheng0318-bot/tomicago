@@ -1386,6 +1386,7 @@
   .rc-dash-chip.on { color: var(--text); border-color: var(--gold); }
   .rc-part { display: flex; gap: 10px; align-items: center; padding: 10px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; }
   .rc-part-icon { font-size: 26px; flex-shrink: 0; }
+  .rc-part-cv { width: 68px; height: 68px; flex-shrink: 0; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.35); }
   .rc-part-body { flex: 1; min-width: 0; }
   .rc-part-name { font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 8px; }
   .rc-pips { display: inline-flex; gap: 3px; }
@@ -4628,7 +4629,7 @@ window.addEventListener('keydown', e => {
 const RC = {
   W: 360, H: 560, HORIZON: 215, VS: 0.77, SEG: 200, ROAD: 1200, RUMBLE: 3, LANES: 3,
   CAM_H: 1000, CAM_DEPTH: 0.84, DRAW: 240, UPK: 55, MAX_KMH: 260, CAR_W: 0.5, LAPS: 2, CUTOFF_SEC: 30, QUALI_CUTOFF: 150,
-  GRID_GAP: 760, GRID_POLE: 1000, CAR_LEN: 800, REF: 1200,
+  GRID_GAP: 760, GRID_POLE: 1000, CAR_LEN: 800, REF: 1200, CATCH: 0.1,
 };
 RC.MAX = RC.MAX_KMH * RC.UPK; // 速度上限（單位／秒），用來換算轉向與彎道推力的比例；1 km/h ＝ 55 單位／秒
 RC.PLAYER_Z = RC.CAM_H * RC.CAM_DEPTH;
@@ -5773,6 +5774,7 @@ function rcPlayerZ() { return rcInc(rc.position + RC.PLAYER_Z, 0, rc.track.lengt
 let racerPrep = null;
 // 對手在這條賽道上的極速（km/h）：由弱到強照 skill 在 kmhMin～kmhMax 之間分布
 function rcRivalKmh(r, tdef) { return rcInterp(tdef.kmhMin, tdef.kmhMax, rcClamp((r.skill - 0.6) / 0.35, 0, 1)); }
+function rcCatch(rank) { return rc.mode === 'race' ? RC.CATCH * (rcClamp(rank, 1, 10) - 1) / 9 : 0; }
 function rcWeatherSpd(env) { return 1 - 0.05 * env.intensity; }           // 下雨視線差、路面濕，大家都慢一點
 function rcWindF(along) { return along >= 0 ? 1 + 0.004 * along : 1 + 0.009 * along; } // 逆風的阻力比順風的推力大，所以一圈下來風總是讓人變慢
 function rcAiEnvF(env) { return rcWeatherSpd(env) * env.surface.spd; }
@@ -5837,7 +5839,7 @@ function rcSetupSession(mode) {
     state: 'countdown', cdLeft: mode === 'quali' ? 2.6 : 3.4, time: 0, goFlash: 0, rpm: 1000, gear: 'N', lastGear: 'N',
     playerX: 0, speed: 0, steer: 0, lap: -1, finished: false, finishCount: 0, myOrder: 0, resultAt: 0, resultShown: false, rank: 10,
     cutoffAt: null, timeUp: false, frozen: null, skyOffset: 0, hillOffset: 0, crashT: 0, slow: 0,
-    slipT: 0, slipCd: 0, vx: 0, hitCd: 0, flameT: 0, lapStart: null, laps: [], bestLap: 0, lastLap: 0, lapFlash: 0, windAlong: 0, windCross: 0, lineGain: 0,
+    slipT: 0, slipCd: 0, vx: 0, hitCd: 0, flameT: 0, liveRank: 10, catchK: 0, lapStart: null, laps: [], bestLap: 0, lastLap: 0, lapFlash: 0, windAlong: 0, windCross: 0, lineGain: 0,
     gridPos: slot + 1, poleMs: Math.min(...Object.values(P.ai)), sparks: [], smoke: [], cars: [],
   });
   rc.grip = rcGripNow();
@@ -5884,10 +5886,8 @@ function rcCarSteer(car, carSeg, playerSeg) {
 function rcStepAI(car, dt, playerSeg) {
   if (rc.state === 'countdown') return;
   const len = rc.track.length;
-  const gap = (car.lap * len + car.z) - rc.pdist;
-  let k = 1;
-  // 輕微的橡皮筋：落後玩家太多會稍微加速、領先太多會稍微收斂，讓比賽不會拉得太開
-  if (!car.finished) { if (gap > 14000) k = 0.97; else if (gap < -14000) k = 1.03; }
+  // 後追加速：名次越後面，額外速度越多（第 1 名 0%、第 10 名 +10%）；領先的人沒有減速，所以想守住領先會越來越難
+  const k = car.finished ? 1 : 1 + rcCatch(car.rank || 10);
   const oldSeg = rcFindSeg(car.z);
   const w = rcWindAt(car.z, rc.time);
   // 下雨時對手也會偶爾在彎道打滑
@@ -5969,13 +5969,18 @@ function rcStep(dt) {
   if (rc.lapFlash > 0) rc.lapFlash -= dt;
 
   const playerSeg = rcFindSeg(rc.position + RC.PLAYER_Z);
+  if (rc.mode === 'race') { // 即時名次（含起跑格），給後追加速用
+    const live = rc.frozen || rcStandings();
+    live.forEach((e, i) => { if (e.me) rc.liveRank = i + 1; else { const c = rc.cars.find(x => x.id === e.id); if (c) c.rank = i + 1; } });
+  } else rc.liveRank = 1;
+  rc.catchK = rcCatch(rc.liveRank || 1);
   for (const car of rc.cars) rcStepAI(car, dt, playerSeg);
 
   // 車況對速度的影響：耐久越低越慢（最低剩 6 成）；風、胎種、天氣、路面也會加減速
   const w = rcWindAt(rcPlayerZ(), rc.time);
   rc.windAlong = w.along; rc.windCross = w.cross;
   const df = 0.6 + 0.4 * rc.dur;
-  const top = rc.topEff = rc.topUnits * df * rcWindF(w.along) * (rc.tire === 'rain' ? 0.94 : 1) * rcWeatherSpd(env) * env.surface.spd;
+  const top = rc.topEff = rc.topUnits * df * (1 + rc.catchK) * rcWindF(w.along) * (rc.tire === 'rain' ? 0.94 : 1) * rcWeatherSpd(env) * env.surface.spd;
   rc.grip = rcGripNow();
   const G = rc.grip;
 
@@ -6001,7 +6006,7 @@ function rcStep(dt) {
     rc.playerX += rc.vx * dt;
     if (!racing) { rc.speed *= 1 - dt * 0.7; rc.vx *= 1 - dt * 2; }
     else {
-      rc.speed = Math.min(top, rc.speed + (top / 5) * st.acc * (0.7 + 0.3 * df) * dt * (1.15 - 0.3 * rc.speed / top));
+      rc.speed = Math.min(top, rc.speed + (top / 5) * st.acc * (1 + rc.catchK * 2) * (0.7 + 0.3 * df) * dt * (1.15 - 0.3 * rc.speed / top));
       if (rc.speed > top) rc.speed -= (rc.speed - top) * Math.min(1, dt * 3);
     }
     if (rc.playerX < -1 || rc.playerX > 1) { // 衝出賽道：草地很黏，離賽道越遠越慢
@@ -6068,6 +6073,7 @@ function rcStep(dt) {
       rc.frozen = rcStandings(); // 完賽當下名次就固定，之後對手才衝線不會影響
     }
   }
+  if (rc.catchK > 0.05 && rc.state === 'race' && Math.random() < 0.08) rc.flameT = Math.max(rc.flameT, 0.12); // 追趕加速時排氣管噴火
   rcDashModel(rc.speed, top, rc.dashTier, dt);
   if (rc.state === 'countdown' && rc.cdLeft < 1.3) rc.rpm = Math.max(rc.rpm, 2500 + Math.random() * 2500); // 起跑前催油門的感覺
   if (rc.mode === 'race') {
@@ -6594,11 +6600,20 @@ function rcDrawHud(c) {
       c.fillStyle = '#fff'; c.fillText(txt, 18, 87);
     }
   }
+  // 後追加速：名次越後面速度加成越多
+  let ly0 = quali ? 72 : 100;
+  if (!quali && rc.catchK >= 0.01) {
+    const txt = `🚀 後追加速 +${Math.round(rc.catchK * 100)}%`;
+    c.font = "800 11px 'Noto Sans TC', sans-serif";
+    const tw = c.measureText(txt).width;
+    rcPill(c, 10, 100, tw + 16, 20, 'rgba(234,88,12,0.82)'); c.fillStyle = '#fff'; c.textAlign = 'left'; c.fillText(txt, 18, 114);
+    ly0 = 124;
+  }
   // 內線／外線過彎
   if (Math.abs(rc.lineGain) > 0.012 && rc.state === 'race') {
     const inn = rc.lineGain > 0, txt = `${inn ? '內線' : '外線'} ${inn ? '+' : '−'}${Math.abs(Math.round(rc.lineGain * 100))}%`;
     c.font = "700 11px 'Noto Sans TC', sans-serif";
-    const tw = c.measureText(txt).width, ly = quali ? 72 : 100;
+    const tw = c.measureText(txt).width, ly = ly0;
     rcPill(c, 10, ly, tw + 16, 20, inn ? 'rgba(22,163,74,0.75)' : 'rgba(180,83,9,0.75)');
     c.fillStyle = '#fff'; c.textAlign = 'left'; c.fillText(txt, 18, ly + 14);
   }
@@ -6823,6 +6838,7 @@ function renderRacerPrep() {
     <div class="rc-card">${rcCondBarHtml('車身', cd.dur)}${rcCondBarHtml('輪胎', cd.tire)}
       <div class="rc-claim-txt" style="margin-top:8px">目前車況使極速／加速約為全新時的 ${Math.round(durF * 100)}%。${wearTxt}</div>
       <button class="rc-btn-sm" style="margin-top:10px" onclick="racerOpenTune(true)">🔧 前往維修</button></div>
+    <div class="rc-card" style="margin-top:12px"><div class="rc-claim-txt">🚀 <b>後追加速</b>：名次越後面，速度加成越多（第 10 名最多 +10%、第 1 名沒有），所有車（包含你）都一樣——落後的人追得很快，領先的人要守住很不容易。</div></div>
     <div class="rc-sec-title">🛞 選擇輪胎<small>雨胎免費</small></div>
     ${tireCard('normal', '🛞', '一般胎', '速度快；乾地抓地好。<b>下雨天很容易打滑</b>。', !rain)}
     ${tireCard('rain', '🌧️', '熱熔雨胎（免費）', `雨天抓地強、<b>不易打滑</b>；但速度慢約 7%，在乾地上磨得特別快。`, rain)}
@@ -6844,6 +6860,154 @@ window.racerOpenTune = (toRepair) => {
   el.scrollTop = 0;
   if (toRepair === true) { const r = document.getElementById('tune-repair'); if (r) el.scrollTop = r.offsetTop - 70; }
 };
+// ── 改裝零件圖示：每個零件都畫成擬真的小插圖（渦輪引擎、避震彈簧、輪胎鋁圈、排氣管、碳纖維板、防滾籠），
+// 等級越高外觀越高級（顏色、零件數量、材質都會變），而且會動（渦輪旋轉、彈簧彈跳、輪子轉動、尾管噴火）──
+const RC_TIER_COL = ['#9ca3af', '#38bdf8', '#facc15', '#fb923c', '#f43f5e'];
+function rcLG(c, x0, y0, x1, y1, stops) { const g = c.createLinearGradient(x0, y0, x1, y1); stops.forEach(s => g.addColorStop(s[0], s[1])); return g; }
+function rcTube(c, x1, y1, x2, y2, w, col) { // 有立體感的管子：深色外框＋本色＋高光
+  c.lineCap = 'round'; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2);
+  c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = w + 2.4; c.stroke();
+  c.strokeStyle = col; c.lineWidth = w; c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,0.45)'; c.lineWidth = Math.max(0.8, w * 0.28); c.beginPath(); c.moveTo(x1 - w * 0.12, y1 - w * 0.2); c.lineTo(x2 - w * 0.12, y2 - w * 0.2); c.stroke();
+}
+function rcBolt(c, x, y, r) { c.fillStyle = rcLG(c, x - r, y - r, x + r, y + r, [[0, '#e5e7eb'], [1, '#6b7280']]); c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill(); c.strokeStyle = 'rgba(0,0,0,0.5)'; c.lineWidth = 0.6; c.stroke(); }
+const RACER_PART_ART = {
+  engine(c, lv, t) { // 引擎：缸體＋氣門蓋＋進氣歧管；一級起加渦輪（會旋轉），越高階渦輪越大
+    const A = RC_TIER_COL[lv];
+    c.fillStyle = rcLG(c, 0, 52, 0, 92, [[0, '#6b7383'], [1, '#262a33']]); rcRR(c, 16, 52, 66, 38, 6); c.fill();
+    c.strokeStyle = 'rgba(0,0,0,0.45)'; c.lineWidth = 1; for (let i = 1; i < 4; i++) { c.beginPath(); c.moveTo(16 + i * 16.5, 54); c.lineTo(16 + i * 16.5, 88); c.stroke(); }
+    c.fillStyle = rcLG(c, 0, 34, 0, 54, [[0, lv ? rcShade(A, 0.25) : '#aab2c0'], [1, lv ? rcShade(A, -0.35) : '#5c6473']]); rcRR(c, 20, 34, 58, 20, 5); c.fill(); // 氣門蓋
+    c.fillStyle = 'rgba(255,255,255,0.28)'; for (let i = 0; i < 6; i++) c.fillRect(26 + i * 8.6, 36, 3, 16);
+    c.fillStyle = 'rgba(0,0,0,0.55)'; c.font = "900 8px 'Noto Sans TC', sans-serif"; c.textAlign = 'center'; c.fillText(lv >= 2 ? 'TURBO' : 'ENGINE', 49, 46);
+    [28, 44, 60, 76].forEach(x => rcTube(c, x, 36, x < 50 ? 22 : 26, 22, 4.2, '#b5bdcb'));                                                      // 進氣歧管
+    rcTube(c, 22, 22, 22, 14, 7, '#c8d0dd');
+    c.fillStyle = '#2b2f38'; c.beginPath(); c.arc(10, 70, 10, 0, 6.2832); c.fill(); c.fillStyle = '#9aa3b3'; c.beginPath(); c.arc(10, 70, 7, 0, 6.2832); c.fill(); // 皮帶輪
+    c.save(); c.translate(10, 70); c.rotate(t * 4); c.strokeStyle = '#2b2f38'; c.lineWidth = 2; for (let i = 0; i < 3; i++) { c.rotate(2.0944); c.beginPath(); c.moveTo(0, 0); c.lineTo(6, 0); c.stroke(); } c.restore();
+    rcTube(c, 78, 64, 92, 72, 5, '#8a6a4a');                                                                                                       // 排氣歧管
+    if (lv >= 1) { // 渦輪
+      const r = 8 + lv * 2, cx = 94, cy = 74;
+      c.fillStyle = rcLG(c, cx - r, cy - r, cx + r, cy + r, [[0, rcShade(A, 0.35)], [1, rcShade(A, -0.4)]]); c.beginPath(); c.arc(cx, cy, r + 3, 0, 6.2832); c.fill();
+      c.fillStyle = '#10131a'; c.beginPath(); c.arc(cx, cy, r, 0, 6.2832); c.fill();
+      c.save(); c.translate(cx, cy); c.rotate(t * (6 + lv * 3)); c.fillStyle = '#c3cad6'; for (let i = 0; i < 8; i++) { c.rotate(0.7854); c.beginPath(); c.moveTo(0, 0); c.lineTo(r * 0.95, -r * 0.22); c.lineTo(r * 0.95, r * 0.22); c.closePath(); c.fill(); } c.restore();
+      c.fillStyle = A; c.beginPath(); c.arc(cx, cy, 2.6, 0, 6.2832); c.fill();
+    }
+    if (lv >= 4) { c.globalCompositeOperation = 'lighter'; const g = c.createRadialGradient(94, 74, 2, 94, 74, 26); g.addColorStop(0, 'rgba(244,63,94,0.55)'); g.addColorStop(1, 'rgba(244,63,94,0)'); c.fillStyle = g; c.fillRect(60, 46, 52, 52); c.globalCompositeOperation = 'source-over'; }
+  },
+  susp(c, lv, t) { // 避震器：吸震筒＋彈簧＋上座，會上下彈跳
+    const A = RC_TIER_COL[lv], b = Math.sin(t * 5) * (3 + lv), top = 30 + b * 0.4, bot = 88 + b * 0.0;
+    c.fillStyle = rcLG(c, 40, 0, 72, 0, [[0, '#3a3f4b'], [0.5, '#8c95a5'], [1, '#2c3039']]); rcRR(c, 42, 6, 28, 12, 4); c.fill();                       // 上座
+    rcBolt(c, 49, 12, 2.6); rcBolt(c, 63, 12, 2.6);
+    c.fillStyle = rcLG(c, 53, 0, 59, 0, [[0, '#9aa3b2'], [0.5, '#f3f4f6'], [1, '#6b7280']]); c.fillRect(53, 16, 6, 40);                                  // 活塞桿
+    c.fillStyle = rcLG(c, 43, 0, 69, 0, [[0, rcShade(A, -0.45)], [0.4, rcShade(A, 0.2)], [1, rcShade(A, -0.5)]]); rcRR(c, 43, 54, 26, 38, 6); c.fill();      // 筒身（顏色跟著等級）
+    c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(48, 58, 3, 30);
+    if (lv >= 2) { c.fillStyle = '#10131a'; c.fillRect(43, 66, 26, 4); c.fillStyle = A; c.fillRect(43, 69, 26, 1.5); }
+    const sx0 = 56, n = 5 + lv, y0 = 24 + b * 0.6, y1 = 80, sh = (y1 - y0) / n;
+    for (let i = 0; i < n; i++) { // 彈簧圈
+      const y = y0 + i * sh;
+      c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 5.2; c.beginPath(); c.ellipse(sx0, y + sh * 0.5, 22, sh * 0.42, 0, 0.1, Math.PI - 0.1); c.stroke();
+      c.strokeStyle = lv ? A : '#aab1be'; c.lineWidth = 3.4; c.beginPath(); c.ellipse(sx0, y + sh * 0.5, 22, sh * 0.42, 0, 0.1, Math.PI - 0.1); c.stroke();
+      c.strokeStyle = 'rgba(255,255,255,0.5)'; c.lineWidth = 1; c.beginPath(); c.ellipse(sx0, y + sh * 0.5 - 1, 21, sh * 0.4, 0, 0.7, 1.5); c.stroke();
+    }
+    c.fillStyle = '#2f343e'; c.beginPath(); c.arc(56, 98, 7, 0, 6.2832); c.fill(); c.fillStyle = '#9aa3b3'; c.beginPath(); c.arc(56, 98, 3.6, 0, 6.2832); c.fill(); // 下方吊環
+    if (lv >= 3) { c.fillStyle = A; c.fillRect(37, 86 - 6, 38, 3); c.fillRect(34, 88 - 6, 44, 2); }
+  },
+  tire(c, lv, t) { // 輪胎＋鋁圈：高階胎越扁、鋁圈越大，會轉
+    const A = RC_TIER_COL[lv], cx = 56, cy = 56, R = 46, rr = 22 + lv * 2.4;
+    c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.ellipse(cx, 104, 34, 5, 0, 0, 6.2832); c.fill();
+    const tg = c.createRadialGradient(cx - 10, cy - 12, 8, cx, cy, R); tg.addColorStop(0, '#3b3f49'); tg.addColorStop(1, '#0c0d10');
+    c.fillStyle = tg; c.beginPath(); c.arc(cx, cy, R, 0, 6.2832); c.fill();
+    c.save(); c.translate(cx, cy); c.rotate(t * 2.2); // 胎面溝紋
+    c.fillStyle = lv >= 4 ? '#171a22' : '#262a33';
+    for (let i = 0; i < 28; i++) { c.rotate(6.2832 / 28); if (lv >= 4 && i % 2) continue; c.fillRect(R - 6, -2.4, 6.2, 4.8); }
+    c.restore();
+    c.strokeStyle = lv ? A : '#555b68'; c.lineWidth = 2.2; c.beginPath(); c.arc(cx, cy, R - 9, -2.2, -0.6); c.stroke(); // 胎壁色帶
+    if (lv >= 4) { c.strokeStyle = 'rgba(255,255,255,0.18)'; c.lineWidth = 6; c.beginPath(); c.arc(cx, cy, R - 4, -2.6, -1.3); c.stroke(); } // 熱熔胎的反光
+    c.fillStyle = rcLG(c, cx - rr, cy - rr, cx + rr, cy + rr, [[0, '#f1f3f7'], [0.5, '#9aa3b2'], [1, '#4b5260']]); c.beginPath(); c.arc(cx, cy, rr, 0, 6.2832); c.fill(); // 鋁圈
+    c.fillStyle = '#16181e'; c.beginPath(); c.arc(cx, cy, rr * 0.8, 0, 6.2832); c.fill();                                                       // 煞車碟
+    if (lv >= 2) { c.fillStyle = A; c.save(); c.translate(cx, cy); c.rotate(-0.6); c.fillRect(rr * 0.2, -rr * 0.18, rr * 0.6, rr * 0.36); c.restore(); }  // 卡鉗
+    c.save(); c.translate(cx, cy); c.rotate(t * 2.2);
+    const sp = lv >= 3 ? 6 : 5;
+    for (let i = 0; i < sp; i++) { c.rotate(6.2832 / sp); c.fillStyle = rcLG(c, 0, -4, rr, 4, [[0, '#e5e7eb'], [1, '#8a93a3']]); c.beginPath(); c.moveTo(3, -3.2); c.lineTo(rr * 0.95, -4.6); c.lineTo(rr * 0.95, 4.6); c.lineTo(3, 3.2); c.closePath(); c.fill(); c.strokeStyle = 'rgba(0,0,0,0.4)'; c.lineWidth = 0.6; c.stroke(); }
+    c.restore();
+    c.fillStyle = '#2a2d35'; c.beginPath(); c.arc(cx, cy, 6.5, 0, 6.2832); c.fill(); c.fillStyle = lv ? A : '#c4cad6'; c.beginPath(); c.arc(cx, cy, 3.4, 0, 6.2832); c.fill();
+    for (let i = 0; i < 5; i++) { const a = i / 5 * 6.2832 + t * 2.2; rcBolt(c, cx + Math.cos(a) * 9.5, cy + Math.sin(a) * 9.5, 1.5); }
+  },
+  exh(c, lv, t) { // 排氣管：歧管→觸媒→消音器→尾管；高階鈦合金會有燒藍色漸層，頂級尾管會噴火
+    const A = RC_TIER_COL[lv];
+    const pipe = lv >= 3 ? '#8f83c9' : lv >= 2 ? '#b9c1cf' : lv >= 1 ? '#aab3c2' : '#8c8f98';
+    rcTube(c, 6, 38, 20, 66, 7, pipe); rcTube(c, 6, 66, 20, 66, 7, pipe); rcTube(c, 6, 92, 20, 66, 7, pipe);
+    rcTube(c, 18, 66, 40, 66, 9, lv >= 3 ? '#b49be0' : pipe);
+    c.fillStyle = rcLG(c, 0, 52, 0, 80, [[0, lv ? '#e8b86a' : '#a2792f'], [1, '#6b4a1a']]); rcRR(c, 38, 54, 20, 24, 5); c.fill(); c.fillStyle = 'rgba(0,0,0,0.35)'; for (let i = 0; i < 3; i++) c.fillRect(41 + i * 5, 56, 1.6, 20); // 觸媒
+    rcTube(c, 56, 66, 66, 66, 9, pipe);
+    c.fillStyle = rcLG(c, 0, 48, 0, 86, [[0, '#e9edf3'], [0.35, '#a3acba'], [1, '#4d5463']]); rcRR(c, 64, 48, 36, 38, 14); c.fill();            // 消音器
+    c.fillStyle = rcLG(c, 0, 0, 36, 0, [[0, A], [1, rcShade(A, -0.4)]]); c.globalAlpha = lv ? 0.9 : 0.35; c.fillRect(76, 49, 8, 36); c.globalAlpha = 1; // 色環
+    c.fillStyle = 'rgba(255,255,255,0.45)'; c.fillRect(68, 52, 3, 30);
+    rcTube(c, 98, 66, 104, 66, 8, pipe);
+    c.fillStyle = '#d7dce5'; c.beginPath(); c.ellipse(106, 66, 6.5, 9, 0, 0, 6.2832); c.fill(); c.fillStyle = '#05060a'; c.beginPath(); c.ellipse(107, 66, 4, 6.6, 0, 0, 6.2832); c.fill();
+    if (lv >= 2) { c.globalCompositeOperation = 'lighter'; const f = 10 + lv * 4 + Math.random() * 5; const g = c.createRadialGradient(108, 66, 0, 108, 66, f); g.addColorStop(0, lv >= 4 ? 'rgba(255,230,160,0.95)' : 'rgba(120,180,255,0.55)'); g.addColorStop(1, 'rgba(255,90,0,0)'); c.fillStyle = g; c.beginPath(); c.arc(108, 66, f, 0, 6.2832); c.fill(); c.globalCompositeOperation = 'source-over'; }
+  },
+  body(c, lv, t) { // 車身材質：鋼板→高張力鋼→鋁合金→碳纖維→碳纖維＋鈦合金
+    const hood = () => { c.beginPath(); c.moveTo(10, 84); c.lineTo(26, 36); c.quadraticCurveTo(56, 28, 86, 36); c.lineTo(102, 84); c.quadraticCurveTo(56, 94, 10, 84); c.closePath(); };
+    c.save(); hood();
+    c.shadowColor = 'rgba(0,0,0,0.5)'; c.shadowBlur = 6; c.fillStyle = '#20232b'; c.fill(); c.shadowBlur = 0;
+    c.clip();
+    if (lv <= 1) { c.fillStyle = rcLG(c, 0, 30, 0, 94, [[0, lv ? '#8ea6c4' : '#a9aeb8'], [1, lv ? '#4f6784' : '#5b616d']]); c.fillRect(0, 0, 112, 112); c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 1; c.beginPath(); c.moveTo(56, 34); c.lineTo(56, 90); c.moveTo(20, 60); c.lineTo(92, 60); c.stroke(); if (lv) { rcBolt(c, 30, 44, 2); rcBolt(c, 82, 44, 2); rcBolt(c, 24, 76, 2); rcBolt(c, 88, 76, 2); } }
+    else if (lv === 2) { c.fillStyle = rcLG(c, 0, 30, 112, 94, [[0, '#f1f3f6'], [0.5, '#9fa7b5'], [1, '#e2e5ea']]); c.fillRect(0, 0, 112, 112); c.strokeStyle = 'rgba(80,90,105,0.25)'; c.lineWidth = 0.7; for (let y = 30; y < 96; y += 2.4) { c.beginPath(); c.moveTo(0, y); c.lineTo(112, y); c.stroke(); } }
+    else { // 碳纖維斜紋編織
+      c.fillStyle = '#14161b'; c.fillRect(0, 0, 112, 112);
+      for (let y = 26; y < 100; y += 6) for (let x = 0; x < 112; x += 6) { const k = ((x / 6 + y / 6) | 0) % 2; c.fillStyle = k ? '#2b2f38' : '#0d0f13'; c.fillRect(x, y, 6, 6); c.fillStyle = 'rgba(255,255,255,0.07)'; if (k) c.fillRect(x, y, 6, 2); }
+      if (lv >= 4) { c.fillStyle = rcLG(c, 0, 0, 112, 0, [[0, '#a9842a'], [0.5, '#fde68a'], [1, '#a9842a']]); c.fillRect(0, 56, 112, 4); c.fillRect(0, 62, 112, 1.6); rcBolt(c, 28, 58, 2.4); rcBolt(c, 84, 58, 2.4); }
+    }
+    const sx = ((t * 40) % 160) - 30; c.fillStyle = 'rgba(255,255,255,0.22)'; c.save(); c.translate(sx, 0); c.rotate(0.3); c.fillRect(0, 20, 14, 90); c.restore(); // 掃過的反光
+    c.restore();
+    c.strokeStyle = lv >= 3 ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)'; c.lineWidth = 1.2; hood(); c.stroke();
+    c.fillStyle = lv >= 4 ? '#fde68a' : '#e5e7eb'; c.font = "900 10px 'Noto Sans TC', sans-serif"; c.textAlign = 'center'; c.fillText(`輕量 -${[0, 4, 9, 15, 20][lv]}%`, 56, 20);
+  },
+  rigid(c, lv, t) { // 車身剛性：從原廠車身骨架，一路加到全車防滾籠
+    const A = RC_TIER_COL[lv];
+    c.fillStyle = rcLG(c, 0, 80, 0, 104, [[0, '#2b2f38'], [1, '#14161b']]); c.beginPath(); c.moveTo(8, 92); c.lineTo(76, 92); c.lineTo(104, 76); c.lineTo(36, 76); c.closePath(); c.fill(); // 地板
+    const bar = (x1, y1, x2, y2, w) => rcTube(c, x1, y1, x2, y2, w || 4, lv >= 3 ? rcShade(A, 0.1) : lv >= 1 ? '#c4cad6' : '#868c98');
+    const F = { bl: [18, 90], br: [60, 90], tl: [22, 40], tr: [56, 40] }, B = { bl: [44, 76], br: [90, 76], tl: [48, 28], tr: [88, 28] };
+    bar(...F.bl, ...F.tl, 3); bar(...F.br, ...F.tr, 3); bar(...B.bl, ...B.tl, 3); bar(...B.br, ...B.tr, 3);        // 四根車柱
+    if (lv >= 1) bar(...F.tl, ...F.tr, 3.4);                                                                          // 前拉桿
+    if (lv >= 2) { bar(...B.tl, ...B.tr, 3.6); bar(...F.tl, ...B.tl, 3.4); bar(...F.tr, ...B.tr, 3.4); }              // 車頂防滾架
+    if (lv >= 3) { bar(...F.bl, ...F.tr, 2.8); bar(...F.br, ...F.tl, 2.8); bar(...F.bl, ...B.bl, 3); bar(...F.br, ...B.br, 3); }  // 交叉斜撐＋下縱梁
+    if (lv >= 4) { bar(...B.bl, ...B.tr, 2.6); bar(...B.br, ...B.tl, 2.6); bar(...F.tl, ...B.tr, 2.4); bar(...F.tr, ...B.tl, 2.4); }  // 全車防滾籠
+    c.fillStyle = A; const jt = [F.bl, F.br, F.tl, F.tr, B.bl, B.br, B.tl, B.tr];
+    jt.forEach((p, i) => { if (lv >= 3 || i < 4) { rcBolt(c, p[0], p[1], 2.4); } });
+    if (lv >= 3) { c.globalCompositeOperation = 'lighter'; jt.forEach(p => { const g = c.createRadialGradient(p[0], p[1], 0, p[0], p[1], 7 + Math.sin(t * 6) * 2); g.addColorStop(0, 'rgba(255,200,120,0.6)'); g.addColorStop(1, 'rgba(255,120,0,0)'); c.fillStyle = g; c.beginPath(); c.arc(p[0], p[1], 9, 0, 6.2832); c.fill(); }); c.globalCompositeOperation = 'source-over'; } // 焊點
+  },
+};
+function drawPartIcon(cv, id, lv, t, pop) {
+  const c = cv.getContext('2d'), A = RC_TIER_COL[lv];
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv.width, cv.height);
+  const s = cv.width / 112; c.scale(s, s);
+  c.fillStyle = rcLG(c, 0, 0, 0, 112, [[0, '#262b36'], [1, '#11141b']]); rcRR(c, 1, 1, 110, 110, 20); c.fill();
+  const bg = c.createRadialGradient(56, 62, 6, 56, 62, 66); bg.addColorStop(0, A + '33'); bg.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = bg; rcRR(c, 1, 1, 110, 110, 20); c.fill();
+  c.strokeStyle = lv ? A : 'rgba(255,255,255,0.12)'; c.globalAlpha = lv ? 0.75 : 1; c.lineWidth = 1.6; rcRR(c, 1, 1, 110, 110, 20); c.stroke(); c.globalAlpha = 1;
+  c.save(); rcRR(c, 1, 1, 110, 110, 20); c.clip();
+  if (pop > 0) { const k = 1 + 0.22 * pop * Math.sin(pop * 9); c.translate(56, 56); c.scale(k, k); c.translate(-56, -56); }
+  if (id === 'engine') { c.translate(-5, 9); c.scale(0.9, 0.9); } else if (id === 'exh') { c.translate(-1, 6); c.scale(0.93, 0.93); }
+  RACER_PART_ART[id](c, lv, t);
+  c.restore();
+  if (pop > 0) { c.globalCompositeOperation = 'lighter'; for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832 + t * 2, r = 40 + (1 - pop) * 26; c.fillStyle = `rgba(255,230,140,${pop * 0.9})`; c.beginPath(); c.arc(56 + Math.cos(a) * r, 56 + Math.sin(a) * r, 2.6 * pop + 0.6, 0, 6.2832); c.fill(); } c.globalCompositeOperation = 'source-over'; }
+}
+// 改裝畫面的零件圖示動畫（買下零件時會彈一下＋噴出光點）
+function rcStartPartLoop() {
+  if (rc.partRaf) cancelAnimationFrame(rc.partRaf);
+  const t0 = performance.now();
+  const loop = (ts) => {
+    const list = document.querySelectorAll('#racer-tune canvas[data-part]');
+    if (!list.length || rc.panel !== 'tune') { rc.partRaf = 0; return; }
+    const t = (ts - t0) / 1000;
+    let pop = 0;
+    if (rc.popPart && ts - rc.popAt < 900) pop = 1 - (ts - rc.popAt) / 900;
+    list.forEach(cv => drawPartIcon(cv, cv.dataset.part, +cv.dataset.lv, t, cv.dataset.part === rc.popPart ? pop : 0));
+    rc.partRaf = requestAnimationFrame(loop);
+  };
+  rc.partRaf = requestAnimationFrame(loop);
+}
+
 // 改裝畫面的愛車預覽：像展示台一樣慢慢轉一圈，從各個角度檢查車身結構、顏色、損傷
 function rcStartTurntable(cv, id, dmg) {
   if (rc.turnRaf) cancelAnimationFrame(rc.turnRaf);
@@ -6872,7 +7036,7 @@ function renderRacerTune() {
   const parts = RACER_PARTS.map(p => {
     const lv = tune[p.id] || 0, max = lv >= 4, cost = max ? 0 : p.costs[lv];
     const pips = [0, 1, 2, 3].map(i => `<i class="${i < lv ? 'on' : ''}"></i>`).join('');
-    return `<div class="rc-part"><div class="rc-part-icon">${p.icon}</div>
+    return `<div class="rc-part"><canvas class="rc-part-cv" width="136" height="136" data-part="${p.id}" data-lv="${lv}"></canvas>
       <div class="rc-part-body"><div class="rc-part-name">${p.name}<span class="rc-pips">${pips}</span></div>
         <div class="rc-part-tier">${p.tiers[lv]}</div><div class="rc-part-desc">${p.desc}</div>
         ${max ? '' : `<div class="rc-part-next">下一級：${p.tiers[lv + 1]}</div>`}</div>
@@ -6920,6 +7084,7 @@ function renderRacerTune() {
       <div class="rc-claim-txt" style="margin-top:8px">🚗 ${claimTxt}</div>
       <button class="btn-submit" style="margin-top:12px" ${cl.pts ? '' : 'disabled'} onclick="racerClaim()">${cl.pts ? `領取收藏獎勵 +${cl.pts} 積分` : '目前沒有可領取的收藏積分'}</button></div>`;
   rcStartTurntable(document.getElementById('tune-car'), id, 1 - cd.dur / 100);
+  rcStartPartLoop();
   el.querySelectorAll('canvas[data-style]').forEach(c2 => {
     const s = c2.dataset.style, d = c2.getContext('2d'), fake = { dur: cd.dur / 100, tire: cd.tire / 100 };
     d.save(); d.scale(2, 2); drawRacerDash(d, 0, 0, s, st.dash, st.kmh * 0.62, RACER_DASH[st.dash].limit * 0.74, 4, fake); d.restore();
@@ -6935,6 +7100,7 @@ window.racerBuy = (partId) => {
   if (bal < cost) { showToast(`積分不足，還差 ${cost - bal} 積分`); return; }
   const achBefore = rcAchSnapshot();
   tune[partId] = lv + 1;
+  rc.popPart = partId; rc.popAt = performance.now();
   saveRacerSave();
   if (partId === 'engine') {
     const D = RACER_DASH[lv + 1], un = RACER_DASH_STYLES.find(s => s.need === lv + 1);
