@@ -2,13 +2,14 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TomicaGo">
 <meta name="theme-color" content="#E8001D">
 <link rel="manifest" href="manifest.json">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>TomicaGo</title>
 <meta name="description" content="你的 Tomica 收藏管家：記錄收藏、追蹤新品情報、看看大家的展示廳。">
@@ -1342,6 +1343,9 @@
   #racer-modal.rc-land.rc-stage .rc-header { display: none; }
   #racer-modal.rc-land.rc-stage #racer-stage { padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px); background: #000; }
   #racer-modal.rc-land.rc-stage #racer-canvas { border: none !important; border-radius: 0 !important; }
+  #racer-box.on3d #racer-canvas { background: transparent !important; border-color: transparent !important; }
+  #racer-box canvas.rc-gl { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 14px; display: block; }
+  #racer-modal.rc-land.rc-stage #racer-box canvas.rc-gl { border-radius: 0; }
   .rc-keys { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text2); }
   .rc-keys kbd { display: inline-block; min-width: 26px; padding: 2px 7px; margin: 0 2px; text-align: center; font: 700 12px/1.5 ui-monospace, Menlo, monospace; color: var(--text); background: var(--bg3); border: 1px solid var(--border); border-bottom-width: 3px; border-radius: 6px; }
   .rc-pause { position: absolute; inset: 0; z-index: 6; background: rgba(0,0,0,0.72); display: flex; align-items: center; justify-content: center; padding: 24px; }
@@ -1497,6 +1501,46 @@
   .rc-lapbox { margin-top: 10px; font-size: 13px; color: var(--text2); }
   .rc-lapbox b { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--gold); letter-spacing: 1px; }
   .rc-lapbox small { display: block; font-size: 11px; color: var(--text3); }
+
+  /* ── 橫向（手機橫放）：底部導覽列變成左側直立導覽列，所有畫面自適應 ── */
+  @media (orientation: landscape) and (max-height: 560px) {
+    :root { --nav-h: 0px; --rail-w: calc(66px + env(safe-area-inset-left, 0px)); --safe-r: env(safe-area-inset-right, 0px); }
+    #app { padding-left: var(--rail-w); }
+    #bottom-nav { top: 0; bottom: 0; left: 0; right: auto; width: var(--rail-w); height: auto; flex-direction: column; border-top: none; border-right: 1px solid var(--border); padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+    .nav-item { padding: 2px 2px; gap: 1px; min-height: 0; }
+    .nav-item svg { width: 20px; height: 20px; } .nav-label { font-size: 9px; letter-spacing: 0; }
+    .nav-fab { width: 42px; height: 42px; } .nav-fab svg { width: 22px; height: 22px; }
+    .screen { padding-bottom: 14px; padding-right: var(--safe-r); }
+    .page-header { padding: 10px 16px 8px; }
+    .detail-modal { left: var(--rail-w); bottom: 0; }
+    #racer-modal.detail-modal, #game-modal.detail-modal { left: 0; }
+    .toast { bottom: 12px; }
+    .page-title { font-size: 22px; }
+    .car-grid { grid-template-columns: repeat(4, 1fr); }
+    .rc-home { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+    .rc-home > .rh-hero { grid-column: 1 / 2; grid-row: 1 / 3; position: sticky; top: 0; }
+    .rc-home > * { min-width: 0; }
+    .rc-hub, .rc-result { max-width: 980px; padding-bottom: 96px; }
+    .rc-cars .rc-car { flex-basis: 170px; }
+    .modal-overlay { padding: 8px; }
+    .modal-overlay > div { max-height: calc(100vh - 16px); overflow-y: auto; }
+    .rc-header { padding-top: calc(6px + env(safe-area-inset-top, 0px)); padding-bottom: 6px; }
+    .rc-start-bar { left: auto; right: calc(12px + var(--safe-r)); bottom: 10px; width: min(420px, 60vw); padding: 0; background: none; }
+    .rc-start-bar .btn-submit { padding: 9px 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.5); }
+    .rc-start-bar .btn-submit small { display: inline; margin-left: 8px; }
+    .rc-start-bar .rc-bar-row .btn-submit small { display: inline; margin-left: 6px; }
+    .rc-start-bar .btn-submit { flex-direction: row; gap: 4px; }
+    .rc-hub { padding-bottom: 76px; } .rc-result { padding-bottom: 76px; }
+    #detail-modal, #news-detail-modal, #showroom-detail-modal { flex-direction: row; overflow: hidden; }
+    #detail-modal > .detail-img, #news-detail-modal > .detail-img, #showroom-detail-modal > .detail-img { flex: 0 0 42%; width: 42%; aspect-ratio: auto; height: 100%; }
+    #detail-modal > .detail-content, #news-detail-modal > .detail-content, #showroom-detail-modal > .detail-content { flex: 1; min-width: 0; height: 100%; overflow-y: auto; padding: 16px calc(18px + var(--safe-r)) 24px 18px; }
+    .upload-form { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); column-gap: 18px; row-gap: 12px; align-items: start; padding-right: calc(16px + var(--safe-r)); }
+    .upload-form > * { grid-column: 2; }
+    .upload-form > .photo-picker { grid-column: 1; grid-row: 1 / span 30; position: sticky; top: 8px; aspect-ratio: 4 / 3; }
+    .rc-pause { padding: 10px; } .rc-pause-card { flex-direction: row; flex-wrap: wrap; max-width: 560px; justify-content: center; align-items: center; padding: 14px; }
+    .rc-pause-card > .rc-claim-txt, .rc-pause-card > #racer-pause-ctrl { flex: 1 1 100%; }
+    .rc-pause-card .btn-submit { flex: 1 1 40%; }
+  }
 </style>
 </head>
 <body>
@@ -2183,8 +2227,11 @@
   <div id="racer-solo" class="rc-hub" style="display:none"></div>
   <div class="rc-start-bar" id="racer-start-bar"></div>
   <div id="racer-stage" style="display:none;flex:1;min-height:0">
-    <div id="racer-wrap" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">
-      <canvas id="racer-canvas" style="touch-action:none;border-radius:14px;border:1px solid var(--border);background:#111"></canvas>
+    <div id="racer-wrap" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative">
+      <div id="racer-box" style="position:relative;line-height:0">
+        <canvas id="racer-canvas" style="touch-action:none;border-radius:14px;border:1px solid var(--border);background:#111;display:block;position:relative"></canvas>
+      </div>
+      <div id="racer-loading" style="display:none;position:absolute;inset:0;z-index:4;background:rgba(8,10,14,.9);flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text2);font-size:14px"><div style="font-size:34px">🏎️</div><div id="racer-loading-t">載入 3D 場景…</div></div>
     </div>
   </div>
   <div id="racer-result" class="rc-result" style="display:none"></div>
@@ -6522,6 +6569,7 @@ function rcDrawParticles(c, by, dt) {
 function rcCamPitch(sy) { return Math.atan(Math.max(0, sy - RC.HORIZON) / (RC.H / 2 * RC.VS * RC.CAM_DEPTH)) * 0.55; } // 從鏡頭往下看這個位置的車，約幾度俯角（縮一點比較好看）
 function rcRender() {
   const c = rc.ctx, T = rc.track, def = T.def, segs = T.segs, W = RC.W, H = RC.H, XS = RC.XS, dt = rc.frameDt;
+  if (rc.r3d) { rc3dFrame(c, W, H); return; }
   const env = rc.env, rain = env && env.weather === 'rain' ? env.intensity : 0, pal = rcPalette(def, rain);
   const baseSeg = rcFindSeg(rc.position);
   const basePct = (rc.position % RC.SEG) / RC.SEG;
@@ -6834,6 +6882,68 @@ function rcDrawMap(c, x, y, size) {
 // ── HUD：左上名次，右上圈數／圈速／即時地圖，左下一張「環境＆車況」小卡（天氣、胎種、風、耐久都收在這裡）──
 function rcPill(c, x, y, w, h, fill) { c.fillStyle = fill || 'rgba(0,0,0,0.55)'; rcRR(c, x, y, w, h, Math.min(12, h / 2)); c.fill(); }
 // 煞車踏板（右下角）：按住就減速；踩下時亮紅燈。左側的 ◀ ▶ 提示轉向區，起跑前幾秒才顯示
+// ───────── 3D 擬真畫面（three.js，另外載入；物理、操控、名次全部沿用，只換畫面）─────────
+let racerView = (() => { try { return localStorage.getItem('tg-rc-view') === '2d' ? '2d' : '3d'; } catch (e) { return '3d'; } })();
+let rc3dMod = null, rc3dCars = null; const rc3dBaked = {};
+function rcWebGL() { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } }
+function rcQuality() {
+  const touch = rcIsTouchDevice(), small = Math.min(window.innerWidth, window.innerHeight) < 700;
+  return { shadows: true, shadowSize: touch ? 1024 : 2048, pixelRatio: touch ? 1.5 : 2, rainN: touch ? 2800 : 5000, small };
+}
+async function rc3dEnsure() {
+  if (!rc3dMod) rc3dMod = await import('./3d/render3d.js');
+  if (!rc3dCars) rc3dCars = await fetch('3d/cars.json').then(r => r.json());
+}
+async function rc3dBakedFor(id) {
+  if (id in rc3dBaked) return rc3dBaked[id];
+  try { const r = await fetch(`3d/tracks/${id}.json`); rc3dBaked[id] = r.ok ? await r.json() : null; } catch (e) { rc3dBaked[id] = null; }
+  return rc3dBaked[id];
+}
+function rc3dRelease() {
+  rc.r3dTk = (rc.r3dTk || 0) + 1;
+  if (rc.r3d) { try { rc.r3d.dispose(); } catch (e) {} rc.r3d = null; }
+  const box = document.getElementById('racer-box'); if (box) { box.classList.remove('on3d'); box.querySelectorAll('canvas.rc-gl').forEach(n => n.remove()); }
+}
+async function rc3dStart() {
+  rc3dRelease(); rc.slowN = 0; rc.slowT = 0; const tk = rc.r3dTk = (rc.r3dTk || 0) + 1;
+  if (racerView !== '3d' || !rcWebGL()) return;
+  const ov = document.getElementById('racer-loading'); rc.loading = true; ov.style.display = 'flex';
+  try {
+    document.getElementById('racer-loading-t').textContent = '載入 3D 場景…';
+    await rc3dEnsure();
+    const baked = await rc3dBakedFor(rc.tdef.id);
+    if (tk !== rc.r3dTk) { ov.style.display = 'none'; rc.loading = false; return; }
+    const box = document.getElementById('racer-box'), gl = document.createElement('canvas'); gl.className = 'rc-gl'; box.insertBefore(gl, rc.canvas);
+    document.getElementById('racer-loading-t').textContent = '建立賽道與車輛…';
+    await new Promise(r => setTimeout(r, 30));
+    const r3 = await rc3dMod.create({ glCanvas: gl, T: rc.track, tdef: rc.tdef, RC, env: rc.env, carsData: rc3dCars, baked, quality: rcQuality(), playerCar: { id: rc.carId, color: rc.carDef.body } });
+    if (tk !== rc.r3dTk || rc.panel !== 'stage') { r3.dispose(); gl.remove(); ov.style.display = 'none'; rc.loading = false; return; }   // 載入途中就離開了
+    rc.r3d = r3; box.classList.add('on3d'); rcSizeCanvas();
+  } catch (e) {
+    console.warn('3D 啟動失敗', e); rc3dRelease(); showToast('3D 畫面無法啟動，已改用經典畫面');
+  }
+  rc.loading = false; ov.style.display = 'none'; rc.last = performance.now(); rc.acc = 0;
+}
+function rc3dFrame(c, W, H) {
+  c.clearRect(0, 0, W, H);
+  const dt = rc.frameDt, braking = rc.crashT > 0 || rc.braking || (rc.speed < (rc.lastSpeedR || 0) - 60 * dt) || rc.state === 'finished';
+  rc.lastSpeedR = rc.speed;
+  rc.r3d.frame({
+    dt, position: rc.position, playerX: rc.playerX, speed: rc.speed, steer: rc.steer, braking, crashT: rc.crashT, slipT: rc.slipT, slipDir: rc.slipDir,
+    cars: rc.cars.map(o => ({ id: o.id, carId: o.design.id, color: o.design.body, z: o.z, offset: o.offset, speed: o.speed, slipT: o.slipT })),
+  });
+  const dS = rc.dashS || 1; c.save(); c.translate((W - 360 * dS) / 2, H - 112 * dS); c.scale(dS, dS); drawRacerDash(c, 0, 0, rc.dashStyle, rc.dashTier, rc.speed / RC.UPK, rc.rpm, rc.gear, { dur: rc.dur, tire: rc.tireDur }); c.restore();
+  rcDrawHud(c);
+  // 效能保護：比賽中連續幾秒都在 20 fps 以下，就自動切回經典畫面
+  if (rc.state === 'race') { rc.slowT += dt; rc.slowN++; if (rc.slowT > 4) { if (rc.slowT / rc.slowN > 0.05) { rc3dRelease(); racerView = '2d'; try { localStorage.setItem('tg-rc-view', '2d'); } catch (e) {} showToast('這支裝置跑 3D 比較吃力，已切回經典畫面（可在賽前準備改回 3D）'); } rc.slowT = 0; rc.slowN = 0; } }
+}
+window.racerSetView = (v) => { racerView = v; try { localStorage.setItem('tg-rc-view', v); } catch (e) {} if (rc.panel === 'prep') renderRacerPrep(); };
+function rcViewCardHtml() {
+  const on = racerView === '3d';
+  return `<div class="rc-sec-title">🎬 畫面<small>3D 為測試版</small></div>
+    <div class="rc-tire ${on ? 'sel' : ''}" onclick="racerSetView('3d')"><div class="rc-tire-icon">🌤️</div><div><div class="rc-tire-name">3D 擬真<span class="rc-rec">新</span></div><div class="rc-tire-desc">真實太陽位置與陰影、雨水與濕滑路面、真實建物、夜間頭燈與煞車燈。需要較新的手機，載入約幾秒。</div></div></div>
+    <div class="rc-tire ${on ? '' : 'sel'}" onclick="racerSetView('2d')"><div class="rc-tire-icon">🕹️</div><div><div class="rc-tire-name">經典 2D</div><div class="rc-tire-desc">原本的懷舊畫面，最省電、最順。</div></div></div>`;
+}
 function rcDrawControls(c) {
   const P = rcPedal(), down = !!(rc.touch.b || rc.keys.b), W = RC.W, dt = RC.H - rcDashH();
   c.save();
@@ -7000,7 +7110,7 @@ function rcDrawHud(c) {
 
 function rcLoop(ts) {
   rc.raf = requestAnimationFrame(rcLoop);
-  if (rc.paused) { rc.last = ts; return; }
+  if (rc.paused || rc.loading) { rc.last = ts; return; }
   const rawDt = (ts - rc.last) / 1000;
   rc.last = ts;
   rc.frameDt = Math.min(0.05, rawDt) || 0.016;
@@ -7138,6 +7248,7 @@ function rcSizeCanvas() {
   if (s <= 0) return;
   rc.canvas.style.width = Math.floor(RC.W * s) + 'px';
   rc.canvas.style.height = Math.floor(RC.H * s) + 'px';
+  if (rc.r3d) rc.r3d.resize(Math.floor(RC.W * s), Math.floor(RC.H * s));
 }
 window.addEventListener('resize', () => { if (rc.panel === 'stage') rcSizeCanvas(); });
 window.addEventListener('orientationchange', () => { setTimeout(() => { if (rc.panel === 'stage') rcSizeCanvas(); }, 250); });
@@ -7164,7 +7275,7 @@ function rcShowPanel(name) {
   });
   if (name !== 'hub' && name !== 'prep' && name !== 'result') rcSetBar('');
 }
-function rcStopLoop() { if (rc.raf) { cancelAnimationFrame(rc.raf); rc.raf = 0; } rc.ptrs.clear(); rc.touch.l = rc.touch.r = rc.touch.b = 0; rc.keys.l = rc.keys.r = rc.keys.b = 0; rc.braking = false; }
+function rcStopLoop() { if (rc.raf) { cancelAnimationFrame(rc.raf); rc.raf = 0; } rc.ptrs.clear(); rc.touch.l = rc.touch.r = rc.touch.b = 0; rc.keys.l = rc.keys.r = rc.keys.b = 0; rc.braking = false; rc3dRelease(); }
 function updateRacerChip() {
   document.getElementById('racer-progress').textContent = `💰 ${racerBalance().toLocaleString()}　🏁 ${racerSave.defeated.length}/9`;
 }
@@ -7288,6 +7399,7 @@ function renderRacerPrep() {
     <div class="rc-sec-title">🛞 選擇輪胎<small>雨胎免費</small></div>
     ${tireCard('normal', '🛞', '一般胎', '速度快；乾地抓地好。<b>下雨天很容易打滑</b>。', !rain)}
     ${tireCard('rain', '🌧️', '熱熔雨胎（免費）', `雨天抓地強、<b>不易打滑</b>；但速度慢約 7%，在乾地上磨得特別快。`, rain)}
+    ${rcViewCardHtml()}
     ${rcCtrlCardHtml()}
     ${solo ? soloPrepBottom(tdef, P) : qualiHtml}
     <div class="rc-claim-txt" style="margin-top:14px;opacity:.8">🚀 後追加速：落後的車會自動追趕（最後一名最多比第一名快 10%），所有車都一樣；領先的人要靠技術守住。</div>`;
@@ -7857,6 +7969,7 @@ function rcBeginStage(mode) {
   rcSizeCanvas();
   rc.last = performance.now(); rc.acc = 0;
   if (!rc.raf) rc.raf = requestAnimationFrame(rcLoop);
+  rc3dStart();
 }
 window.racerStartQuali = () => { rcBeginStage('quali'); };
 window.racerStartRace = () => { rcBeginStage('race'); };

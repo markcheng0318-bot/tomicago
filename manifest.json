@@ -4,7 +4,7 @@
   "description": "你的 Tomica 收藏管家",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#0D0D0D",
   "theme_color": "#E8001D",
   "icons": [
