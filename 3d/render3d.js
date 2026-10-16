@@ -79,7 +79,12 @@ export async function create(opts) {
     }
     return best < 0 ? { y: avgY, d: 300 } : { y: PY[best], d: Math.sqrt(bd) };
   }
-  const groundY = (x, z) => { const { y, d } = near(x, z); return y - 0.45 - Math.min(14, Math.max(0, d - 10) * 0.045); };
+  function minNear(x, z, rad) {   // 附近路線上最低的高度（地面要壓在所有附近路面的下面，才不會蓋住路）
+    let m = 1e9; const r = Math.ceil(rad / CELL);
+    for (let cx = Math.floor(x / CELL) - r; cx <= Math.floor(x / CELL) + r; cx++) for (let cz = Math.floor(z / CELL) - r; cz <= Math.floor(z / CELL) + r; cz++) { const a = grid.get(cx + ',' + cz); if (!a) continue; for (const i of a) if ((PX[i] - x) ** 2 + (PZ[i] - z) ** 2 < rad * rad && PY[i] < m) m = PY[i]; }
+    return m;
+  }
+  const groundY = (x, z) => { const { y, d } = near(x, z); const lo = d < 120 ? minNear(x, z, 70) : y; return Math.min(y, lo) - 1.2 - Math.min(14, Math.max(0, d - 20) * 0.045); };
 
   // ───────── 天空、太陽（真實位置）、光 ─────────
   const sky = new Sky(); sky.scale.setScalar(4200); scene.add(sky);
@@ -118,12 +123,12 @@ export async function create(opts) {
   const puddleTex = canvasTex(256, 256, (g, w, h) => { g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); for (let i = 0; i < 70; i++) { const x = rr() * w, y = rr() * h, r = 14 + rr() * 46, gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(0,0,0,0.75)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); } }, null, renderer);
   puddleTex.colorSpace = THREE.NoColorSpace;
   const W2 = halfW;                                      // 路面半寬（公尺）
-  function ribbon(offA, offB, dy, vScale, hDelta) {     // 沿路線的帶狀曲面；hDelta 不為 0 時做成垂直牆面
+  function ribbon(offA, offB, dy, vScale, hDelta, dyB) {     // 沿路線的帶狀曲面；hDelta 不為 0 時做成垂直牆面
     const pos = [], uv = [], idx = [];
     for (let i = 0; i <= N; i++) {
       const fx = FX[i], fz = FZ[i], rx = -fz, rz = fx;
       if (hDelta) pos.push(PX[i] + rx * offA, PY[i] + dy, PZ[i] + rz * offA, PX[i] + rx * offA, PY[i] + dy + hDelta, PZ[i] + rz * offA);
-      else pos.push(PX[i] + rx * offA, PY[i] + dy, PZ[i] + rz * offA, PX[i] + rx * offB, PY[i] + dy, PZ[i] + rz * offB);
+      else pos.push(PX[i] + rx * offA, PY[i] + dy, PZ[i] + rz * offA, PX[i] + rx * offB, PY[i] + (dyB === undefined ? dy : dyB), PZ[i] + rz * offB);
       const v = i / vScale; uv.push(0, v, 1, v);
       if (i < N) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
     }
@@ -131,12 +136,16 @@ export async function create(opts) {
   }
   const roadMat = new THREE.MeshStandardMaterial({ map: asphaltTex, roughness: 0.93, metalness: 0 });
   roadMat.roughness = 0.93 - 0.74 * rain; roadMat.color.setScalar(1 - 0.38 * rain); roadMat.envMapIntensity = 0.5 + 1.6 * rain; if (rain > 0.12) roadMat.roughnessMap = puddleTex;
-  const roadMesh = new THREE.Mesh(ribbon(-W2, W2, 0.04, 10), roadMat); roadMesh.receiveShadow = true; scene.add(roadMesh);
+  const roadMesh = new THREE.Mesh(ribbon(-W2, W2, 0.04, 10), roadMat); roadMesh.name = 'road'; roadMesh.receiveShadow = true; scene.add(roadMesh);
   const rumbleCols = tdef.rumble || ['#d62828', '#f1f1f1'];
   const kerbTex = canvasTex(128, 32, (g, w, h) => { for (let i = 0; i < 4; i++) { g.fillStyle = rumbleCols[i % 2]; g.fillRect(i * 32, 0, 32, h); } }, null, renderer);
   [[-1], [1]].forEach(([s]) => {
-    const g = ribbon(s * W2, s * (W2 + 0.9), 0.06, 3); const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: kerbTex, roughness: 0.6, side: THREE.DoubleSide })); m.receiveShadow = true; scene.add(m);
+    const g = ribbon(s * W2, s * (W2 + 0.9), 0.06, 3); const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: kerbTex, roughness: 0.6, side: THREE.DoubleSide })); m.name = 'kerb'; m.receiveShadow = true; scene.add(m);
   });
+  { // 路肩外側的草地帶：緊貼著路面高度、往外慢慢降低，這樣不管路面多斜，路和地面之間都不會出現破洞或把路蓋住
+    const gc = new THREE.Color(tdef.grass ? tdef.grass[0] : '#4a9a4e'), sm = new THREE.MeshStandardMaterial({ color: gc, roughness: 0.96, side: THREE.DoubleSide });
+    [[-1], [1]].forEach(([sd]) => { const g = ribbon(sd * (W2 + 0.85), sd * (W2 + 0.85 + 22), 0.0, 8, 0, -1.6); const m = new THREE.Mesh(g, sm); m.name = 'shoulder'; m.receiveShadow = true; scene.add(m); });
+  }
   if (tdef.wall) {
     const wallCols = tdef.wall.cols, wH = Math.max(0.9, tdef.wall.h / SEG), off = W2 * tdef.wall.off + 0.35;
     const tex = canvasTex(64, 64, (g, w, h) => { g.fillStyle = wallCols[0]; g.fillRect(0, 0, w, h / 2); g.fillStyle = wallCols[1]; g.fillRect(0, h / 2, w, h / 2); }, null, renderer);
@@ -165,12 +174,12 @@ export async function create(opts) {
     const g0 = new THREE.Color(tdef.grass ? tdef.grass[0] : '#4a9a4e'), g1 = new THREE.Color(tdef.grass ? tdef.grass[1] : '#428f46'), far = new THREE.Color(tdef.mtn || '#7aa6c4'), c = new THREE.Color();
     for (let k = 0, iz = 0; iz <= nz; iz++) for (let ix = 0; ix <= nx; ix++, k += 3) {
       const x = minX - pad + ix * cell, z = minZ - pad + iz * cell, ng = near(x, z);
-      pos[k] = x; pos[k + 1] = ng.y - 0.45 - Math.min(14, Math.max(0, ng.d - 10) * 0.045); pos[k + 2] = z;
+      pos[k] = x; pos[k + 1] = groundY(x, z); pos[k + 2] = z;
       c.copy(g0).lerp(g1, rnd()).lerp(far, clamp((ng.d - 120) / 500, 0, 0.55)); col[k] = c.r; col[k + 1] = c.g; col[k + 2] = c.b;
     }
     for (let iz = 0; iz < nz; iz++) for (let ix = 0; ix < nx; ix++) { const a = iz * (nx + 1) + ix, b = a + 1, d = a + nx + 1, e = d + 1; idx.push(a, d, b, b, d, e); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
-    const gm = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.96 })); gm.receiveShadow = true; scene.add(gm);
+    const gm = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.96 })); gm.name = 'ground'; gm.receiveShadow = true; scene.add(gm);
   }
 
   // ───────── 建物：OpenStreetMap 真實輪廓（已預先排除壓到賽道的），沒有資料的賽道只用遊戲內的景物 ─────────
@@ -253,12 +262,13 @@ export async function create(opts) {
   const poolTex = canvasTex(64, 128, (g, w, h) => { const gr = g.createRadialGradient(w / 2, h * 0.18, 2, w / 2, h * 0.5, h * 0.5); gr.addColorStop(0, 'rgba(255,244,214,0.95)'); gr.addColorStop(0.45, 'rgba(255,236,190,0.35)'); gr.addColorStop(1, 'rgba(255,230,170,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }, null, renderer);
   poolTex.wrapS = poolTex.wrapT = THREE.ClampToEdgeWrapping;
   const poolGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+  const CAR_K = 0.8;            // 車子相對真實尺寸縮小一點，賽道看起來才不會太窄
   const cars = new Map();       // key -> {api, lastSpeed, brakeT, pool}
   const up = new THREE.Vector3(0, 1, 0), M4 = new THREE.Matrix4(), Z0 = new THREE.Vector3();
   function ensureCar(key, id, color) {
     let c = cars.get(key); if (c && c.id === id && c.color === color) return c;
     if (c) { scene.remove(c.api.group); c.api.dispose(); if (c.pool) scene.remove(c.pool); }
-    const api = buildCar(carsData, id, color); scene.add(api.group);
+    const api = buildCar(carsData, id, color); api.group.scale.setScalar(CAR_K); scene.add(api.group);
     const pool = new THREE.Mesh(poolGeo, new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.0, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, fog: false })); pool.renderOrder = 3; scene.add(pool);
     c = { api, id, color, lastSpeed: 0, brake: 0, pool }; cars.set(key, c); return c;
   }
@@ -287,7 +297,7 @@ export async function create(opts) {
     const pp = placeCar(pc, uPlayer, st.playerX * halfW, spdMs, dt, -st.steer * 0.12 + slipRot, !!st.braking);
     if (headOn) {
       const f = new THREE.Vector3(pp.tx, 0, pp.tz), r = new THREE.Vector3(-pp.tz, 0, pp.tx);
-      [headL, headR].forEach((h, i) => { h.position.copy(pc.api.group.position).addScaledVector(f, pc.api.length * 0.46).addScaledVector(r, (i ? 1 : -1) * 0.55).add(v3.set(0, 0.7, 0)); });
+      [headL, headR].forEach((h, i) => { h.position.copy(pc.api.group.position).addScaledVector(f, pc.api.length * CAR_K * 0.46).addScaledVector(r, (i ? 1 : -1) * 0.55).add(v3.set(0, 0.7, 0)); });
       tgtL.position.copy(pc.api.group.position).addScaledVector(f, 28).addScaledVector(r, -1.2); tgtR.position.copy(pc.api.group.position).addScaledVector(f, 28).addScaledVector(r, 1.2);
       headL.intensity = headR.intensity = 1500;
     }
@@ -303,9 +313,9 @@ export async function create(opts) {
     // 太陽的陰影跟著玩家
     sun.position.copy(pc.api.group.position).addScaledVector(sunVec, 170); sun.target.position.copy(pc.api.group.position); sun.target.updateMatrixWorld();
     // 追尾鏡頭
-    const back = 7.4 - Math.min(1.5, spdMs * 0.01), cu = uPlayer - back, cp = at(cu, st.playerX * halfW * 0.78, camTmp);
-    const wantPos = v3.set(cp.x, cp.y + 2.35 + Math.min(0.5, spdMs * 0.004), cp.z).clone();
-    const lk = at(uPlayer + 7, st.playerX * halfW * 0.9, lookTmp), wantLook = new THREE.Vector3(lk.x, lk.y + 0.9, lk.z);
+    const back = 10.8 - Math.min(1.8, spdMs * 0.012), cu = uPlayer - back, cp = at(cu, st.playerX * halfW * 0.78, camTmp);
+    const wantPos = v3.set(cp.x, cp.y + 3.5 + Math.min(0.7, spdMs * 0.005), cp.z).clone();
+    const lk = at(uPlayer + 9, st.playerX * halfW * 0.9, lookTmp), wantLook = new THREE.Vector3(lk.x, lk.y + 0.8, lk.z);
     if (!camInit) { camPos.copy(wantPos); camLook.copy(wantLook); camInit = true; }
     const kP = 1 - Math.exp(-dt * 9), kL = 1 - Math.exp(-dt * 12); camPos.lerp(wantPos, kP); camLook.lerp(wantLook, kL);
     camera.position.copy(camPos);
@@ -322,13 +332,19 @@ export async function create(opts) {
     disposables.forEach(d => d.dispose()); pmrem.dispose(); renderer.dispose(); renderer.forceContextLoss && renderer.forceContextLoss();
   }
   // 檢查：建物輪廓有沒有壓到路面（含路肩與護牆）；回傳壓到的路段數與建物離路中心線最近的距離
-  function audit() {
+  function audit(rays) {
     const inside = (x, z, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, zi] = poly[i], [xj, zj] = poly[j]; if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) c = !c; } return c; };
     const wallOff = tdef.wall ? W2 * tdef.wall.off + 0.4 : W2 + 3.3; let hits = 0, hitSegs = new Set(), minGap = 1e9, tmp = {};
     for (let i = 0; i < N; i += 2) for (const lat of [-wallOff, -W2, 0, W2, wallOff]) { const q = at(i, lat, tmp); for (const poly of footprints) { if (Math.abs(poly[0][0] - q.x) > 400 || Math.abs(poly[0][1] - q.z) > 400) continue; if (inside(q.x, q.z, poly)) { hits++; hitSegs.add(i); poly.hit = (poly.hit || 0) + 1; break; } } }
     for (const poly of footprints) for (let k = 0; k < poly.length; k++) { const a = poly[k], b = poly[(k + 1) % poly.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.ceil(L / 2)); for (let t = 0; t < m; t++) { const d = near(a[0] + (b[0] - a[0]) * t / m, a[1] + (b[1] - a[1]) * t / m).d; if (d < minGap) minGap = d; } }
     const worst = footprints.filter(f => f.hit).sort((a, b) => b.hit - a.hit).slice(0, 3).map(f => ({ hit: f.hit, h: f.src.h, p: f.src.w.slice(0, 16), n: f.length }));
-    return { worst, footprints: footprints.length, hits, hitSegs: [...hitSegs].slice(0, 12), minGapToCenter: +minGap.toFixed(1), roadHalf: W2, wallOff: +wallOff.toFixed(1) };
+    // 路面有沒有被地面蓋住：從路面正上方往下射線，最先碰到的如果不是路／路肩／緣石就是被蓋住了
+    const rc_ = new THREE.Raycaster(), dir = new THREE.Vector3(0, -1, 0), targets = scene.children.filter(o => o.name === 'ground' || o.name === 'road' || o.name === 'kerb' || o.name === 'shoulder');
+    let covered = 0, coveredAt = []; const tp = {};
+    if (rays) for (let i = 0; i < N; i += 3) for (const lat of [-W2 * 0.9, 0, W2 * 0.9]) { const q = at(i, lat, tp); rc_.set(new THREE.Vector3(q.x, q.y + 30, q.z), dir); const h = rc_.intersectObjects(targets, false)[0]; if (h && h.object.name === 'ground') { covered++; if (coveredAt.length < 8) coveredAt.push([i, +(h.point.y - q.y).toFixed(2)]); } }
+    // 彎道半徑比路面半寬還小的地方（路面會在彎的內側折疊起來）
+    let folds = 0, minR = 1e9; for (let i = 0; i < N; i++) { const A = (i - 5 + N) % N, C = (i + 5) % N, ab = Math.hypot(PX[i] - PX[A], PZ[i] - PZ[A]), bc = Math.hypot(PX[C] - PX[i], PZ[C] - PZ[i]), ca = Math.hypot(PX[A] - PX[C], PZ[A] - PZ[C]), a2 = Math.abs((PX[i] - PX[A]) * (PZ[C] - PZ[A]) - (PZ[i] - PZ[A]) * (PX[C] - PX[A])); if (a2 > 1e-6) { const R = ab * bc * ca / (2 * a2); minR = Math.min(minR, R); if (R < W2 + 0.3) folds++; } }
+    return { folds, minRadius: +minR.toFixed(1), covered, coveredAt, worst, footprints: footprints.length, hits, hitSegs: [...hitSegs].slice(0, 12), minGapToCenter: +minGap.toFixed(1), roadHalf: W2, wallOff: +wallOff.toFixed(1) };
   }
-  return { frame, resize, dispose, audit, info: { closeErr: Math.round(closeErr), buildings: nBuild, hour, alt: alt / D2R, headOn }, renderer };
+  return { frame, resize, dispose, audit, camera, scene, at, N, info: { closeErr: Math.round(closeErr), buildings: nBuild, hour, alt: alt / D2R, headOn }, renderer };
 }
