@@ -1339,6 +1339,11 @@
   /* ── 大獎賽 ── */
   #racer-modal { bottom: 0; padding-bottom: var(--safe-bottom); }
   body.rc-open #bottom-nav { display: none; }
+  #racer-modal.rc-land.rc-stage .rc-header { display: none; }
+  #racer-modal.rc-land.rc-stage #racer-stage { padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px); background: #000; }
+  #racer-modal.rc-land.rc-stage #racer-canvas { border: none !important; border-radius: 0 !important; }
+  .rc-keys { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text2); }
+  .rc-keys kbd { display: inline-block; min-width: 26px; padding: 2px 7px; margin: 0 2px; text-align: center; font: 700 12px/1.5 ui-monospace, Menlo, monospace; color: var(--text); background: var(--bg3); border: 1px solid var(--border); border-bottom-width: 3px; border-radius: 6px; }
   .rc-pause { position: absolute; inset: 0; z-index: 6; background: rgba(0,0,0,0.72); display: flex; align-items: center; justify-content: center; padding: 24px; }
   .rc-pause-card { width: 100%; max-width: 320px; background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 22px 18px; text-align: center; display: flex; flex-direction: column; gap: 10px; }
   .rc-pause-t { font-weight: 900; font-size: 20px; }
@@ -2188,6 +2193,7 @@
       <div style="font-size:34px">⏸️</div>
       <div class="rc-pause-t">比賽暫停</div>
       <div class="rc-claim-txt">離開的話這場不計成績與獎金，但已經發生的車損和輪胎磨耗照算。</div>
+      <div id="racer-pause-ctrl" style="display:flex;flex-direction:column;gap:8px"></div>
       <button class="btn-submit" onclick="rcResume()">▶ 繼續比賽</button>
       <button class="btn-submit btn-ghost" style="background:var(--bg3);color:var(--text);border:1px solid var(--border)" onclick="rcQuit()">離開比賽</button>
     </div>
@@ -4688,7 +4694,7 @@ window.addEventListener('keydown', e => {
 // 10 台車（玩家＋9 台對手）同場競速，勝過對手就算擊敗他；擊敗對手會解鎖他的座駕，
 // 擊敗的對手越多，開放的賽道越多。
 const RC = {
-  W: 360, H: 560, HORIZON: 215, VS: 0.77, SEG: 200, ROAD: 1200, RUMBLE: 3, LANES: 3,
+  W: 360, H: 560, HORIZON: 215, XS: 180, VS: 0.77, SEG: 200, ROAD: 1200, RUMBLE: 3, LANES: 3,
   CAM_H: 1110, CAM_DEPTH: 0.84, DRAW: 300, CARU: 380, CARLEN: 680, UPK: 55, MAX_KMH: 260, CAR_W: 0.5, LAPS: 2, CUTOFF_SEC: 45, QUALI_CUTOFF: 420,
   GRID_GAP: 760, GRID_POLE: 1000, CAR_LEN: 800, REF: 1200, CATCH: 0.1,
 };
@@ -4862,7 +4868,7 @@ function racerHasTrack(id) { return RACER_TRACKS.some(t => t.id === id) || RACER
 RACER_TRACKS.filter(x => x.night).forEach((t, i) => {
   let a = 99 + i * 17;
   const r = () => { a = (a * 1664525 + 1013904223) >>> 0; return a / 4294967296; };
-  t.stars = Array.from({ length: 60 }, () => [r() * RC.W, r() * RC.HORIZON * 0.9, 0.3 + r() * 0.7, r() < 0.2 ? 2 : 1]);
+  t.stars = Array.from({ length: 90 }, () => [r() * 800, r() * 215 * 0.9, 0.3 + r() * 0.7, r() < 0.2 ? 2 : 1]);
 });
 
 // ── 小工具 ──
@@ -5937,7 +5943,7 @@ const rc = {
   cdLeft: 0, time: 0, goFlash: 0, position: 0, playerX: 0, speed: 0, steer: 0, lap: -1, prevZ: 0, pdist: 0,
   finished: false, finishCount: 0, myOrder: 0, resultAt: 0, resultShown: false, rank: 10, cutoffAt: null, timeUp: false, frozen: null,
   cars: [], skyOffset: 0, hillOffset: 0, crashT: 0, drawN: RC.DRAW, slow: 0, sparks: [], smoke: [], drops: [], dmgTaken: 0,
-  touch: { l: 0, r: 0, b: 0 }, keys: { l: 0, r: 0, b: 0 }, ptrs: new Map(), braking: false,
+  touch: { l: 0, r: 0, b: 0 }, keys: { l: 0, r: 0, b: 0 }, ptrs: new Map(), braking: false, ctrl: 'touch', tilt: { has: false, roll: 0, base: 0 }, land: false, dashS: 1,
 };
 function rcFindSeg(z) {
   const n = rc.track.segs.length;
@@ -6218,9 +6224,12 @@ function rcStep(dt) {
   if (rc.state === 'race' || rc.state === 'finished') {
     const racing = rc.state === 'race';
     const pct = rc.speed / RC.MAX, curve = playerSeg.curve;
-    const input = !racing ? 0 : (rc.touch.r || rc.keys.r ? 1 : 0) - (rc.touch.l || rc.keys.l ? 1 : 0);
+    if (rc.state === 'countdown') rc.tilt.base = rc.tilt.roll;   // 倒數時持續校正：起跑那一刻手機的角度就是「直行」
+    let input = !racing ? 0 : (rc.touch.r || rc.keys.r ? 1 : 0) - (rc.touch.l || rc.keys.l ? 1 : 0);
+    if (racing && rc.ctrl === 'tilt') input = rcTiltInput() + (rc.keys.r ? 1 : 0) - (rc.keys.l ? 1 : 0);
+    input = rcClamp(input, -1, 1);
     // 方向盤是漸進的：按住越久打得越多（約 0.3 秒到底），放開很快回正；短按只會微調，不會一下子甩過頭
-    rc.steer += (input - rc.steer) * Math.min(1, dt * ((input !== 0 && Math.abs(input) > Math.abs(rc.steer) && input * rc.steer >= 0) ? RC.STEER_UP : RC.STEER_DOWN));
+    rc.steer += (input - rc.steer) * Math.min(1, dt * (rc.ctrl === 'tilt' ? 14 : ((input !== 0 && Math.abs(input) > Math.abs(rc.steer) && input * rc.steer >= 0) ? RC.STEER_UP : RC.STEER_DOWN)));
     // 打滑：抓地不夠（下雨用一般胎、輪胎磨光、路面差）又在高速過彎時，會隨機打滑——失控往外飄、掉速度
     if (racing && rc.slipT <= 0) {
       rc.slipCd -= dt;
@@ -6351,10 +6360,10 @@ function rcProject(p, camX, camY, camZ) {
   p.camera.y = p.world.y - camY;
   p.camera.z = p.world.z - camZ;
   p.screen.scale = RC.CAM_DEPTH / p.camera.z;
-  p.screen.x = Math.round(RC.W / 2 + p.screen.scale * p.camera.x * RC.W / 2);
+  p.screen.x = Math.round(RC.W / 2 + p.screen.scale * p.camera.x * RC.XS);
   // 垂直方向壓縮一點（VS），讓車子停在畫面中偏上，下方留給儀表板
   p.screen.y = Math.round(RC.HORIZON - p.screen.scale * p.camera.y * RC.H / 2 * RC.VS);
-  p.screen.w = Math.round(p.screen.scale * RC.ROAD * RC.W / 2);
+  p.screen.w = Math.round(p.screen.scale * RC.ROAD * RC.XS);
 }
 function rcRidge(c, fill, off, base, a1, a2, ph) {
   c.fillStyle = fill; c.beginPath(); c.moveTo(0, RC.HORIZON + 2);
@@ -6482,7 +6491,7 @@ function rcDrawRain(c, rain, dt) {
   for (let i = 0; i < n; i++) {
     const d = rc.drops[i];
     d.y += d.v * dt; d.x -= d.v * dt * slant;
-    if (d.y > RC.H - 112) { d.y = -20; d.x = Math.random() * (RC.W + 60); }
+    if (d.y > RC.H - rcDashH()) { d.y = -20; d.x = Math.random() * (RC.W + 60); }
     if (d.x < -10) d.x += RC.W + 20;
     c.moveTo(d.x, d.y); c.lineTo(d.x + d.l * slant, d.y - d.l);
   }
@@ -6512,7 +6521,7 @@ function rcDrawParticles(c, by, dt) {
 
 function rcCamPitch(sy) { return Math.atan(Math.max(0, sy - RC.HORIZON) / (RC.H / 2 * RC.VS * RC.CAM_DEPTH)) * 0.55; } // 從鏡頭往下看這個位置的車，約幾度俯角（縮一點比較好看）
 function rcRender() {
-  const c = rc.ctx, T = rc.track, def = T.def, segs = T.segs, W = RC.W, H = RC.H, dt = rc.frameDt;
+  const c = rc.ctx, T = rc.track, def = T.def, segs = T.segs, W = RC.W, H = RC.H, XS = RC.XS, dt = rc.frameDt;
   const env = rc.env, rain = env && env.weather === 'rain' ? env.intensity : 0, pal = rcPalette(def, rain);
   const baseSeg = rcFindSeg(rc.position);
   const basePct = (rc.position % RC.SEG) / RC.SEG;
@@ -6552,15 +6561,15 @@ function rcRender() {
       const pct = (car.z % RC.SEG) / RC.SEG;
       const sc = rcInterp(seg.p1.screen.scale, seg.p2.screen.scale, pct);
       if (!(sc > 0)) continue;
-      const sx = rcInterp(seg.p1.screen.x, seg.p2.screen.x, pct) + sc * car.offset * RC.ROAD * W / 2;
+      const sx = rcInterp(seg.p1.screen.x, seg.p2.screen.x, pct) + sc * car.offset * RC.ROAD * XS;
       const sy = rcInterp(seg.p1.screen.y, seg.p2.screen.y, pct);
-      const sw = sc * RC.CAR_W * RC.ROAD * W / 2;
+      const sw = sc * RC.CAR_W * RC.ROAD * XS;
       const clipIt = sy > seg.clip;
       if (clipIt) { c.save(); c.beginPath(); c.rect(0, 0, W, seg.clip); c.clip(); }
       c.globalAlpha = fa;
       // 真正的 3D 車模：依車在畫面的位置算出從鏡頭看它的偏航角（越偏離中線越看得到側面）與俯角
       const slip = car.slipT > 0 ? Math.sin(rc.time * 26) * 0.35 : 0;
-      drawRacerCar(c, car.design, sx, sy, sw, { yaw: -Math.atan((sx - W / 2) / (W / 2 * RC.CAM_DEPTH)) + seg.curve * 0.05 + slip, pitch: rcCamPitch(sy), wet: rain > 0, night, brake: car.slipT > 0 });
+      drawRacerCar(c, car.design, sx, sy, sw, { yaw: -Math.atan((sx - W / 2) / (XS * RC.CAM_DEPTH)) + seg.curve * 0.05 + slip, pitch: rcCamPitch(sy), wet: rain > 0, night, brake: car.slipT > 0 });
       if (car.isTarget && sw > 12) { // 挑戰目標：頭上標示 🎯 和名字
         c.textAlign = 'center'; c.fillStyle = '#fff';
         c.font = `800 ${Math.round(rcClamp(sw * 0.24, 10, 17))}px 'Noto Sans TC', sans-serif`;
@@ -6573,10 +6582,10 @@ function rcRender() {
     for (const sp of seg.sprites) {
       const sd = RACER_SCENERY[sp.type], sc = seg.p1.screen.scale;
       if (!(sc > 0)) continue;
-      const sw = sc * sd.w * RC.REF * W / 2;
+      const sw = sc * sd.w * RC.REF * XS;
       if (sw < 3) continue;
       const aa = sd.ha ? sd.ha(sp.seed) : sd.a, sh = sw * aa, side = sp.offset > 0 ? 1 : -1;
-      const sx = seg.p1.screen.x + sc * sp.offset * RC.ROAD * W / 2 + side * sw / 2;
+      const sx = seg.p1.screen.x + sc * sp.offset * RC.ROAD * XS + side * sw / 2;
       const sy = seg.p1.screen.y;
       if (sx + sw < 0 || sx - sw > W) continue;
       let geo = null;
@@ -6584,7 +6593,7 @@ function rcRender() {
         const m = Math.max(1, Math.round(sd.depth * sd.w * RC.REF / RC.SEG));
         if (n + m < drawN) {
           const sF = segs[(seg.index + m) % segs.length], scF = sF.p1.screen.scale;
-          if (scF > 0 && sF.p1.camera.z > RC.CAM_DEPTH) geo = { fx: sF.p1.screen.x + scF * sp.offset * RC.ROAD * W / 2, fy: sF.p1.screen.y, fh: scF * sd.w * RC.REF * W / 2 * aa };
+          if (scF > 0 && sF.p1.camera.z > RC.CAM_DEPTH) geo = { fx: sF.p1.screen.x + scF * sp.offset * RC.ROAD * XS, fy: sF.p1.screen.y, fh: scF * sd.w * RC.REF * XS * aa };
         }
       }
       const clipIt = sy > seg.clip;
@@ -6603,7 +6612,7 @@ function rcRender() {
     }
     if (seg === playerSeg) {
       const scale = RC.CAM_DEPTH / RC.PLAYER_Z;
-      const pw = scale * RC.CAR_W * RC.ROAD * W / 2;
+      const pw = scale * RC.CAR_W * RC.ROAD * XS;
       by = RC.HORIZON - scale * rcInterp(playerSeg.p1.camera.y, playerSeg.p2.camera.y, playerPct) * H / 2 * RC.VS;
       const bounce = rc.state === 'countdown' ? 0 : 1.2 * Math.random() * speedPct * (Math.random() < 0.5 ? -1 : 1);
       const shake = rc.crashT > 0 ? Math.sin(rc.time * 70) * 3 : 0;
@@ -6623,7 +6632,7 @@ function rcRender() {
   if (rain > 0) { c.fillStyle = `rgba(30,40,60,${0.1 * rain})`; c.fillRect(0, 0, W, H); rcDrawRain(c, rain, dt); }
   rcSpeedLines(c, speedPct);
   rcDrawVignette(c);
-  drawRacerDash(c, 0, H - 112, rc.dashStyle, rc.dashTier, rc.speed / RC.UPK, rc.rpm, rc.gear, { dur: rc.dur, tire: rc.tireDur });
+  { const dS = rc.dashS || 1; c.save(); c.translate((W - 360 * dS) / 2, H - 112 * dS); c.scale(dS, dS); drawRacerDash(c, 0, 0, rc.dashStyle, rc.dashTier, rc.speed / RC.UPK, rc.rpm, rc.gear, { dur: rc.dur, tire: rc.tireDur }); c.restore(); }
   rcDrawHud(c);
 }
 
@@ -6826,7 +6835,7 @@ function rcDrawMap(c, x, y, size) {
 function rcPill(c, x, y, w, h, fill) { c.fillStyle = fill || 'rgba(0,0,0,0.55)'; rcRR(c, x, y, w, h, Math.min(12, h / 2)); c.fill(); }
 // 煞車踏板（右下角）：按住就減速；踩下時亮紅燈。左側的 ◀ ▶ 提示轉向區，起跑前幾秒才顯示
 function rcDrawControls(c) {
-  const P = RC_PEDAL, down = !!(rc.touch.b || rc.keys.b);
+  const P = rcPedal(), down = !!(rc.touch.b || rc.keys.b), W = RC.W, dt = RC.H - rcDashH();
   c.save();
   c.globalAlpha = down ? 0.95 : 0.62;
   c.fillStyle = down ? '#ef4444' : 'rgba(15,20,30,0.78)'; rcRR(c, P.bx, P.by, P.bw, P.bh, 14); c.fill();
@@ -6836,15 +6845,27 @@ function rcDrawControls(c) {
   c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = "800 12px 'Noto Sans TC', sans-serif";
   c.fillText('煞車', P.bx + P.bw / 2, P.by + P.bh - 7);
   c.restore();
-  // 左右兩側的轉向鍵（按畫面左半邊＝向左、右半邊＝向右，按鍵只是標示位置）
-  [[0, '◀', rc.touch.l || rc.keys.l], [1, '▶', rc.touch.r || rc.keys.r]].forEach(([side, ch, on]) => {
-    const bx = side ? RC.W - 70 : 12, by = RC.H - 112 - 84;
-    c.save(); c.globalAlpha = on ? 0.9 : 0.5;
-    c.fillStyle = on ? '#fbbf24' : 'rgba(15,20,30,0.78)'; rcRR(c, bx, by, 58, 70, 16); c.fill();
-    c.strokeStyle = on ? '#fff' : 'rgba(255,255,255,0.4)'; c.lineWidth = 2; c.stroke();
-    c.fillStyle = on ? '#1a1200' : '#fff'; c.textAlign = 'center'; c.font = "900 28px 'Noto Sans TC', sans-serif"; c.fillText(ch, bx + 29, by + 46);
+  if (rc.ctrl === 'tilt') { // 傾斜操作：中間下方一條傾斜指示（圓點往左右移＝正在往那邊轉）
+    const gx = W / 2, gy = dt - 22, gw = 110;
+    c.save(); c.globalAlpha = 0.75; c.fillStyle = 'rgba(15,20,30,0.78)'; rcRR(c, gx - gw / 2 - 8, gy - 12, gw + 16, 24, 12); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,0.35)'; c.lineWidth = 2; c.beginPath(); c.moveTo(gx - gw / 2, gy); c.lineTo(gx + gw / 2, gy); c.stroke();
+    c.fillStyle = 'rgba(255,255,255,0.5)'; c.fillRect(gx - 1, gy - 6, 2, 12);
+    c.globalAlpha = 1; c.fillStyle = Math.abs(rc.steer) > 0.05 ? '#fbbf24' : '#fff'; c.beginPath(); c.arc(gx + rc.steer * gw / 2, gy, 6, 0, 6.2832); c.fill();
     c.restore();
-  });
+  } else { // 左右兩側的轉向鍵（按畫面左半邊＝向左、右半邊＝向右，按鍵只是標示位置）
+    [[0, '◀', rc.touch.l || rc.keys.l], [1, '▶', rc.touch.r || rc.keys.r]].forEach(([side, ch, on]) => {
+      const bx = side ? W - 70 : 12, by = dt - 84;
+      c.save(); c.globalAlpha = on ? 0.9 : 0.5;
+      c.fillStyle = on ? '#fbbf24' : 'rgba(15,20,30,0.78)'; rcRR(c, bx, by, 58, 70, 16); c.fill();
+      c.strokeStyle = on ? '#fff' : 'rgba(255,255,255,0.4)'; c.lineWidth = 2; c.stroke();
+      c.fillStyle = on ? '#1a1200' : '#fff'; c.textAlign = 'center'; c.font = "900 28px 'Noto Sans TC', sans-serif"; c.fillText(ch, bx + 29, by + 46);
+      c.restore();
+    });
+  }
+  if (rc.land) { // 橫式沒有標題列，暫停鈕放在畫面上方中間
+    c.save(); c.globalAlpha = 0.7; c.fillStyle = 'rgba(15,20,30,0.78)'; c.beginPath(); c.arc(W / 2, 24, 15, 0, 6.2832); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,0.45)'; c.lineWidth = 1.5; c.stroke(); c.fillStyle = '#fff'; c.fillRect(W / 2 - 5, 17, 3.6, 14); c.fillRect(W / 2 + 1.4, 17, 3.6, 14); c.restore();
+  }
 }
 
 // 前方彎道提示：只是告訴你「前面有彎、建議多快過」，不會替你減速或轉向
@@ -6866,7 +6887,7 @@ function rcDrawCornerHint(c) {
   const kmh = rc.speed / RC.UPK, allowed = b.va * 200 / RC.UPK, corner = b.vs * 200 / RC.UPK;
   if (allowed > kmh * 1.3) return;                 // 離需要減速還很遠就先不打擾
   const over = kmh > allowed * 1.0, flash = over && Math.floor(rc.time * 6) % 2 === 0;
-  const w = 128, x = 116, y = 12;
+  const w = 128, x = RC.W / 2 - 64, y = rc.land ? 46 : 12;
   rcPill(c, x, y, w, 38, over ? (flash ? 'rgba(220,38,38,0.92)' : 'rgba(153,27,27,0.88)') : 'rgba(180,83,9,0.82)');
   c.fillStyle = '#fff'; c.textAlign = 'center';
   c.font = "800 12px 'Noto Sans TC', sans-serif";
@@ -6875,7 +6896,7 @@ function rcDrawCornerHint(c) {
   c.fillText(`過彎約 ${Math.max(10, Math.round(corner / 5) * 5)} km/h`, x + w / 2, y + 31);
 }
 function rcDrawHud(c) {
-  const W = RC.W, H = RC.H, quali = rc.mode === 'quali';
+  const W = RC.W, H = RC.H, quali = rc.mode === 'quali', CY = Math.round(H * 0.41);
   c.textBaseline = 'alphabetic';
   if (quali) {
     c.font = "800 13px 'Noto Sans TC', sans-serif";
@@ -6945,35 +6966,35 @@ function rcDrawHud(c) {
     if (rc.slipT > 0) warn = '⚠️ 打滑！';
     else if (rc.tireDur <= 0) warn = '🛞 輪胎磨光，容易打滑';
     else if (rc.dur < 0.3) warn = '🔧 車況不佳，速度下降';
-    if (warn) { c.font = "800 15px 'Noto Sans TC', sans-serif"; c.strokeStyle = 'rgba(0,0,0,0.7)'; c.lineWidth = 4; c.fillStyle = rc.slipT > 0 ? '#fbbf24' : '#fca5a5'; c.strokeText(warn, W / 2 - 30, 150); c.fillText(warn, W / 2 - 30, 150); }
+    if (warn) { c.font = "800 15px 'Noto Sans TC', sans-serif"; c.strokeStyle = 'rgba(0,0,0,0.7)'; c.lineWidth = 4; c.fillStyle = rc.slipT > 0 ? '#fbbf24' : '#fca5a5'; c.strokeText(warn, W / 2, Math.round(H * 0.27) + (rc.land ? 40 : 0)); c.fillText(warn, W / 2, Math.round(H * 0.27) + (rc.land ? 40 : 0)); }
   }
   // 倒數／出發／完賽
   if (rc.state === 'countdown') {
     const n = Math.ceil(rc.cdLeft);
     if (n <= 3 && n >= 1) {
       const frac = rc.cdLeft - Math.floor(rc.cdLeft);
-      c.save(); c.translate(W / 2, 230); c.scale(1 + frac * 0.35, 1 + frac * 0.35);
+      c.save(); c.translate(W / 2, CY); c.scale(1 + frac * 0.35, 1 + frac * 0.35);
       c.fillStyle = '#fff'; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 6; c.font = "900 96px 'Bebas Neue', 'Noto Sans TC', sans-serif";
       c.strokeText(String(n), 0, 0); c.fillText(String(n), 0, 0); c.restore();
     } else {
       c.fillStyle = 'rgba(255,255,255,0.92)'; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 5; c.font = "800 22px 'Noto Sans TC', sans-serif";
       const t = quali ? (rc.attack ? '計時賽：跑出你的最快紀錄！' : '排位賽：跑出最快的一圈！') : rc.mode === 'duel' ? '山道單挑！' : `起跑位置 P${rc.gridPos}`;
-      c.strokeText(t, W / 2, 230); c.fillText(t, W / 2, 230);
+      c.strokeText(t, W / 2, CY); c.fillText(t, W / 2, CY);
     }
     c.fillStyle = 'rgba(255,255,255,0.9)'; c.font = "600 13px 'Noto Sans TC', sans-serif";
     c.strokeStyle = 'rgba(0,0,0,0.5)'; c.lineWidth = 3;
-    c.strokeText('按左半邊向左、右半邊向右轉；右下角踏板煞車（油門自動）', W / 2, 268); c.fillText('按左半邊向左、右半邊向右轉；右下角踏板煞車（油門自動）', W / 2, 268);
+    const hint = rcHintText(); c.strokeText(hint, W / 2, CY + 38); c.fillText(hint, W / 2, CY + 38);
   } else if (rc.goFlash > 0) {
     c.globalAlpha = Math.min(1, rc.goFlash * 2);
     c.fillStyle = '#22C55E'; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 6; c.font = "900 84px 'Bebas Neue', 'Noto Sans TC', sans-serif";
-    c.strokeText('GO!', W / 2, 230); c.fillText('GO!', W / 2, 230); c.globalAlpha = 1;
+    c.strokeText('GO!', W / 2, CY); c.fillText('GO!', W / 2, CY); c.globalAlpha = 1;
   } else if (rc.state === 'finished') {
     c.fillStyle = '#fff'; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 6; c.font = "900 64px 'Bebas Neue', 'Noto Sans TC', sans-serif";
     const big = rc.timeUp ? 'TIME UP' : 'FINISH!';
-    c.strokeText(big, W / 2, 230); c.fillText(big, W / 2, 230);
+    c.strokeText(big, W / 2, CY); c.fillText(big, W / 2, CY);
     c.font = "800 26px 'Noto Sans TC', sans-serif";
     const sub = quali ? (rc.bestLap ? racerFmtLap(rc.bestLap) : '沒有成績') : `第 ${rc.rank} 名`;
-    c.strokeText(sub, W / 2, 275); c.fillText(sub, W / 2, 275);
+    c.strokeText(sub, W / 2, CY + 45); c.fillText(sub, W / 2, CY + 45);
   }
 }
 
@@ -6995,29 +7016,115 @@ function rcLoop(ts) {
 }
 
 // ── 輸入：按住畫面左半邊向左轉、右半邊向右轉，右下角踏板煞車（油門自動）；電腦用 ←→（或 A／D）轉向、↓（S／空白鍵）煞車 ──
-const RC_PEDAL = { x0: 204, y0: RC.H - 112 - 112, x1: 272, bx: 210, by: RC.H - 112 - 92, bw: 58, bh: 84 }; // 右側煞車區（觸控範圍）與踏板圖示位置
 function rcUpdateTouch() {
   const rect = rc.canvas.getBoundingClientRect(), k = RC.W / rect.width;
   let l = 0, r = 0, b = 0;
   for (const p of rc.ptrs.values()) {
-    if (p.role === 'b') { b = 1; continue; }                       // 手指一開始按在右下角踏板上：這根手指只負責煞車
+    if (p.role === 'b') { b = 1; continue; }                       // 手指一開始按在踏板上：這根手指只負責煞車
+    if (rc.ctrl === 'tilt') continue;                               // 傾斜操作：畫面只管煞車，轉向交給手機的角度
     const x = (p.x - rect.left) * k;                                // 其他手指：整個畫面左半邊＝向左、右半邊＝向右（手指滑到踏板上也只是向右轉）
     if (x < RC.W / 2) l = 1; else r = 1;
   }
   rc.touch.l = l; rc.touch.r = r; rc.touch.b = b;
 }
-function rcSetupCanvas() {
-  rc.canvas = document.getElementById('racer-canvas');
-  if (rc.canvas.dataset.ready) return;
-  rc.canvas.dataset.ready = '1';
+// ── 操作方式：電腦用鍵盤；手機／平板可選「觸控」或「傾斜（重力感應，像方向盤）」──
+let racerCtrl = (() => { try { return localStorage.getItem('tg-rc-ctrl') === 'tilt' ? 'tilt' : 'touch'; } catch (e) { return 'touch'; } })();
+let racerTiltK = (() => { try { const v = parseInt(localStorage.getItem('tg-rc-tiltk'), 10); return v >= 0 && v <= 2 ? v : 1; } catch (e) { return 1; } })(); // 靈敏度：0 低、1 中、2 高
+function rcIsTouchDevice() { try { return navigator.maxTouchPoints > 0 && window.matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } }
+// 手機現在往左／右「滾動」幾度（順時針為正）。用重力方向換算，所以直式、橫式（兩個方向）、平放都是同一套算法：往右傾或像方向盤往右轉都是向右
+function rcRollFrom(e) {
+  const D = Math.PI / 180, b = e.beta * D, g = e.gamma * D;
+  const ux = -Math.cos(b) * Math.sin(g), uy = Math.sin(b), uz = Math.cos(b) * Math.cos(g);   // 「天空」方向在手機座標裡的樣子
+  const th = ((screen.orientation && typeof screen.orientation.angle === 'number') ? screen.orientation.angle : (window.orientation || 0)) * D;
+  const sx = ux * Math.cos(th) - uy * Math.sin(th), sy = ux * Math.sin(th) + uy * Math.cos(th); // 轉成「螢幕」座標（右、上）
+  return Math.atan2(-sx, Math.hypot(sy, uz));
+}
+window.addEventListener('deviceorientation', e => { if (e.beta == null || e.gamma == null) return; rc.tilt.roll = rcRollFrom(e); rc.tilt.has = true; });
+function rcTiltInput() {
+  const full = [32, 24, 16][racerTiltK] * Math.PI / 180, dz = 2.5 * Math.PI / 180, d = rc.tilt.roll - rc.tilt.base;
+  return Math.sign(d) * Math.min(1, Math.max(0, Math.abs(d) - dz) / (full - dz));
+}
+function rcPickCtrl() { rc.ctrl = racerCtrl === 'tilt' && rcIsTouchDevice() && rc.tilt.has ? 'tilt' : 'touch'; }
+function rcHintText() {
+  if (rc.ctrl === 'tilt') return '像方向盤一樣左右傾斜手機轉向；踏板煞車';
+  if (!rcIsTouchDevice()) return '← → / A D 轉向　↓ / S / 空白鍵 煞車　Esc 暫停';
+  return '按左半邊向左、右半邊向右轉；踏板煞車（油門自動）';
+}
+window.racerSetCtrl = async (mode) => {
+  if (mode === 'tilt') {
+    if (!rcIsTouchDevice()) { showToast('這個裝置沒有觸控與重力感應，請用鍵盤或觸控'); return; }
+    try {
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        const r = await DeviceOrientationEvent.requestPermission();   // iOS 要在點擊當下請求「動作與方向」權限
+        if (r !== 'granted') { showToast('沒有取得重力感應權限；到 Safari 設定允許「動作與方向存取」後再試'); return; }
+      }
+    } catch (e) { showToast('無法啟用重力感應'); return; }
+    rc.tilt.has = false;
+    await new Promise(r => setTimeout(r, 600));                       // 等第一筆感應資料
+    if (!rc.tilt.has) { showToast('偵測不到重力感應，已使用觸控操作'); mode = 'touch'; }
+  }
+  racerCtrl = mode;
+  try { localStorage.setItem('tg-rc-ctrl', mode); } catch (e) {}
+  rcPickCtrl();
+  if (rc.panel === 'prep') renderRacerPrep();
+  rcFillPauseCtrl();
+};
+window.racerSetTiltK = (k) => { racerTiltK = k; try { localStorage.setItem('tg-rc-tiltk', String(k)); } catch (e) {} if (rc.panel === 'prep') renderRacerPrep(); rcFillPauseCtrl(); };
+window.racerTiltZero = () => { rc.tilt.base = rc.tilt.roll; showToast('已把目前的角度當成直行'); };
+// 賽前準備的「操作方式」卡片
+function rcCtrlCardHtml() {
+  if (!rcIsTouchDevice()) {
+    return `<div class="rc-sec-title">⌨️ 鍵盤操作</div><div class="rc-card"><div class="rc-keys">
+      <span><kbd>←</kbd><kbd>→</kbd> 或 <kbd>A</kbd><kbd>D</kbd> 轉向</span><span><kbd>↓</kbd> 或 <kbd>S</kbd> 或 <kbd>空白</kbd> 煞車</span><span><kbd>Esc</kbd> 暫停</span></div>
+      <div class="rc-claim-txt" style="margin-top:6px">油門自動。視窗拉寬時會自動切換成橫式畫面；也可以用滑鼠點畫面兩側轉向、點踏板煞車。</div></div>`;
+  }
+  const t = racerCtrl === 'tilt';
+  return `<div class="rc-sec-title">🎮 操作方式<small>橫放手機最像方向盤</small></div>
+    <div class="rc-tire ${t ? '' : 'sel'}" onclick="racerSetCtrl('touch')"><div class="rc-tire-icon">👆</div><div><div class="rc-tire-name">觸控</div><div class="rc-tire-desc">按畫面左半邊向左、右半邊向右轉；踏板煞車。</div></div></div>
+    <div class="rc-tire ${t ? 'sel' : ''}" onclick="racerSetCtrl('tilt')"><div class="rc-tire-icon">📱</div><div><div class="rc-tire-name">傾斜（重力感應）</div><div class="rc-tire-desc">像握方向盤一樣左右轉動或傾斜手機轉向，右手點踏板煞車。起跑倒數時的手機角度會當成直行。</div></div></div>
+    ${t ? `<div class="rc-tabs" style="margin-top:6px"><span class="rc-claim-txt" style="align-self:center">靈敏度</span>${['低', '中', '高'].map((n, i) => `<button class="rc-tab ${racerTiltK === i ? 'sel' : ''}" onclick="racerSetTiltK(${i})">${n}</button>`).join('')}</div>` : ''}`;
+}
+// 暫停選單裡的操作方式（手機／平板才有）
+function rcFillPauseCtrl() {
+  const el = document.getElementById('racer-pause-ctrl'); if (!el) return;
+  if (!rcIsTouchDevice()) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="rc-seg" style="margin:4px 0;position:static"><button class="${racerCtrl === 'touch' ? 'on' : ''}" onclick="racerSetCtrl('touch')">👆 觸控</button><button class="${racerCtrl === 'tilt' ? 'on' : ''}" onclick="racerSetCtrl('tilt')">📱 傾斜</button></div>`
+    + (racerCtrl === 'tilt' ? `<button class="rc-btn-sm" style="align-self:center" onclick="racerTiltZero()">⟲ 以目前角度當直行</button>` : '');
+}
+function rcDashH() { return Math.round(112 * (rc.dashS || 1)); }
+// 煞車踏板（觸控範圍＋圖示位置）：直式在右側靠中間，橫式也一樣離右邊緣一段距離，右邊緣留給「向右轉」
+function rcPedal() { const W = RC.W, dt = RC.H - rcDashH(); return { x0: W - 156, x1: W - 88, y0: dt - 112, yMax: dt + 4, bx: W - 150, by: dt - 92, bw: 58, bh: 84 }; }
+function rcResizeBacking() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   rc.canvas.width = RC.W * dpr; rc.canvas.height = RC.H * dpr;
   rc.ctx = rc.canvas.getContext('2d');
   rc.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  rc.vig = null; rc.drops = null;
+}
+// 自適應直式／橫式：直式 360×560；橫式固定高 360、寬依螢幕比例（520～760），視野左右變寬但道路與車子的比例不變
+function rcApplyLayout() {
+  const modal = document.getElementById('racer-modal'), wrap = document.getElementById('racer-wrap');
+  const land = window.innerWidth > window.innerHeight * 1.1;
+  modal.classList.toggle('rc-land', land);
+  const ww = wrap.clientWidth || window.innerWidth, wh = wrap.clientHeight || window.innerHeight;
+  const H = land ? 360 : 560, W = land ? rcClamp(Math.round(360 * ww / Math.max(1, wh)), 520, 760) : 360;
+  if (W !== RC.W || H !== RC.H || land !== !!rc.land) {
+    RC.W = W; RC.H = H; RC.HORIZON = Math.round(H * 0.384); RC.XS = H * 0.3214;
+    rc.land = land; rc.dashS = land ? 0.68 : 1;
+    if (rc.canvas) rcResizeBacking();
+  }
+}
+function rcSetupCanvas() {
+  rc.canvas = document.getElementById('racer-canvas');
+  if (rc.canvas.dataset.ready) return;
+  rc.canvas.dataset.ready = '1';
+  rcApplyLayout(); rcResizeBacking();
   rc.canvas.addEventListener('pointerdown', e => {
     e.preventDefault(); try { rc.canvas.setPointerCapture(e.pointerId); } catch (x) {}
     const rect = rc.canvas.getBoundingClientRect(), k = RC.W / rect.width, px = (e.clientX - rect.left) * k, py = (e.clientY - rect.top) * k;
-    rc.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, role: px >= RC_PEDAL.x0 && px < RC_PEDAL.x1 && py >= RC_PEDAL.y0 && py < RC.H - 112 + 4 ? 'b' : 's' });
+    if (rc.land && Math.hypot(px - RC.W / 2, py - 24) < 26) { rcPause(); return; } // 橫式沒有上方標題列：畫面上方中間的暫停鈕
+    const P = rcPedal();
+    rc.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, role: px >= P.x0 && px < P.x1 && py >= P.y0 && py < P.yMax ? 'b' : 's' });
     rcUpdateTouch();
   });
   rc.canvas.addEventListener('pointermove', e => { if (rc.ptrs.has(e.pointerId)) { rc.ptrs.get(e.pointerId).x = e.clientX; rc.ptrs.get(e.pointerId).y = e.clientY; rcUpdateTouch(); } });
@@ -7026,29 +7133,30 @@ function rcSetupCanvas() {
 function rcSizeCanvas() {
   const wrap = document.getElementById('racer-wrap');
   if (!wrap || !rc.canvas) return;
-  const s = Math.min((wrap.clientWidth - 16) / RC.W, (wrap.clientHeight - 12) / RC.H, 1.5);
+  rcApplyLayout();
+  const land = !!rc.land, s = Math.min((wrap.clientWidth - (land ? 0 : 16)) / RC.W, (wrap.clientHeight - (land ? 0 : 12)) / RC.H, land ? 3 : 1.5);
   if (s <= 0) return;
   rc.canvas.style.width = Math.floor(RC.W * s) + 'px';
   rc.canvas.style.height = Math.floor(RC.H * s) + 'px';
 }
 window.addEventListener('resize', () => { if (rc.panel === 'stage') rcSizeCanvas(); });
+window.addEventListener('orientationchange', () => { setTimeout(() => { if (rc.panel === 'stage') rcSizeCanvas(); }, 250); });
+const RC_KEYS = { l: ['ArrowLeft', 'a', 'A'], r: ['ArrowRight', 'd', 'D'], b: ['ArrowDown', 's', 'S', ' '] };
 window.addEventListener('keydown', e => {
   if (!document.getElementById('racer-modal')?.classList.contains('open') || rc.panel !== 'stage') return;
-  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { rc.keys.l = 1; e.preventDefault(); }
-  else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { rc.keys.r = 1; e.preventDefault(); }
-  else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S' || e.key === ' ') { rc.keys.b = 1; e.preventDefault(); }
+  if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { e.preventDefault(); if (!e.repeat) { if (rc.paused) rcResume(); else rcPause(); } return; }
+  if (rc.paused) return;
+  for (const k of ['l', 'r', 'b']) if (RC_KEYS[k].includes(e.key)) { rc.keys[k] = 1; e.preventDefault(); return; }
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') e.preventDefault(); // 油門自動，不需要加速鍵（避免頁面跟著捲動）
 });
-window.addEventListener('keyup', e => {
-  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') rc.keys.l = 0;
-  else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') rc.keys.r = 0;
-  else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S' || e.key === ' ') rc.keys.b = 0;
-});
+window.addEventListener('keyup', e => { for (const k of ['l', 'r', 'b']) if (RC_KEYS[k].includes(e.key)) rc.keys[k] = 0; });
 
 // ── 選單／賽前準備／改裝維修／排行榜／結算畫面 ──
 const RC_TITLES = { hub: '大獎賽', prep: '賽前準備', tune: '改裝工廠', board: '排行榜', solo: '個人賽', stage: '比賽中', result: '結算' };
 const RC_PANELS = { solo: 'racer-solo', hub: 'racer-hub', tune: 'racer-tune', prep: 'racer-prep', board: 'racer-board', stage: 'racer-stage', result: 'racer-result' };
 function rcShowPanel(name) {
   rc.panel = name;
+  const md = document.getElementById('racer-modal'); if (md) md.classList.toggle('rc-stage', name === 'stage');
   const ti = document.getElementById('racer-title'); if (ti) ti.textContent = ' ' + (RC_TITLES[name] || '大獎賽');
   Object.entries(RC_PANELS).forEach(([k, id]) => {
     const el = document.getElementById(id);
@@ -7180,6 +7288,7 @@ function renderRacerPrep() {
     <div class="rc-sec-title">🛞 選擇輪胎<small>雨胎免費</small></div>
     ${tireCard('normal', '🛞', '一般胎', '速度快；乾地抓地好。<b>下雨天很容易打滑</b>。', !rain)}
     ${tireCard('rain', '🌧️', '熱熔雨胎（免費）', `雨天抓地強、<b>不易打滑</b>；但速度慢約 7%，在乾地上磨得特別快。`, rain)}
+    ${rcCtrlCardHtml()}
     ${solo ? soloPrepBottom(tdef, P) : qualiHtml}
     <div class="rc-claim-txt" style="margin-top:14px;opacity:.8">🚀 後追加速：落後的車會自動追趕（最後一名最多比第一名快 10%），所有車都一樣；領先的人要靠技術守住。</div>`;
   el.scrollTop = keep;
@@ -7728,10 +7837,11 @@ window.racerBack = () => {
 // 暫停／繼續／離開（比賽中按返回、或切到別的 App 時會自動暫停）
 window.rcPause = () => {
   if (rc.paused || rc.panel !== 'stage') return;
+  rcFillPauseCtrl();
   rc.paused = true; rc.ptrs.clear(); rc.touch.l = rc.touch.r = rc.touch.b = 0; rc.keys.l = rc.keys.r = rc.keys.b = 0;
   document.getElementById('racer-pause').style.display = 'flex';
 };
-window.rcResume = () => { rc.paused = false; rc.last = performance.now(); rc.acc = 0; document.getElementById('racer-pause').style.display = 'none'; };
+window.rcResume = () => { rcPickCtrl(); rc.paused = false; rc.last = performance.now(); rc.acc = 0; document.getElementById('racer-pause').style.display = 'none'; };
 window.rcQuit = () => {
   rc.paused = false; document.getElementById('racer-pause').style.display = 'none';
   rcAbortSession(); saveRacerSave();
@@ -7739,6 +7849,7 @@ window.rcQuit = () => {
 };
 document.addEventListener('visibilitychange', () => { if (document.hidden && rc.panel === 'stage' && !rc.resultShown && (rc.state === 'race' || rc.state === 'countdown')) rcPause(); });
 function rcBeginStage(mode) {
+  rcPickCtrl();
   rcSetupCanvas();
   rcSetupSession(mode);
   rc.committed = false; rc.backToHub = false; rc.paused = false; document.getElementById('racer-pause').style.display = 'none';
