@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TomicaGo 3D 擬真預覽</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --bg:#0b0d12; --card:rgba(16,19,27,.82); --line:rgba(255,255,255,.14); --text:#eef1f7; --dim:#9aa4b5; --red:#e8001d; --gold:#fbbf24; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family:-apple-system,'Noto Sans TC','PingFang TC',sans-serif; overflow:hidden; }
+  canvas#view { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+  .top { position:fixed; top:0; left:0; right:0; padding:calc(10px + env(safe-area-inset-top)) 14px 10px; display:flex; align-items:center; gap:10px; background:linear-gradient(to bottom, rgba(0,0,0,.55), transparent); pointer-events:none; }
+  .top b { font-size:15px; letter-spacing:.5px; } .top b span { color:var(--red); }
+  .top small { color:var(--dim); font-size:11px; margin-left:auto; text-align:right; }
+  .panel { position:fixed; left:10px; right:10px; bottom:calc(10px + env(safe-area-inset-bottom)); max-width:560px; margin:0 auto; background:var(--card); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid var(--line); border-radius:18px; padding:12px 14px 10px; }
+  .panel.min .body { display:none; }
+  .row { display:flex; align-items:center; gap:10px; margin:7px 0; font-size:13px; }
+  .row label { width:62px; color:var(--dim); flex-shrink:0; }
+  .row output { width:70px; text-align:right; font-variant-numeric:tabular-nums; color:var(--gold); font-weight:700; font-size:12px; }
+  input[type=range] { flex:1; accent-color:var(--red); min-width:0; }
+  select, input[type=color] { background:#1a1f2b; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:7px 8px; font-size:13px; flex:1; min-width:0; font-family:inherit; }
+  input[type=color] { padding:2px; height:34px; flex:0 0 52px; }
+  .seg { display:flex; gap:6px; flex:1; }
+  .seg button, .tog { flex:1; background:#1a1f2b; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:8px 4px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .seg button.on, .tog.on { background:var(--red); border-color:var(--red); }
+  .handle { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--dim); cursor:pointer; }
+  .handle b { color:var(--text); font-size:13px; }
+  #load { position:fixed; inset:0; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; font-size:14px; color:var(--dim); z-index:5; transition:opacity .4s; }
+  #load.done { opacity:0; pointer-events:none; }
+  #fps { position:fixed; top:calc(34px + env(safe-area-inset-top)); left:14px; font:11px ui-monospace,Menlo,monospace; color:#9fe8b4; text-shadow:0 1px 2px #000; pointer-events:none; }
+  #credit { position:fixed; right:12px; top:calc(34px + env(safe-area-inset-top)); font-size:9px; color:rgba(255,255,255,.55); text-align:right; line-height:1.4; pointer-events:none; max-width:55%; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div class="top"><b>TOMICA<span> 3D</span> 擬真預覽</b><small id="place">摩納哥</small></div>
+<div id="fps"></div>
+<div id="credit">路線 © bacinger/f1-circuits (MIT)　建物 © OpenStreetMap contributors (ODbL)　3D：three.js</div>
+<div id="load"><div style="font-size:34px">🏎️</div><div id="loadtxt">載入 3D 引擎…</div></div>
+
+<div class="panel" id="panel">
+  <div class="handle" onclick="document.getElementById('panel').classList.toggle('min')"><b>🎛️ 光影・天氣・車輛</b><span id="clock">—</span></div>
+  <div class="body">
+    <div class="row"><label>太陽時間</label><input id="t" type="range" min="0" max="24" step="0.05" value="16.2"><output id="tO"></output></div>
+    <div class="row"><label>下雨</label><input id="rain" type="range" min="0" max="100" step="1" value="0"><output id="rO"></output></div>
+    <div class="row"><label>車款</label><select id="car"></select><input id="color" type="color" value="#c8102e" title="車色"></div>
+    <div class="row"><label>視角</label><div class="seg" id="cams"><button data-c="chase" class="on">追尾</button><button data-c="hood">車頭</button><button data-c="orbit">環繞</button><button data-c="aerial">空拍</button></div></div>
+    <div class="row"><label>車速</label><input id="spd" type="range" min="0" max="220" step="5" value="90"><output id="sO"></output></div>
+    <div class="row"><label>品質</label><div class="seg"><button class="tog on" id="shadowT">即時陰影</button><button class="tog" id="brakeT">煞車燈</button><button class="tog" id="lightT">頭燈</button></div></div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { Sky } from 'three/addons/objects/Sky.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const $ = id => document.getElementById(id);
+const D2R = Math.PI / 180;
+const setLoad = t => { $('loadtxt').textContent = t; };
+
+// ───────── 資料 ─────────
+setLoad('載入車輛與賽道資料…');
+const [carsData, track] = await Promise.all([fetch('3d/cars.json').then(r => r.json()), fetch('3d/monaco.json').then(r => r.json())]);
+
+// ───────── 渲染器 ─────────
+const canvas = $('view');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(58, 1, 0.3, 6000);
+function resize() { renderer.setSize(window.innerWidth, window.innerHeight, false); camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); }
+window.addEventListener('resize', resize); resize();
+
+// ───────── 天空、太陽（真實位置）、光 ─────────
+const sky = new Sky(); sky.scale.setScalar(4500); scene.add(sky);
+const sun = new THREE.DirectionalLight(0xffffff, 3); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.06;
+Object.assign(sun.shadow.camera, { left: -75, right: 75, top: 75, bottom: -75, near: 1, far: 420 });
+scene.add(sun, sun.target);
+const hemi = new THREE.HemisphereLight(0xbcd4ff, 0x4a4438, 0.5); scene.add(hemi);
+scene.fog = new THREE.FogExp2(0xaab8c8, 0.0004);
+const pmrem = new THREE.PMREMGenerator(renderer);
+let envRT = null;
+
+// 太陽高度／方位：依緯度、日期（一年中的第幾天）和當地太陽時算出來，跟 SunCalc 同樣的天文公式
+function sunAngles(latDeg, doy, solarHour) {
+  const lat = latDeg * D2R, decl = 23.44 * D2R * Math.sin(2 * Math.PI * (284 + doy) / 365), H = (solarHour - 12) * 15 * D2R;
+  const alt = Math.asin(Math.sin(lat) * Math.sin(decl) + Math.cos(lat) * Math.cos(decl) * Math.cos(H));
+  const az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(lat) - Math.tan(decl) * Math.cos(lat)) + Math.PI; // 由北順時針
+  return { alt, az };
+}
+const now = new Date(), doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+const sunVec = new THREE.Vector3();
+let envDirty = true, lastEnvAt = 0;
+const state = { t: 16.2, rain: 0, speed: 90, cam: 'chase', shadows: true, brake: false, lights: false };
+
+function applyAtmosphere() {
+  const { alt, az } = sunAngles(track.lat, doy, state.t);
+  sunVec.set(Math.sin(az) * Math.cos(alt), Math.sin(alt), -Math.cos(az) * Math.cos(alt));
+  const day = THREE.MathUtils.clamp(Math.sin(alt) * 3 + 0.25, 0, 1), rain = state.rain;
+  const u = sky.material.uniforms;
+  u.turbidity.value = 2 + 14 * rain + (alt < 0.2 ? 4 : 0); u.rayleigh.value = 1.2 + 2.5 * (1 - day) - 0.6 * rain; u.mieCoefficient.value = 0.004 + 0.02 * rain; u.mieDirectionalG.value = 0.8;
+  u.sunPosition.value.copy(sunVec);
+  const warm = new THREE.Color(0xfff2e0).lerp(new THREE.Color(0xff9a4a), THREE.MathUtils.clamp(1 - alt / 0.45, 0, 1));
+  sun.color.copy(warm); sun.intensity = Math.max(0, Math.sin(alt)) * 3.4 * (1 - 0.88 * rain) * (alt > 0 ? 1 : 0);
+  hemi.intensity = 0.4 + 0.45 * day * (1 - 0.35 * rain);
+  hemi.color.set(0xbcd4ff).lerp(new THREE.Color(0x4a5b86), 1 - day);
+  renderer.toneMappingExposure = 0.34 + 0.5 * day;
+  const fogCol = new THREE.Color(0xaec2d8).multiplyScalar(0.12 + 0.88 * day).lerp(new THREE.Color(0x6c7480).multiplyScalar(0.2 + 0.8 * day), rain);
+  scene.fog.color.copy(fogCol); scene.fog.density = 0.00035 + 0.0024 * rain;
+  const nightK = THREE.MathUtils.clamp(1 - day * 1.6, 0, 1);
+  windowMats.forEach(m => { m.emissiveIntensity = nightK * 3.2; });
+  headlightOn = state.lights || nightK > 0.45 || rain > 0.6;
+  envDirty = true;
+  $('clock').textContent = `${String(Math.floor(state.t)).padStart(2, '0')}:${String(Math.round((state.t % 1) * 60)).padStart(2, '0')}　太陽高度 ${Math.round(alt / D2R)}°`;
+  { const want = rain > 0.12 ? puddleTex : null; if (road.material.roughnessMap !== want) { road.material.roughnessMap = want; road.material.needsUpdate = true; } }
+  road.material.roughness = 0.93 - 0.74 * rain; road.material.color.setScalar(1 - 0.38 * rain); road.material.envMapIntensity = 0.5 + 1.6 * rain;
+  rainLines.visible = rain > 0.02; rainLines.geometry.setDrawRange(0, Math.floor(RAIN_N * 2 * Math.min(1, rain * 1.1)));
+  rainLines.material.opacity = 0.3 + 0.4 * rain * (0.4 + 0.6 * day);
+}
+function updateEnv() {
+  const tmp = new THREE.Scene(); tmp.add(sky);
+  const rt = pmrem.fromScene(tmp, 0, 0.1, 5000);
+  scene.add(sky); if (envRT) envRT.dispose(); envRT = rt; scene.environment = rt.texture;
+  envDirty = false; lastEnvAt = performance.now();
+}
+
+// ───────── 賽道：路線 → 立體路面 ─────────
+setLoad('建立賽道與路面…');
+const curve = new THREE.CatmullRomCurve3(track.route.map(p => new THREE.Vector3(p[0], p[2], p[1])), true, 'centripetal');
+const trackLen = curve.getLength();
+const N = Math.round(trackLen / 2);
+const samples = curve.getSpacedPoints(N);              // 閉合：最後一點＝第一點
+const tans = []; for (let i = 0; i < N; i++) { const a = samples[(i + N - 1) % N], b = samples[(i + 1) % N]; tans.push(b.clone().sub(a).normalize()); }
+const ROAD_W = 10, ROAD = new THREE.Group(); scene.add(ROAD);
+
+function canvasTex(w, h, draw, repeat) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); if (repeat) t.repeat.set(...repeat); return t; }
+const rnd = (() => { let s = 12345; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; })();
+const asphaltTex = canvasTex(512, 512, (g, w, h) => {
+  g.fillStyle = '#4a4c53'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 26000; i++) { const v = 40 + rnd() * 60; g.fillStyle = `rgba(${v},${v},${v + 4},${0.25 + rnd() * 0.4})`; g.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 1.6, 1 + rnd() * 1.6); }
+  for (const x of [0.30, 0.70]) { const gr = g.createLinearGradient((x - 0.09) * w, 0, (x + 0.09) * w, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.5, 'rgba(0,0,0,0.28)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect((x - 0.09) * w, 0, 0.18 * w, h); } // 輪胎行駛痕跡
+  g.fillStyle = 'rgba(245,245,245,0.92)'; g.fillRect(0.03 * w, 0, 0.012 * w, h); g.fillRect(0.958 * w, 0, 0.012 * w, h);                                // 邊線
+});
+asphaltTex.repeat.set(1, 1);
+const puddleTex = canvasTex(256, 256, (g, w, h) => { // 路面粗糙度：下雨時深色的地方會積水反光
+  g.fillStyle = '#fff'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 70; i++) { const x = rnd() * w, y = rnd() * h, r = 14 + rnd() * 46, gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(0,0,0,0.75)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
+});
+puddleTex.colorSpace = THREE.NoColorSpace;
+const road = (() => {
+  const pos = [], uv = [], idx = [];
+  for (let i = 0; i <= N; i++) {
+    const p = samples[i % N], t = tans[i % N], nx = -t.z, nz = t.x, l = Math.hypot(nx, nz) || 1, ax = nx / l, az = nz / l;
+    pos.push(p.x - ax * ROAD_W / 2, p.y + 0.04, p.z - az * ROAD_W / 2, p.x + ax * ROAD_W / 2, p.y + 0.04, p.z + az * ROAD_W / 2);
+    const v = i * (trackLen / N) / 10; uv.push(0, v, 1, v);
+    if (i < N) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+  const m = new THREE.MeshStandardMaterial({ map: asphaltTex, roughness: 0.93, metalness: 0.0 });
+  puddleTex.repeat.set(1, 0.9); puddleTex.needsUpdate = true;
+  const mesh = new THREE.Mesh(g, m); mesh.receiveShadow = true; ROAD.add(mesh); return mesh;
+})();
+// 路肩緣石＋護牆（紅白相間）
+const kerbTex = canvasTex(128, 32, (g, w, h) => { for (let i = 0; i < 4; i++) { g.fillStyle = i % 2 ? '#f2f2f2' : '#d0021b'; g.fillRect(i * 32, 0, 32, h); } });
+function wallStrip(side, off, height, tex) {
+  const pos = [], uv = [], idx = [], base = [];
+  for (let i = 0; i <= N; i++) {
+    const p = samples[i % N], t = tans[i % N], nx = -t.z, nz = t.x, l = Math.hypot(nx, nz) || 1, x = p.x + side * nx / l * off, z = p.z + side * nz / l * off, y = p.y + 0.04;
+    pos.push(x, y, z, x, y + height, z); const v = i * (trackLen / N) / 4; uv.push(0, v, 1, v);
+    if (i < N) { const a = i * 2; if (side > 0) idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); else idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+  const t2 = tex.clone(); t2.needsUpdate = true; t2.repeat.set(1, 1);
+  const m = new THREE.MeshStandardMaterial({ map: t2, roughness: 0.7, metalness: 0.0, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(g, m); mesh.castShadow = true; mesh.receiveShadow = true; ROAD.add(mesh);
+}
+const wallTex = canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#cfd3d9'; g.fillRect(0, 0, w, h); g.fillStyle = '#e8eaee'; g.fillRect(0, 0, w, 6); g.fillStyle = 'rgba(0,0,0,0.15)'; g.fillRect(0, h - 10, w, 10); });
+wallStrip(-1, ROAD_W / 2 + 0.6, 1.0, wallTex); wallStrip(1, ROAD_W / 2 + 0.6, 1.0, wallTex);
+(() => { // 路邊緣石：貼地的紅白條
+  const edge = (side) => {
+    const pos = [], uv = [], idx = [];
+    for (let i = 0; i <= N; i++) {
+      const p = samples[i % N], t = tans[i % N], nx = -t.z, nz = t.x, l = Math.hypot(nx, nz) || 1, ax = nx / l, az = nz / l, y = p.y + 0.06;
+      pos.push(p.x + side * ax * ROAD_W / 2, y, p.z + side * az * ROAD_W / 2, p.x + side * ax * (ROAD_W / 2 + 0.6), y, p.z + side * az * (ROAD_W / 2 + 0.6));
+      const v = i * (trackLen / N) / 3; uv.push(0, v, 1, v);
+      if (i < N) { const a = i * 2; if (side > 0) idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); else idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+    const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: kerbTex, roughness: 0.55, side: THREE.DoubleSide })); mesh.receiveShadow = true; ROAD.add(mesh);
+  };
+  edge(-1); edge(1);
+})();
+
+// ───────── 地面（依路線高度起伏）＋建物（OpenStreetMap 輪廓拉伸）─────────
+setLoad('建立地形與建物…');
+const grid = new Map(), CELL = 40;
+samples.forEach((p, i) => { const k = Math.floor(p.x / CELL) + ',' + Math.floor(p.z / CELL); (grid.get(k) || grid.set(k, []).get(k)).push(p); });
+const avgY = samples.reduce((a, p) => a + p.y, 0) / samples.length;
+function nearest(x, z) {
+  let best = null, bd = 1e12;
+  for (let r = 1; r <= 8 && !best; r++) for (let cx = Math.floor(x / CELL) - r; cx <= Math.floor(x / CELL) + r; cx++) for (let cz = Math.floor(z / CELL) - r; cz <= Math.floor(z / CELL) + r; cz++) {
+    const a = grid.get(cx + ',' + cz); if (!a) continue;
+    for (const p of a) { const d = (p.x - x) ** 2 + (p.z - z) ** 2; if (d < bd) { bd = d; best = p; } }
+  }
+  return best ? { p: best, d: Math.sqrt(bd) } : { p: { y: avgY }, d: 400 };
+}
+const groundY = (x, z) => { const { p, d } = nearest(x, z); return p.y - 0.4 - Math.min(26, Math.max(0, d - 8) * 0.07); };
+(() => {
+  const S = 1500, seg = 150, g = new THREE.PlaneGeometry(S, S, seg, seg); g.rotateX(-Math.PI / 2);
+  const pp = g.attributes.position; for (let i = 0; i < pp.count; i++) pp.setY(i, groundY(pp.getX(i), pp.getZ(i)));
+  g.computeVertexNormals();
+  const tex = canvasTex(256, 256, (c, w, h) => { c.fillStyle = '#6f6a62'; c.fillRect(0, 0, w, h); for (let i = 0; i < 9000; i++) { const v = 70 + rnd() * 60; c.fillStyle = `rgba(${v},${v - 4},${v - 12},0.5)`; c.fillRect(rnd() * w, rnd() * h, 2, 2); } }, [60, 60]);
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95 })); m.receiveShadow = true; scene.add(m);
+})();
+const winTex = canvasTex(128, 64, (g, w, h) => { // 一層樓、兩扇窗（6 m × 3.4 m）
+  g.fillStyle = '#d9d2c3'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 2; i++) { g.fillStyle = '#34465a'; g.fillRect(i * 64 + 14, 12, 36, 40); g.fillStyle = 'rgba(255,255,255,0.18)'; g.fillRect(i * 64 + 14, 12, 36, 12); g.fillStyle = '#b9b1a2'; g.fillRect(i * 64 + 12, 52, 40, 4); }
+}); winTex.repeat.set(1 / 6, 1 / 3.4);
+const winEmit = canvasTex(128, 64, (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h); for (let i = 0; i < 2; i++) if (rnd() < 0.5) { g.fillStyle = rnd() < 0.7 ? '#ffd9a0' : '#bfe3ff'; g.fillRect(i * 64 + 14, 12, 36, 40); } }); winEmit.repeat.set(1 / 6, 1 / 3.4);
+const tints = [0xffffff, 0xf3e6d2, 0xe9efe8, 0xe8ddd0, 0xf6d9b8, 0xd7dde6];
+const windowMats = tints.map(c => new THREE.MeshStandardMaterial({ color: c, map: winTex, emissive: 0xffffff, emissiveMap: winEmit, emissiveIntensity: 0, roughness: 0.82, metalness: 0.05 }));
+const roofMat = new THREE.MeshStandardMaterial({ color: 0x8a8d92, roughness: 0.9 });
+let nBuild = 0;
+for (const b of track.buildings) {
+  const P = []; for (let i = 0; i < b.p.length; i += 2) P.push([b.p[i], b.p[i + 1]]);
+  if (P.length < 3) continue;
+  const shape = new THREE.Shape(P.map(q => new THREE.Vector2(q[0], -q[1])));
+  const depth = Math.max(2.5, b.h - b.mh);
+  const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
+  geo.rotateX(-Math.PI / 2);
+  const cx = P.reduce((s, q) => s + q[0], 0) / P.length, cz = P.reduce((s, q) => s + q[1], 0) / P.length;
+  const mesh = new THREE.Mesh(geo, [roofMat, windowMats[nBuild % windowMats.length]]);
+  mesh.position.y = groundY(cx, cz) + b.mh; mesh.castShadow = true; mesh.receiveShadow = true; scene.add(mesh); nBuild++;
+}
+
+// ───────── 雨 ─────────
+const RAIN_N = 6000, rainPos = new Float32Array(RAIN_N * 6), rainVel = new Float32Array(RAIN_N);
+const RB = { x: 90, y: 50, z: 90 };
+for (let i = 0; i < RAIN_N; i++) { rainPos[i * 6] = (rnd() - 0.5) * RB.x * 2; rainPos[i * 6 + 1] = rnd() * RB.y; rainPos[i * 6 + 2] = (rnd() - 0.5) * RB.z * 2; rainVel[i] = 24 + rnd() * 10; }
+const rainLines = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xcfe0ff, transparent: true, opacity: 0.3, fog: false, depthWrite: false }));
+rainLines.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RAIN_N * 6), 3)); rainLines.frustumCulled = false; scene.add(rainLines);
+function stepRain(dt, cam) {
+  if (!rainLines.visible) return;
+  const out = rainLines.geometry.attributes.position.array, wind = 3.5;
+  for (let i = 0; i < RAIN_N; i++) {
+    const k = i * 6; rainPos[k + 1] -= rainVel[i] * dt; rainPos[k] -= wind * dt;
+    if (rainPos[k + 1] < 0) { rainPos[k + 1] = RB.y; rainPos[k] = (rnd() - 0.5) * RB.x * 2; rainPos[k + 2] = (rnd() - 0.5) * RB.z * 2; }
+    if (rainPos[k] < -RB.x) rainPos[k] += RB.x * 2;
+    const x = cam.x + rainPos[k], y = cam.y - 8 + rainPos[k + 1], z = cam.z + rainPos[k + 2], L = rainVel[i] * 0.045;
+    out[k] = x; out[k + 1] = y; out[k + 2] = z; out[k + 3] = x + wind * 0.045; out[k + 4] = y + L; out[k + 5] = z;
+  }
+  rainLines.geometry.attributes.position.needsUpdate = true;
+}
+
+// ───────── 車輛：把遊戲裡現成的 14 台車體資料轉成 PBR 材質的 3D 網格 ─────────
+setLoad('建立車輛模型…');
+const carSel = $('car'); Object.entries(carsData.cars).forEach(([id, c]) => { const o = document.createElement('option'); o.value = id; o.textContent = c.name; carSel.appendChild(o); });
+carSel.value = 'gtr';
+const carRoot = new THREE.Group(); scene.add(carRoot);
+let carParts = null;
+
+// 圓滑車身：沿用遊戲裡每台車的真實規格（長寬高、腰線、車頭車尾比例），把原本一格一格的折面車身改成「順著車身曲線放樣」的圓滑曲面
+function loftBody(S, carId) {
+  const U = 0.98 / 1700, Lm = S.L * U * 0.82, Wm = S.W * U, Hm = S.H * U, hw = Wm / 2;
+  const yb = 0.13, belt = S.belt * Hm, roofY = Hm * 0.985, deckY = belt * 1.03, cowlY = belt * 1.07, noseY = belt * S.nose;
+  const wb = hw * 0.86, ws = hw, wDeck = hw * 0.92, wRoof = hw * (carId === 'rx7' ? 0.74 : 0.7), ym = Math.min(0.3, belt - 0.04);
+  const P = f => f * Lm, bz = P(S.rS + (S.rE - S.rS) * 0.55), duck = S.wing === 'duck' ? 0.05 : 0;
+  const knots = [[0, belt * 0.98, wDeck * 0.96, ''], [P(0.03), deckY + duck, wDeck, 'deck'], [P(S.tE), deckY + duck * 0.4, wDeck * 0.97, 'deck'], [P(S.rS), roofY, wRoof, 'rear'],
+    [bz - 0.02, roofY, wRoof, 'roof'], [bz + 0.02, roofY, wRoof, 'pillar'], [P(S.rE), roofY * 0.995, wRoof, 'roof'], [P(S.wB), cowlY, wDeck * 0.96, 'front'],
+    [P(Math.min(0.97, S.wB + 0.04)), belt * 1.04, wDeck, 'deck'], [P(0.97), noseY * 1.02, wDeck * 0.96, 'hood'], [Lm, noseY * 0.92, wDeck * 0.9, 'hood']];
+  const rings = knots.map(p => { const top = p[1], z = p[0], bl = Math.min(belt, top), sw = z < 0.04 ? ws * 0.98 : z > Lm - 0.08 ? ws * 0.95 : ws; return [[-wb, yb, z], [-sw, ym, z], [-sw, bl, z], [-p[2], top, z], [p[2], top, z], [sw, bl, z], [sw, ym, z], [wb, yb, z]]; });
+  const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
+  const along = rings[0].map((_, j) => new THREE.CatmullRomCurve3(rings.map(r => V(r[j])), false, 'catmullrom', 0.5));
+  const K = 7, SUB = 4, stations = [];            // 每個區間切 K 段；剖面每一格再切 SUB 段
+  const nInt = rings.length - 1;
+  for (let i = 0; i < nInt; i++) for (let k = (i ? 1 : 0); k <= K; k++) { const t = (i + k / K) / nInt; stations.push({ pts: along.map(c => c.getPoint(t)), seg: knots[Math.min(nInt, i + (k === 0 ? 0 : 1))][3], i }); }
+  const section = st => { const c = new THREE.CatmullRomCurve3(st.pts, false, 'catmullrom', 0.5), out = []; for (let j = 0; j < 7; j++) for (let u = 0; u < SUB; u++) out.push({ p: c.getPoint((j + u / SUB) / 7), j }); out.push({ p: c.getPoint(1), j: 6 }); return out; };
+  const secs = stations.map(section), cc = new THREE.Vector3(0, belt * 0.9, Lm / 2);
+  const out = { paint: [], low: [], glass: [] };
+  const push = (arr, a, b, c) => { const n = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a)); const m = a.clone().add(b).add(c).multiplyScalar(1 / 3).sub(cc); if (n.dot(m) < 0) [b, c] = [c, b]; arr.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z); };
+  for (let a = 1; a < secs.length; a++) {
+    const A = secs[a - 1], B = secs[a], seg = stations[a].seg;
+    for (let q = 0; q < A.length - 1; q++) {
+      const j = A[q].j; let kind = 'paint';
+      if (j === 0 || j === 6) kind = 'low'; else if ((j === 2 || j === 4) && seg === 'roof') kind = 'glass'; else if (j === 3 && (seg === 'rear' || seg === 'front')) kind = 'glass';
+      push(out[kind], A[q].p, A[q + 1].p, B[q + 1].p); push(out[kind], A[q].p, B[q + 1].p, B[q].p);
+    }
+  }
+  [[secs[0], 0], [secs[secs.length - 1], 1]].forEach(([sc, front]) => { const ctr = sc.reduce((s, q) => s.add(q.p), new THREE.Vector3()).multiplyScalar(1 / sc.length); for (let q = 0; q < sc.length - 1; q++) push(out.paint, ctr, sc[q].p, sc[q + 1].p); });
+  return out;
+}
+function buildCar(id, color) {
+  while (carRoot.children.length) { const c = carRoot.children.pop(); c.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }
+  const car = carsData.cars[id], M = car.model, S = M.S, scale = (S.L / 1000) / M.L;
+  const body = new THREE.Color(color || car.body);
+  const mats = {
+    paint: new THREE.MeshPhysicalMaterial({ color: body, metalness: 0.55, roughness: 0.28, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.3 }),
+    low: new THREE.MeshStandardMaterial({ color: car.two ? new THREE.Color(car.two) : body.clone().multiplyScalar(0.28), roughness: 0.55, metalness: 0.1 }),
+    glass: new THREE.MeshPhysicalMaterial({ color: 0x070d14, metalness: 0.85, roughness: 0.04, envMapIntensity: 2.0, clearcoat: 1 }),
+    stripe: new THREE.MeshPhysicalMaterial({ color: new THREE.Color(car.stripe || '#f2f2f2'), metalness: 0.2, roughness: 0.3, clearcoat: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+    trim: new THREE.MeshStandardMaterial({ color: 0x14161a, roughness: 0.5, metalness: 0.2, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+    chrome: new THREE.MeshStandardMaterial({ color: 0xdfe3ea, roughness: 0.1, metalness: 1, envMapIntensity: 1.6, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+    carbon: new THREE.MeshStandardMaterial({ color: 0x15171b, roughness: 0.35, metalness: 0.35 }),
+    tail: new THREE.MeshStandardMaterial({ color: 0x5a0008, emissive: 0xff1020, emissiveIntensity: 0.5, roughness: 0.25, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
+    head: new THREE.MeshStandardMaterial({ color: 0xe9f1ff, emissive: 0xfff3d6, emissiveIntensity: 0.15, roughness: 0.1, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
+    plate: new THREE.MeshStandardMaterial({ color: 0xf1f1ec, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
+    platetxt: new THREE.MeshStandardMaterial({ color: 0x1b1d22, roughness: 0.7, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }),
+  };
+  const kindMat = { body: 'paint', roof: 'paint', rearcap: 'paint', frontcap: 'paint', mirror: 'paint', low: 'low', glass: 'glass', stripe: 'stripe', trim: 'trim', diff: 'trim', fin: 'trim', grille: 'trim', pipein: 'trim', bar: 'tail', led: 'tail', lamp: 'tail', head: 'head', chrome: 'chrome', pipe: 'chrome', carbon: 'carbon', wing: S.wing === 'gt' || S.wing === 'evo' ? 'carbon' : 'paint', plate: 'plate', platetxt: 'platetxt' };
+  const smooth = new Set(['body', 'roof', 'rearcap', 'frontcap', 'low', 'glass', 'mirror']);
+  const buckets = {};
+  const addFace = (f) => {
+    const mk = kindMat[f.kind] || 'trim'; const key = mk + '|' + (smooth.has(f.kind) ? 's' : 'f'); (buckets[key] = buckets[key] || { mk, smooth: smooth.has(f.kind), tris: [], norms: [] });
+    const v = f.v, n = f.n, b = buckets[key];
+    for (const tri of [[0, 1, 2], [0, 2, 3]]) {
+      if (v.length < 3) continue;
+      if (v.length === 3 && tri[1] === 2) continue;
+      let [i0, i1, i2] = tri; const A = v[i0], B = v[i1], C = v[i2];
+      const e1 = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], e2 = [C[0] - A[0], C[1] - A[1], C[2] - A[2]];
+      const cx = e1[1] * e2[2] - e1[2] * e2[1], cy = e1[2] * e2[0] - e1[0] * e2[2], cz = e1[0] * e2[1] - e1[1] * e2[0];
+      if (cx * n[0] + cy * n[1] + cz * n[2] < 0) [i1, i2] = [i2, i1];
+      for (const i of [i0, i1, i2]) { b.tris.push(...v[i]); b.norms.push(...n); }
+    }
+    // 多邊形（圓形燈等）：用扇形補滿
+    for (let k = 3; k < v.length - 1 && v.length > 4; k++) { const A = v[0], B = v[k], C = v[k + 1]; const e1 = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], e2 = [C[0] - A[0], C[1] - A[1], C[2] - A[2]]; const cz = e1[0] * e2[1] - e1[1] * e2[0], cx = e1[1] * e2[2] - e1[2] * e2[1], cy = e1[2] * e2[0] - e1[0] * e2[2]; const flip = cx * n[0] + cy * n[1] + cz * n[2] < 0; const ord = flip ? [A, C, B] : [A, B, C]; ord.forEach(p => { b.tris.push(...p); b.norms.push(...n); }); }
+  };
+  M.extra.forEach(addFace);
+  const group = new THREE.Group();
+  { const lb = loftBody(S, id); for (const [k, arr] of Object.entries(lb)) { if (!arr.length) continue; let g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); g = toCreasedNormals(g, 62 * D2R); const mesh = new THREE.Mesh(g, k === 'paint' ? mats.paint : k === 'low' ? mats.low : mats.glass); mesh.castShadow = true; mesh.receiveShadow = true; group.add(mesh); } }
+  for (const b of Object.values(buckets)) {
+    let g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(b.tris, 3));
+    if (b.smooth) { g.setAttribute('normal', new THREE.Float32BufferAttribute(b.norms, 3)); g = toCreasedNormals(g, 46 * D2R); } else g.setAttribute('normal', new THREE.Float32BufferAttribute(b.norms, 3));
+    const mesh = new THREE.Mesh(g, mats[b.mk]); mesh.castShadow = true; mesh.receiveShadow = b.smooth; group.add(mesh);
+  }
+  // 輪胎＋鋁圈（會依車速轉動）
+  const wheels = [];
+  const wellM = new THREE.MeshBasicMaterial({ color: 0x050506, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 }), tireM = new THREE.MeshStandardMaterial({ color: 0x0e0f11, roughness: 0.9 }), rimM = new THREE.MeshStandardMaterial({ color: 0xc9ced6, roughness: 0.22, metalness: 1, envMapIntensity: 1.5 });
+  M.wheels.forEach(w => [-1, 1].forEach(s => {
+    const wg = new THREE.Group(); const r = w.r, wd = w.hw * 2 * 1.05;
+    const tire = new THREE.Mesh(new THREE.CylinderGeometry(r, r, wd, 28), tireM); tire.rotation.z = Math.PI / 2; tire.castShadow = true;
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.66, r * 0.66, wd * 1.02, 24), rimM); rim.rotation.z = Math.PI / 2;
+    const spokes = new THREE.Group(); for (let k = 0; k < 5; k++) { const sp = new THREE.Mesh(new THREE.BoxGeometry(wd * 1.06, r * 0.1, r * 0.62), tireM); sp.rotation.x = k / 5 * Math.PI; sp.position.set(0, 0, 0); spokes.add(sp); }
+    wg.add(tire, rim, spokes); wg.position.set(s * (M.hw - w.hw - 0.012), r, w.z); wheels.push(wg); group.add(wg);
+    const well = new THREE.Mesh(new THREE.RingGeometry(r * 0.99, r * 1.28, 32), wellM); well.position.set(s * (M.hw + 0.003), r, w.z); well.rotation.y = s * Math.PI / 2; group.add(well);
+  }));
+  group.scale.setScalar(scale);
+  group.position.set(0, 0, -M.L / 2 * scale); // 原點放在車身正中央
+  carRoot.add(group);
+  carParts = { mats, wheels, scale, length: S.L / 1000, width: S.W / 1000, hw: M.hw };
+  updateLightsMats();
+}
+let headlightOn = false;
+const headL = new THREE.SpotLight(0xfff2d8, 0, 70, 0.5, 0.5, 1.5), headR = headL.clone();
+const spotTargets = [new THREE.Object3D(), new THREE.Object3D()]; scene.add(...spotTargets); headL.target = spotTargets[0]; headR.target = spotTargets[1]; scene.add(headL, headR);
+function updateLightsMats() {
+  if (!carParts) return; const m = carParts.mats;
+  m.tail.emissiveIntensity = state.brake ? 3.5 : headlightOn ? 1.1 : 0.45; m.head.emissiveIntensity = headlightOn ? 3 : 0.15;
+  headL.intensity = headR.intensity = headlightOn ? 1400 : 0;
+}
+buildCar('gtr');
+
+// ───────── 行駛與鏡頭 ─────────
+let s = 0.0, spin = 0;
+const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+const orbit = new OrbitControls(camera, canvas); orbit.enableDamping = true; orbit.enabled = false; orbit.maxPolarAngle = Math.PI * 0.495; orbit.minDistance = 3; orbit.maxDistance = 120;
+function placeCar(dt) {
+  const v = state.speed / 3.6; s = (s + v * dt / trackLen) % 1;
+  const p = curve.getPointAt(s), t = curve.getTangentAt(s);
+  carRoot.position.copy(p).add(new THREE.Vector3(0, 0.04, 0));
+  /* 物件的 +Z 朝向前進方向 */ const m = new THREE.Matrix4().lookAt(t, new THREE.Vector3(), up); carRoot.quaternion.setFromRotationMatrix(m);
+  spin += v * dt; if (carParts) carParts.wheels.forEach(w => { w.children.forEach(c => { c.rotation.x = c.userData.r0 === undefined ? c.rotation.x : c.rotation.x; }); w.rotation.x = -spin / (w.children[0].geometry.parameters.radiusTop || 0.3) / carParts.scale; });
+  const fwd = t.clone(), side = new THREE.Vector3().crossVectors(fwd, up).normalize();
+  tmp.copy(p).addScaledVector(fwd, (carParts?.length || 4) * 0.46).addScaledVector(up, 0.7);
+  [headL, headR].forEach((h, i) => { h.position.copy(tmp).addScaledVector(side, (i ? 1 : -1) * 0.55); spotTargets[i].position.copy(p).addScaledVector(fwd, 30).add(new THREE.Vector3(0, 0, 0)); });
+  return { p, t, side };
+}
+function updateCamera(dt, info) {
+  const { p, t } = info, mode = state.cam;
+  if (mode === 'orbit') {
+    if (!orbit.enabled) { orbit.enabled = true; orbit.target.copy(p); camera.position.copy(p).addScaledVector(t, -7).add(new THREE.Vector3(0, 3, 0)); }
+    const d = tmp.copy(p).sub(orbit.target); orbit.target.add(d); camera.position.add(d); orbit.update(); return;
+  }
+  orbit.enabled = false;
+  let want, look;
+  if (mode === 'hood') { want = tmp.copy(p).addScaledVector(t, 0.5).add(new THREE.Vector3(0, 1.05, 0)); look = tmp2.copy(p).addScaledVector(t, 40).add(new THREE.Vector3(0, 0.9, 0)); camPos.copy(want); camLook.copy(look); }
+  else if (mode === 'aerial') { want = tmp.copy(p).addScaledVector(t, -30).add(new THREE.Vector3(0, 55, 0)); look = tmp2.copy(p).addScaledVector(t, 8); const k = 1 - Math.exp(-dt * 2.2); camPos.lerp(want, k); camLook.lerp(look, k); }
+  else { want = tmp.copy(p).addScaledVector(t, -8.2).add(new THREE.Vector3(0, 2.7, 0)); look = tmp2.copy(p).addScaledVector(t, 6).add(new THREE.Vector3(0, 0.9, 0)); const k = 1 - Math.exp(-dt * 6); camPos.lerp(want, k); camLook.lerp(look, k); }
+  camera.position.copy(camPos); camera.lookAt(camLook);
+}
+// 陰影相機跟著車走
+function updateSun(p) {
+  sun.position.copy(p).addScaledVector(sunVec, 160); sun.target.position.copy(p); sun.target.updateMatrixWorld();
+  sun.castShadow = state.shadows && sun.intensity > 0.02;
+}
+
+// ───────── 介面 ─────────
+const bind = (id, fn, out, fmt) => { const el = $(id); const f = () => { fn(+el.value); if (out) $(out).textContent = fmt(+el.value); }; el.addEventListener('input', f); f(); };
+bind('t', v => { state.t = v; applyAtmosphere(); }, 'tO', v => `${String(Math.floor(v)).padStart(2, '0')}:${String(Math.round((v % 1) * 60)).padStart(2, '0')}`);
+bind('rain', v => { state.rain = v / 100; applyAtmosphere(); }, 'rO', v => v ? v + '%' : '晴天');
+bind('spd', v => { state.speed = v; }, 'sO', v => v + ' km/h');
+carSel.addEventListener('change', () => buildCar(carSel.value, $('color').value));
+$('color').addEventListener('input', () => buildCar(carSel.value, $('color').value));
+$('cams').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.cam = b.dataset.c; [...$('cams').children].forEach(x => x.classList.toggle('on', x === b)); camPos.copy(camera.position); });
+$('shadowT').addEventListener('click', e => { state.shadows = !state.shadows; e.target.classList.toggle('on', state.shadows); });
+$('brakeT').addEventListener('click', e => { state.brake = !state.brake; e.target.classList.toggle('on', state.brake); updateLightsMats(); });
+$('lightT').addEventListener('click', e => { state.lights = !state.lights; e.target.classList.toggle('on', state.lights); applyAtmosphere(); updateLightsMats(); });
+$('color').value = '#' + new THREE.Color(carsData.cars.gtr.body).getHexString();
+buildCar('gtr', $('color').value);
+carSel.addEventListener('change', () => { $('color').value = '#' + new THREE.Color(carsData.cars[carSel.value].body).getHexString(); buildCar(carSel.value, $('color').value); });
+
+// ───────── 主迴圈 ─────────
+let last = performance.now(), fAcc = 0, fN = 0;
+function frame(dt) {
+  const info = placeCar(dt);
+  if (!camPos.lengthSq()) { camPos.copy(info.p).addScaledVector(info.t, -8).add(new THREE.Vector3(0, 3, 0)); camLook.copy(info.p); }
+  updateCamera(dt, info); updateSun(info.p); updateLightsMats();
+  stepRain(dt, camera.position);
+  if (envDirty && performance.now() - lastEnvAt > 250) updateEnv();
+  renderer.render(scene, camera);
+}
+function loop(ts) { requestAnimationFrame(loop); const dt = Math.min(0.05, (ts - last) / 1000); last = ts; frame(dt); fAcc += dt; fN++; if (fAcc > 0.5) { $('fps').textContent = `${Math.round(fN / fAcc)} fps　${renderer.info.render.calls} calls　${(renderer.info.render.triangles / 1000).toFixed(0)}k tris`; fAcc = 0; fN = 0; } }
+applyAtmosphere(); updateEnv();
+$('load').classList.add('done');
+requestAnimationFrame(loop);
+window.__p = { frame, state, applyAtmosphere, updateEnv, buildCar, renderer, scene, camera, nBuild, carRoot, orbit, road, sun, hemi, THREE };
+</script>
+</body>
+</html>
