@@ -343,8 +343,10 @@ export async function create(opts) {
     let covered = 0, coveredAt = []; const tp = {};
     if (rays) for (let i = 0; i < N; i += 3) for (const lat of [-W2 * 0.9, 0, W2 * 0.9]) { const q = at(i, lat, tp); rc_.set(new THREE.Vector3(q.x, q.y + 30, q.z), dir); const h = rc_.intersectObjects(targets, false)[0]; if (h && h.object.name === 'ground') { covered++; if (coveredAt.length < 8) coveredAt.push([i, +(h.point.y - q.y).toFixed(2)]); } }
     // 彎道半徑比路面半寬還小的地方（路面會在彎的內側折疊起來）
-    let folds = 0, minR = 1e9; for (let i = 0; i < N; i++) { const A = (i - 5 + N) % N, C = (i + 5) % N, ab = Math.hypot(PX[i] - PX[A], PZ[i] - PZ[A]), bc = Math.hypot(PX[C] - PX[i], PZ[C] - PZ[i]), ca = Math.hypot(PX[A] - PX[C], PZ[A] - PZ[C]), a2 = Math.abs((PX[i] - PX[A]) * (PZ[C] - PZ[A]) - (PZ[i] - PZ[A]) * (PX[C] - PX[A])); if (a2 > 1e-6) { const R = ab * bc * ca / (2 * a2); minR = Math.min(minR, R); if (R < W2 + 0.3) folds++; } }
-    return { folds, minRadius: +minR.toFixed(1), covered, coveredAt, worst, footprints: footprints.length, hits, hitSegs: [...hitSegs].slice(0, 12), minGapToCenter: +minGap.toFixed(1), roadHalf: W2, wallOff: +wallOff.toFixed(1) };
+    let folds = 0, minR = 1e9;
+    const walk = (i0, dir) => { let d = 0, k = i0, c = 0; while (d < 4 && c < 400) { const k2 = (k + dir + N) % N; d += Math.hypot(PX[k2] - PX[k], PZ[k2] - PZ[k]); k = k2; c++; } return k; };
+    for (let i = 0; i < N; i += 2) { const A = walk(i, -1), C = walk(i, 1), ab = Math.hypot(PX[i] - PX[A], PZ[i] - PZ[A]), bc = Math.hypot(PX[C] - PX[i], PZ[C] - PZ[i]), ca = Math.hypot(PX[A] - PX[C], PZ[A] - PZ[C]), a2 = Math.abs((PX[i] - PX[A]) * (PZ[C] - PZ[A]) - (PZ[i] - PZ[A]) * (PX[C] - PX[A])); if (a2 > 1e-6) { const R = ab * bc * ca / (2 * a2); minR = Math.min(minR, R); if (R < W2 + 0.3) { folds++; (audit.foldAt = audit.foldAt || []).push([i, +R.toFixed(1), Math.round(PX[i]), Math.round(PZ[i])]); } } }
+    return { foldAt: audit.foldAt && audit.foldAt.slice(0, 8), folds, minRadius: +minR.toFixed(1), covered, coveredAt, worst, footprints: footprints.length, hits, hitSegs: [...hitSegs].slice(0, 12), minGapToCenter: +minGap.toFixed(1), roadHalf: W2, wallOff: +wallOff.toFixed(1) };
   }
   return { frame, resize, dispose, audit, camera, scene, at, N, info: { closeErr: Math.round(closeErr), buildings: nBuild, hour, alt: alt / D2R, headOn }, renderer };
 }
