@@ -51,6 +51,18 @@ export async function create(opts) {
     PX[N] = x; PZ[N] = z; PY[N] = T.segs[N - 1].p2.world.y / hs;
     if (loop) { closeErr = Math.hypot(x - PX[0], z - PZ[0]); const ex = x - PX[0], ez = z - PZ[0]; for (let i = 0; i <= N; i++) { PX[i] -= ex * i / N; PZ[i] -= ez * i / N; } PY[N] = PY[0]; }
   }
+  // 高度：資料的高度是每 60 公尺一個點、再量化成 0.5 公尺，直接畫出來路面會變成一階一階的階梯。
+  // 沿路線做幾次移動平均（約 ±20 公尺的高斯平滑），把階梯變成滑順的坡；賽道是封閉的所以頭尾相接，山道則固定頭尾。
+  {
+    const W = 20, passes = 3, M = loop ? N : N + 1; let cur = Float64Array.from({ length: M }, (_, i) => PY[i]);
+    for (let p = 0; p < passes; p++) {
+      const pre = new Float64Array(M * 3 + 1); for (let i = 0; i < M * 3; i++) { const k = loop ? i % M : clamp(i - M, 0, M - 1); pre[i + 1] = pre[i] + cur[loop ? k : clamp(i - M, 0, M - 1)]; }
+      const nxt = new Float64Array(M);
+      for (let i = 0; i < M; i++) { const c = i + M; nxt[i] = (pre[c + W + 1] - pre[c - W]) / (2 * W + 1); }
+      cur = nxt;
+    }
+    for (let i = 0; i < M; i++) PY[i] = cur[i]; if (loop) PY[N] = PY[0];
+  }
   const FX = new Float32Array(N + 1), FZ = new Float32Array(N + 1);          // 每個節點的前進方向
   for (let i = 0; i <= N; i++) {
     const a = loop ? (i - 1 + N) % N : Math.max(0, i - 1), b = loop ? (i + 1) % N : Math.min(N, i + 1);
