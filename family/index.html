@@ -68,6 +68,14 @@ header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: 
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 14px; min-width: 0 }
 .ev-head { display: grid; gap: 6px }
 .meta { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: .9rem }
+.ev-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px }
+.ev-card { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 14px; display: grid; gap: 6px; min-width: 0 }
+.ev-card:hover { border-color: var(--blue) }
+.ev-card b { font-family: var(--f-display); font-size: 1.1rem; overflow-wrap: anywhere }
+.ev-card-stats { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .88rem }
+.ev-card-go { color: var(--blue); font-size: .85rem; font-weight: 700 }
+.c-meat { color: var(--meat) } .c-veg { color: var(--veg) }
+.btn.back { padding-inline: 0; font-weight: 700 }
 .addr { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: .9rem; overflow-wrap: anywhere }
 .pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 9px; border-radius: 999px; font-size: .78rem; font-weight: 700; letter-spacing: .03em; white-space: nowrap }
 .pill.open { background: var(--veg-soft); color: var(--veg) }
@@ -175,7 +183,7 @@ const S = {
   families: [], events: [], responses: new Map(),
   view: "fill", eventId: null, familyId: null,
   draft: null, saving: false, busy: false, msg: null,
-  famForm: null, evForm: null, bulk: "", confirm: null, adminMsg: null, exportUrl: null,
+  famForm: null, evForm: null, adminEvent: null, bulk: "", confirm: null, adminMsg: null, exportUrl: null,
 };
 const store = { get(k) { try { return localStorage.getItem(k) } catch { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch {} } };
 S.eventId = store.get("rsvp.event"); S.familyId = store.get("rsvp.family");
@@ -351,54 +359,18 @@ function renderForm(ev, f) {
   </section>`;
 }
 
+// 後台分兩層：首頁是活動清單（每個活動一張卡片），點進去才看該活動自己的統計與明細
 function renderAdmin() {
-  const ev = curEvent();
-  let out = `<section class="card"><div class="block-head"><h2>家人填寫網址</h2></div>
-    <p class="small muted">把這個網址傳到家族 LINE 群組，家人點開就能填寫，不用任何帳號。你自己的後台網址（目前網址列這個）請不要外流。</p>
-    <div class="actions"><input id="pub-url" type="text" readonly value="${esc(PUBLIC_URL)}" style="flex:1;min-width:0"><button class="btn" data-act="copy-url">複製</button></div></section>`;
-  out += eventTabs();
-  if (ev) {
-    const { rows, sum } = tallyEvent(ev);
-    const pending = rows.filter(x => !x.r).map(x => x.f.name);
-    out += `<div class="card">${eventHead(ev)}</div>
-    <section class="tiles num">
-      <div class="tile main"><div class="k">回覆家庭</div><div class="v">${sum.responded}<span class="s"> / ${sum.families}</span></div><div class="s">${pending.length ? `未填 ${pending.length} 家` : "全部到齊"}</div></div>
-      <div class="tile main"><div class="k">出席人數</div><div class="v">${sum.people}</div><div class="s">大人 ${sum.aMeat + sum.aVeg}・小孩 ${sum.kMeat + sum.kVeg + sum.kShare}</div></div>
-      <div class="tile meat"><div class="k">葷食份數</div><div class="v">${sum.meat}</div><div class="s">大人 ${sum.aMeat}・小孩 ${sum.kMeat}</div></div>
-      <div class="tile veg"><div class="k">素食份數</div><div class="v">${sum.veg}</div><div class="s">大人 ${sum.aVeg}・小孩 ${sum.kVeg}</div></div>
-      <div class="tile share"><div class="k">小孩共食</div><div class="v">${sum.kShare}</div><div class="s">有座位、不點餐</div></div>
-      ${ev.kind === "meal" ? `<div class="tile"><div class="k">估計桌數</div><div class="v">${sum.tables}</div><div class="s">每桌 ${Number(ev.seats) || 10} 位</div></div>` : ""}
-    </section>
-    ${pending.length ? `<div class="banner">尚未填寫：${pending.map(esc).join("、")}</div>` : ""}
-    <section class="card"><div class="block-head"><h2>各家庭明細</h2>
-      <div class="actions"><button class="btn primary" data-act="export" ${S.busy ? "disabled" : ""}>匯出到試算表</button><button class="btn" data-act="tsv">複製表格</button>
-        ${S.exportUrl ? `<a class="btn ghost" href="${esc(S.exportUrl)}" target="_blank" rel="noopener">打開「匯出」工作表</a>` : ""}
-        ${S.adminMsg ? `<span class="${S.adminMsg.err ? "err" : "saved"}">${esc(S.adminMsg.text)}</span>` : ""}</div></div>
-      <textarea id="tsv-box" readonly hidden></textarea>
-      <div class="tbl-wrap"><table>
-        <thead><tr><th rowspan="2">家庭</th><th rowspan="2">狀態</th><th class="grp" colspan="3">大人</th><th class="grp" colspan="4">小孩</th><th class="grp n" rowspan="2">出席</th><th rowspan="2" class="bl">備註</th><th rowspan="2">最後更新</th><th rowspan="2"></th></tr>
-        <tr><th class="n bl">葷</th><th class="n">素</th><th class="n">缺席</th><th class="n bl">葷</th><th class="n">素</th><th class="n">共食</th><th class="n">缺席</th></tr></thead>
-        <tbody>${rows.map(({ f, r, t }) => `<tr class="${r ? "" : "pending"}">
-          <td><b>${esc(f.name)}</b><div class="small muted">大人 ${t.adults}・小孩 ${t.kidsTotal}</div></td>
-          <td>${r?.fixed ? `<span class="pill adm">固定名額</span>` : r ? (people(t) ? `<span class="pill done">已填</span>` : `<span class="pill closed">不出席</span>`) : `<span class="pill todo">未填</span>`}${r?.byAdmin ? ` <span class="pill adm">調整過</span>` : ""}${t.kUnset && r ? ` <span class="pill todo">小孩未選 ${t.kUnset}</span>` : ""}</td>
-          <td class="n bl">${r ? t.aMeat : "–"}</td><td class="n">${r ? t.aVeg : "–"}</td><td class="n">${r ? t.aOff : "–"}</td>
-          <td class="n bl">${r ? t.kMeat : "–"}</td><td class="n">${r ? t.kVeg : "–"}</td><td class="n">${r ? t.kShare : "–"}</td><td class="n">${r ? t.kOff : "–"}</td>
-          <td class="n bl"><b>${r ? people(t) : "–"}</b></td>
-          <td class="wrap-cell">${esc(r?.note || "")}${r?.email ? `<div class="small muted">${esc(r.email)}</div>` : ""}</td>
-          <td class="small muted">${r && !r.fixed ? esc(fmtTime(r.updatedAt)) + (r.who ? `<br>${esc(r.who)}` : "") : ""}</td>
-          <td>${f.fixed ? "" : `<button class="btn ghost" data-act="admin-edit" data-id="${f.id}">${r ? "調整" : "代填"}</button>`}</td></tr>`).join("")}
-          <tr class="total"><td>合計</td><td>${sum.responded}/${sum.families}</td><td class="n bl">${sum.aMeat}</td><td class="n">${sum.aVeg}</td><td class="n">${sum.aOff}</td><td class="n bl">${sum.kMeat}</td><td class="n">${sum.kVeg}</td><td class="n">${sum.kShare}</td><td class="n">${sum.kOff}</td><td class="n bl">${sum.people}</td><td></td><td></td><td></td></tr>
-        </tbody></table></div>
-      <p class="small muted">「調整」會帶你到填寫畫面修改該家庭的回覆，修改紀錄會標註為管理員調整。所有原始資料也都在試算表的「回覆」工作表。</p>
-    </section>`;
-  }
-  out += renderEventAdmin() + renderFamilyAdmin();
-  return out;
+  const ev = S.adminEvent ? S.events.find(e => e.id === S.adminEvent) : null;
+  return ev ? renderEventDetail(ev) : renderAdminHome();
 }
 
-function renderEventAdmin() {
-  const ef = S.evForm;
-  const form = ef ? `<div class="editor">
+function adminMsgHtml() {
+  return S.adminMsg ? `<span class="${S.adminMsg.err ? "err" : "saved"}">${esc(S.adminMsg.text)}</span>` : "";
+}
+
+function eventForm(ef) {
+  return `<div class="editor">
     <h3>${ef.id ? "編輯活動" : "新增活動"}</h3>
     <div class="form-grid">
       <label class="field" for="ev-title"><span>活動名稱</span><input id="ev-title" type="text" data-bind="evForm.title" value="${esc(ef.title)}" placeholder="例：2026 尾牙家族聚餐"></label>
@@ -411,19 +383,72 @@ function renderEventAdmin() {
       <label class="field" for="ev-seats"><span>每桌座位（估算桌數用）</span><input id="ev-seats" type="number" min="1" data-bind="evForm.seats" value="${esc(ef.seats)}"></label>
     </div>
     <label class="field" for="ev-desc"><span>說明（顯示給家人看）</span><textarea id="ev-desc" data-bind="evForm.desc">${esc(ef.desc)}</textarea></label>
-    <div class="actions"><button class="btn primary" data-act="ev-save" ${ef.title.trim() && !S.busy ? "" : "disabled"}>儲存活動</button><button class="btn" data-act="ev-cancel">取消</button></div></div>` : "";
-  const list = S.events.map(e => {
-    const n = [...S.responses.values()].filter(r => r.eventId === e.id).length;
-    const confirming = S.confirm === "ev:" + e.id;
-    return `<div class="li"><div class="main"><b>${esc(e.title)}</b><span class="small muted">${KIND[e.kind]}・${fmtDate(e.date) || "日期未定"}・已回覆 ${n} 家</span></div>
-      <div class="actions">${confirming ? `<span class="err">刪除活動與全部 ${n} 筆回覆？</span><button class="btn danger" data-act="ev-del-yes" data-id="${e.id}">確定刪除</button><button class="btn" data-act="confirm-cancel">取消</button>` : `
-        <span class="pill ${e.open ? "open" : "closed"}">${e.open ? "開放中" : "已截止"}</span>
-        <button class="btn" data-act="ev-toggle" data-id="${e.id}" ${S.busy ? "disabled" : ""}>${e.open ? "截止填寫" : "重新開放"}</button>
-        <button class="btn" data-act="ev-edit" data-id="${e.id}">編輯</button>
-        <button class="btn ghost" data-act="ev-del" data-id="${e.id}">刪除</button>`}</div></div>`;
+    <div class="actions"><button class="btn primary" data-act="ev-save" ${ef.title.trim() && !S.busy ? "" : "disabled"}>${S.busy ? "儲存中…" : "儲存活動"}</button><button class="btn" data-act="ev-cancel">取消</button>${adminMsgHtml()}</div></div>`;
+}
+
+function renderAdminHome() {
+  const ef = S.evForm && !S.evForm.id ? S.evForm : null;
+  const cards = S.events.map(e => {
+    const sum = tallyEvent(e).sum;
+    return `<button class="ev-card" data-act="open-event" data-id="${e.id}">
+      <span class="actions"><span class="pill ${e.open ? "open" : "closed"}">${e.open ? "開放填寫" : "已截止"}</span><span class="pill done">${KIND[e.kind] || "活動"}</span></span>
+      <b>${esc(e.title)}</b>
+      <span class="small muted">${fmtDate(e.date) || "日期未定"}${e.time ? " " + esc(e.time) : ""}${e.place ? "・" + esc(e.place) : ""}</span>
+      <span class="ev-card-stats num"><span>回覆 <b>${sum.responded}</b> / ${sum.families} 家</span><span>出席 <b>${sum.people}</b> 人</span><span class="c-meat">葷 <b>${sum.meat}</b></span><span class="c-veg">素 <b>${sum.veg}</b></span></span>
+      <span class="ev-card-go">查看統計與明細 →</span></button>`;
   }).join("");
-  return `<section class="card"><div class="block-head"><h2>活動</h2>${ef ? "" : `<button class="btn primary" data-act="ev-new">新增活動</button>`}</div>
-    ${form}${S.events.length ? `<div class="list">${list}</div>` : (ef ? "" : `<p class="muted">還沒有活動。新增一個聚餐或旅遊，家人就能開始填寫。</p>`)}</section>`;
+  return `<section class="card"><div class="block-head"><h2>家人填寫網址</h2></div>
+    <p class="small muted">把這個網址傳到家族 LINE 群組，家人點開就能填寫，不用任何帳號。你自己的後台網址（目前網址列這個）請不要外流。</p>
+    <div class="actions"><input id="pub-url" type="text" readonly value="${esc(PUBLIC_URL)}" style="flex:1;min-width:0"><button class="btn" data-act="copy-url">複製</button></div></section>
+  <section class="card"><div class="block-head"><h2>活動</h2>${ef ? "" : `<button class="btn primary" data-act="ev-new">新增活動</button>`}</div>
+    ${ef ? eventForm(ef) : ""}
+    ${S.events.length ? `<div class="ev-cards">${cards}</div>` : (ef ? "" : `<p class="muted">還沒有活動。新增一個聚餐或旅遊，家人就能開始填寫。</p>`)}
+    ${ef ? "" : adminMsgHtml()}</section>
+  ${renderFamilyAdmin()}`;
+}
+
+function renderEventDetail(ev) {
+  const { rows, sum } = tallyEvent(ev);
+  const pending = rows.filter(x => !x.r).map(x => x.f.name);
+  const editing = S.evForm && S.evForm.id === ev.id;
+  const confirming = S.confirm === "ev:" + ev.id;
+  const n = [...S.responses.values()].filter(r => r.eventId === ev.id).length;
+  const controls = confirming
+    ? `<span class="err">刪除這個活動和全部 ${n} 筆回覆？</span><button class="btn danger" data-act="ev-del-yes" data-id="${ev.id}">確定刪除</button><button class="btn" data-act="confirm-cancel">取消</button>`
+    : `<button class="btn primary" data-act="ev-edit" data-id="${ev.id}">編輯活動</button>
+       <button class="btn" data-act="ev-toggle" data-id="${ev.id}" ${S.busy ? "disabled" : ""}>${ev.open ? "截止填寫" : "重新開放填寫"}</button>
+       <button class="btn ghost" data-act="ev-del" data-id="${ev.id}">刪除活動</button>${adminMsgHtml()}`;
+  return `<div class="actions"><button class="btn ghost back" data-act="close-event">← 所有活動</button></div>
+  <div class="card">${editing ? eventForm(S.evForm) : eventHead(ev) + `<div class="actions">${controls}</div>`}</div>
+  <section class="tiles num">
+    <div class="tile main"><div class="k">回覆家庭</div><div class="v">${sum.responded}<span class="s"> / ${sum.families}</span></div><div class="s">${pending.length ? `未填 ${pending.length} 家` : "全部到齊"}</div></div>
+    <div class="tile main"><div class="k">出席人數</div><div class="v">${sum.people}</div><div class="s">大人 ${sum.aMeat + sum.aVeg}・小孩 ${sum.kMeat + sum.kVeg + sum.kShare}</div></div>
+    <div class="tile meat"><div class="k">葷食份數</div><div class="v">${sum.meat}</div><div class="s">大人 ${sum.aMeat}・小孩 ${sum.kMeat}</div></div>
+    <div class="tile veg"><div class="k">素食份數</div><div class="v">${sum.veg}</div><div class="s">大人 ${sum.aVeg}・小孩 ${sum.kVeg}</div></div>
+    <div class="tile share"><div class="k">小孩共食</div><div class="v">${sum.kShare}</div><div class="s">有座位、不點餐</div></div>
+    ${ev.kind === "meal" ? `<div class="tile"><div class="k">估計桌數</div><div class="v">${sum.tables}</div><div class="s">每桌 ${Number(ev.seats) || 10} 位</div></div>` : ""}
+  </section>
+  ${pending.length ? `<div class="banner">尚未填寫：${pending.map(esc).join("、")}</div>` : ""}
+  <section class="card"><div class="block-head"><h2>各家庭明細</h2>
+    <div class="actions"><button class="btn primary" data-act="export" ${S.busy ? "disabled" : ""}>匯出到試算表</button><button class="btn" data-act="tsv">複製表格</button>
+      ${S.exportUrl ? `<a class="btn ghost" href="${esc(S.exportUrl)}" target="_blank" rel="noopener">打開「匯出」工作表</a>` : ""}</div></div>
+    <textarea id="tsv-box" readonly hidden></textarea>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th rowspan="2">家庭</th><th rowspan="2">狀態</th><th class="grp" colspan="3">大人</th><th class="grp" colspan="4">小孩</th><th class="grp n" rowspan="2">出席</th><th rowspan="2" class="bl">備註</th><th rowspan="2">最後更新</th><th rowspan="2"></th></tr>
+      <tr><th class="n bl">葷</th><th class="n">素</th><th class="n">缺席</th><th class="n bl">葷</th><th class="n">素</th><th class="n">共食</th><th class="n">缺席</th></tr></thead>
+      <tbody>${rows.map(({ f, r, t }) => `<tr class="${r ? "" : "pending"}">
+        <td><b>${esc(f.name)}</b><div class="small muted">大人 ${t.adults}・小孩 ${t.kidsTotal}</div></td>
+        <td>${r?.fixed ? `<span class="pill adm">固定名額</span>` : r ? (people(t) ? `<span class="pill done">已填</span>` : `<span class="pill closed">不出席</span>`) : `<span class="pill todo">未填</span>`}${r?.byAdmin ? ` <span class="pill adm">調整過</span>` : ""}${t.kUnset && r ? ` <span class="pill todo">小孩未選 ${t.kUnset}</span>` : ""}</td>
+        <td class="n bl">${r ? t.aMeat : "–"}</td><td class="n">${r ? t.aVeg : "–"}</td><td class="n">${r ? t.aOff : "–"}</td>
+        <td class="n bl">${r ? t.kMeat : "–"}</td><td class="n">${r ? t.kVeg : "–"}</td><td class="n">${r ? t.kShare : "–"}</td><td class="n">${r ? t.kOff : "–"}</td>
+        <td class="n bl"><b>${r ? people(t) : "–"}</b></td>
+        <td class="wrap-cell">${esc(r?.note || "")}${r?.email ? `<div class="small muted">${esc(r.email)}</div>` : ""}</td>
+        <td class="small muted">${r && !r.fixed ? esc(fmtTime(r.updatedAt)) + (r.who ? `<br>${esc(r.who)}` : "") : ""}</td>
+        <td>${f.fixed ? "" : `<button class="btn ghost" data-act="admin-edit" data-id="${f.id}">${r ? "調整" : "代填"}</button>`}</td></tr>`).join("")}
+        <tr class="total"><td>合計</td><td>${sum.responded}/${sum.families}</td><td class="n bl">${sum.aMeat}</td><td class="n">${sum.aVeg}</td><td class="n">${sum.aOff}</td><td class="n bl">${sum.kMeat}</td><td class="n">${sum.kVeg}</td><td class="n">${sum.kShare}</td><td class="n">${sum.kOff}</td><td class="n bl">${sum.people}</td><td></td><td></td><td></td></tr>
+      </tbody></table></div>
+    <p class="small muted">這裡只有「${esc(ev.title)}」的回覆。「調整」會帶你到填寫畫面修改該家庭在這個活動的回覆，修改紀錄會標註為管理員調整。</p>
+  </section>`;
 }
 
 function renderFamilyAdmin() {
@@ -463,6 +488,7 @@ function apply(data) {
   S.events = (data.events || []).sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || "").localeCompare(a.createdAt || ""));
   S.responses = new Map(Object.entries(data.responses || {}));
   S.isOwner = !!data.admin;
+  if (S.adminEvent && !(data.events || []).some(e => e.id === S.adminEvent)) S.adminEvent = null;
   S.ready = true; S.loadErr = null;
   if (!S.events.some(e => e.id === S.eventId)) S.eventId = (S.events.find(e => e.open) || S.events[0])?.id || null;
   if (!openFams().some(f => f.id === S.familyId)) S.familyId = null;
@@ -526,6 +552,8 @@ async function act(a, ds) {
   switch (a) {
     case "refresh": return refresh();
     case "view": S.view = ds.v; S.confirm = null; store.set("rsvp.view", ds.v); break;
+    case "open-event": S.adminEvent = ds.id; S.eventId = ds.id; store.set("rsvp.event", ds.id); S.evForm = null; S.confirm = null; S.exportUrl = null; S.adminMsg = null; syncDraft(true); render(); window.scrollTo(0, 0); return;
+    case "close-event": S.adminEvent = null; S.evForm = null; S.confirm = null; S.adminMsg = null; render(); window.scrollTo(0, 0); return;
     case "event": S.eventId = ds.id; store.set("rsvp.event", ds.id); S.msg = null; S.exportUrl = null; syncDraft(true); break;
     case "family": S.familyId = ds.id; store.set("rsvp.family", ds.id); S.msg = null; syncDraft(true); render(); document.getElementById("form")?.scrollIntoView({ behavior: "smooth", block: "start" }); return;
     case "adult": { const d = S.draft, f = curFamily(); const v = d[ds.k] + Number(ds.d); const other = ds.k === "adultsMeat" ? d.adultsVeg : d.adultsMeat;
@@ -555,13 +583,13 @@ async function act(a, ds) {
     case "ev-cancel": S.evForm = null; break;
     case "ev-save": {
       const data = await adminCall("adminSaveEvent", S.evForm);
-      if (data) { if (!S.evForm.id) { S.eventId = data.savedId; store.set("rsvp.event", data.savedId) } S.evForm = null; syncDraft(true) }
+      if (data) { S.eventId = S.adminEvent = data.savedId; store.set("rsvp.event", data.savedId); S.evForm = null; syncDraft(true); flash("adminMsg", data.calendar === "failed" ? "活動已儲存，但更新日曆沒有成功" : "活動已儲存", data.calendar === "failed"); return }
       break;
     }
     case "ev-toggle": return adminCall("adminToggleEvent", ds.id);
     case "ev-del": case "fam-del": S.confirm = (a === "ev-del" ? "ev:" : "fam:") + ds.id; break;
     case "confirm-cancel": S.confirm = null; break;
-    case "ev-del-yes": S.confirm = null; return adminCall("adminDeleteEvent", ds.id);
+    case "ev-del-yes": { S.confirm = null; const data = await adminCall("adminDeleteEvent", ds.id); if (data) { S.adminEvent = null; flash("adminMsg", "活動已刪除") } return }
     case "fam-new": S.famForm = { id: null, name: "", adults: "", kids: "" }; break;
     case "fam-edit": { const f = S.families.find(x => x.id === ds.id); S.famForm = { id: f.id, name: f.name, adults: adults(f).map(m => m.name).join("\n"), kids: kids(f).map(m => m.name).join("\n") }; break }
     case "fam-cancel": S.famForm = null; break;
