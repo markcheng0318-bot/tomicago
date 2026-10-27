@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>家族聚會報名</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap">
+<style>
+/* Layout: one narrow column like a printed banquet card; the admin back office widens to a ledger. Blue-and-white porcelain palette. */
+:root {
+  --paper: #f3f5f8; --surface: #ffffff; --ink: #1b2433; --muted: #5b6678; --line: #d8dee8;
+  --blue: #27497c; --blue-soft: #e3eaf5; --on-blue: #ffffff;
+  --meat: #a8442f; --meat-soft: #f7e6e1;
+  --veg: #3f7d27; --veg-soft: #e5f0de;
+  --share: #9a6b16; --share-soft: #f6ecd6;
+  --off: #7a8392; --off-soft: #eceff3;
+  --warn: #9a5b00; --warn-soft: #fff1d6;
+  --f-display: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --f-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #11161e; --surface: #19202b; --ink: #e5e9f0; --muted: #9ba5b5; --line: #2a3342;
+  --blue: #93b2e6; --blue-soft: #1f2c44; --on-blue: #0f1622;
+  --meat: #e98a74; --meat-soft: #3b231e; --veg: #97c977; --veg-soft: #213019;
+  --share: #e3b25c; --share-soft: #33291a; --off: #8a93a2; --off-soft: #232a35;
+  --warn: #f0b75c; --warn-soft: #35290f; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #11161e; --surface: #19202b; --ink: #e5e9f0; --muted: #9ba5b5; --line: #2a3342;
+  --blue: #93b2e6; --blue-soft: #1f2c44; --on-blue: #0f1622;
+  --meat: #e98a74; --meat-soft: #3b231e; --veg: #97c977; --veg-soft: #213019;
+  --share: #e3b25c; --share-soft: #33291a; --off: #8a93a2; --off-soft: #232a35;
+  --warn: #f0b75c; --warn-soft: #35290f; color-scheme: dark }
+
+* { box-sizing: border-box }
+html { -webkit-text-size-adjust: 100% }
+body { margin: 0 }
+[hidden] { display: none !important }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 64px }
+.wrap { max-width: 720px; margin: 0 auto; display: grid; gap: 20px }
+.wrap.wide { max-width: 1100px }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.3 }
+h1 { font-size: 1.75rem } h2 { font-size: 1.25rem } h3 { font-size: 1.05rem }
+p { margin: 0 }
+.muted { color: var(--muted) }
+.small { font-size: .85rem }
+.num { font-variant-numeric: tabular-nums }
+button, input, select, textarea { font: inherit; color: inherit }
+button { cursor: pointer }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; border-bottom: 2px solid var(--blue); padding-bottom: 12px }
+.brand small { display: block; color: var(--blue); font-size: .75rem; letter-spacing: .2em; font-weight: 700 }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); gap: 2px }
+.seg button { border: 0; background: none; padding: 6px 14px; border-radius: 999px; font-weight: 500; color: var(--muted) }
+.seg button[aria-pressed="true"] { background: var(--blue); color: var(--on-blue) }
+
+.events { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px }
+.ev-tab { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 8px 14px; text-align: left; min-width: 0 }
+.ev-tab[aria-pressed="true"] { border-color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue) }
+.ev-tab b { display: block; font-weight: 700 }
+.ev-tab span { font-size: .8rem; color: var(--muted) }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 14px; min-width: 0 }
+.ev-head { display: grid; gap: 6px }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: .9rem }
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 9px; border-radius: 999px; font-size: .78rem; font-weight: 700; letter-spacing: .03em; white-space: nowrap }
+.pill.open { background: var(--veg-soft); color: var(--veg) }
+.pill.closed { background: var(--off-soft); color: var(--off) }
+.pill.done { background: var(--blue-soft); color: var(--blue) }
+.pill.todo { background: var(--warn-soft); color: var(--warn) }
+.pill.adm { background: var(--share-soft); color: var(--share) }
+.pinned { display: grid; gap: 2px; padding: 12px 16px; border-radius: var(--r); background: var(--blue-soft); border: 1px solid var(--blue); color: var(--ink) }
+.pinned b { font-family: var(--f-display); font-size: 1.05rem; color: var(--blue) }
+.banner { padding: 10px 14px; border-radius: var(--r); background: var(--warn-soft); color: var(--warn); font-size: .9rem }
+.banner.info { background: var(--blue-soft); color: var(--blue) }
+
+.label { font-size: .78rem; font-weight: 700; letter-spacing: .12em; color: var(--muted) }
+.fams { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px }
+.fam { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 10px 12px; text-align: left; display: grid; gap: 4px; min-width: 0 }
+.fam[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-soft) }
+.fam b { font-size: 1rem; overflow-wrap: anywhere }
+.fam .row { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: .8rem; color: var(--muted) }
+
+.members { display: flex; flex-wrap: wrap; gap: 6px }
+.chip { padding: 2px 10px; border-radius: 999px; background: var(--off-soft); font-size: .85rem }
+.chip.kid { background: var(--share-soft); color: var(--share) }
+
+.block { display: grid; gap: 10px; padding-top: 14px; border-top: 1px dashed var(--line) }
+.block-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap }
+.steppers { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px }
+.stepper { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid var(--line); border-radius: var(--r); padding: 8px 10px }
+.stepper .name { font-weight: 700 }
+.stepper.meat .name { color: var(--meat) } .stepper.veg .name { color: var(--veg) }
+.stepper .ctl { display: flex; align-items: center; gap: 6px }
+.stepper .ctl button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper); font-size: 1.2rem; line-height: 1 }
+.stepper .ctl button:disabled { opacity: .35; cursor: default }
+.stepper .val { min-width: 2ch; text-align: center; font-size: 1.3rem; font-weight: 700 }
+.absent-note { font-size: .85rem; color: var(--muted) }
+
+.kid-row { display: grid; gap: 6px }
+.kid-row .who { font-weight: 700 }
+.opts { display: flex; flex-wrap: wrap; gap: 6px }
+.opt { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: .9rem }
+.opt[aria-pressed="true"].meat { background: var(--meat); border-color: var(--meat); color: var(--surface) }
+.opt[aria-pressed="true"].veg { background: var(--veg); border-color: var(--veg); color: var(--surface) }
+.opt[aria-pressed="true"].share { background: var(--share); border-color: var(--share); color: var(--surface) }
+.opt[aria-pressed="true"].absent { background: var(--off); border-color: var(--off); color: var(--surface) }
+
+textarea, input[type=text], input[type=date], input[type=number], select { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); padding: 8px 10px }
+textarea { min-height: 70px; resize: vertical }
+
+.tally { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: .9rem }
+.tally b { font-size: 1.05rem }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 14px; font-weight: 500 }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: var(--on-blue); font-weight: 700 }
+.btn.danger { color: var(--meat); border-color: var(--meat) }
+.btn.ghost { border-color: transparent; background: none; color: var(--blue); padding-inline: 6px }
+.btn:disabled { opacity: .45; cursor: default }
+.saved { color: var(--veg); font-size: .9rem }
+.err { color: var(--meat); font-size: .9rem }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px }
+.tile { border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; background: var(--surface) }
+.tile .k { font-size: .78rem; color: var(--muted); letter-spacing: .08em }
+.tile .v { font-size: 1.7rem; font-weight: 700; font-family: var(--f-display); line-height: 1.2 }
+.tile .s { font-size: .8rem; color: var(--muted) }
+.tile.meat .v { color: var(--meat) } .tile.veg .v { color: var(--veg) } .tile.share .v { color: var(--share) } .tile.main .v { color: var(--blue) }
+
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface) }
+table { border-collapse: collapse; width: 100%; font-size: .88rem }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; white-space: nowrap }
+td.wrap-cell { white-space: normal; min-width: 160px; max-width: 280px }
+th { font-size: .75rem; letter-spacing: .06em; color: var(--muted); font-weight: 700; background: var(--paper) }
+th.grp { text-align: center; border-left: 1px solid var(--line) }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums }
+td.bl, th.bl { border-left: 1px solid var(--line) }
+tr.total td { font-weight: 700; background: var(--paper) }
+tr.pending td { color: var(--muted) }
+
+.list { display: grid; gap: 8px }
+.li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px }
+.li .main { min-width: 0; display: grid; gap: 2px }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px }
+.field { display: grid; gap: 4px; min-width: 0 }
+.field span { font-size: .8rem; color: var(--muted); font-weight: 500 }
+.editor { border: 1px solid var(--blue); border-radius: var(--r); padding: 14px; display: grid; gap: 10px; background: var(--blue-soft) }
+.log { display: grid; gap: 4px; font-size: .82rem; color: var(--muted) }
+.empty { text-align: center; padding: 28px 16px; color: var(--muted); display: grid; gap: 6px }
+.empty b { color: var(--ink); font-size: 1.05rem }
+@media (prefers-reduced-motion: no-preference) { .fam, .opt, .btn, .seg button { transition: background .15s, border-color .15s } }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header class="top"><div class="brand"><small>FAMILY GATHERING</small><h1>家族聚會報名</h1></div></header>
+  <div class="empty"><b>正在載入資料…</b><span>載入家庭名單與活動中</span></div>
+</div>
+<script>
+// 資料都存在 Google 試算表，透過 Apps Script 的 JSON 介面讀寫（不帶 Cookie，多個 Google 帳號登入也能用）
+const API_URL = "https://script.google.com/macros/s/AKfycbzZ6oisCjdjfXlMCv771vnceyQwfWGfUP0kJlYkT2UY65yZ8vJj21F5452BEmmgX_Pm/exec";
+const ADMIN_KEY = new URLSearchParams(location.search).get("admin") || "";
+const PUBLIC_URL = location.origin + location.pathname;
+(() => {
+const KID_OPTS = [["meat", "葷食餐"], ["veg", "素食餐"], ["share", "與家長共食"], ["absent", "不參加"]];
+const KIND = { meal: "聚餐", trip: "旅遊" };
+const S = {
+  ready: false, loadErr: null, isOwner: !!ADMIN_KEY,
+  families: [], events: [], responses: new Map(),
+  view: "fill", eventId: null, familyId: null,
+  draft: null, saving: false, busy: false, msg: null,
+  famForm: null, evForm: null, bulk: "", confirm: null, adminMsg: null, exportUrl: null,
+};
+const store = { get(k) { try { return localStorage.getItem(k) } catch { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch {} } };
+S.eventId = store.get("rsvp.event"); S.familyId = store.get("rsvp.family");
+if (S.isOwner && store.get("rsvp.view") === "admin") S.view = "admin";
+
+const api = async (fn, ...args) => {
+  const res = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ fn, args }) });
+  const j = await res.json();
+  if (!j.ok) throw new Error(j.error || "伺服器沒有回應，請稍後再試。");
+  return j.data;
+};
+const errText = e => (e && e.message ? String(e.message).replace(/^Error:\s*/, "").replace(/^Exception:\s*/, "") : "連線失敗，請稍後再試一次。");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtTime = s => String(s || "").replace(/^\d{4}\//, "");
+const fmtDate = s => s ? s.replace(/^(\d{4})-0?(\d+)-0?(\d+)$/, "$1/$2/$3") : "";
+const adults = f => (f.members || []).filter(m => m.kind === "adult");
+const kids = f => (f.members || []).filter(m => m.kind === "child");
+const respKey = (eid, fid) => `${eid}__${fid}`;
+const curEvent = () => S.events.find(e => e.id === S.eventId) || null;
+const curFamily = () => S.families.find(f => f.id === S.familyId) || null;
+// 固定名額的家庭（例如阿嬤家）每個活動都自動算進去，不需要填寫
+const respFor = (ev, f) => f.fixed ? { adultsMeat: f.fixed.adultsMeat || 0, adultsVeg: f.fixed.adultsVeg || 0, kids: {}, note: f.fixed.note || "", fixed: true } : (S.responses.get(respKey(ev.id, f.id)) || null);
+const openFams = () => S.families.filter(f => !f.fixed);
+
+// ---------- tallies ----------
+function tallyFamily(f, r) {
+  const A = adults(f).length, K = kids(f);
+  const t = { adults: A, kidsTotal: K.length, aMeat: 0, aVeg: 0, aOff: A, kMeat: 0, kVeg: 0, kShare: 0, kOff: 0, kUnset: 0, responded: !!r };
+  if (!r) return t;
+  t.aMeat = Math.min(r.adultsMeat || 0, A); t.aVeg = Math.min(r.adultsVeg || 0, A - t.aMeat); t.aOff = A - t.aMeat - t.aVeg;
+  for (const k of K) {
+    const v = r.kids?.[k.id];
+    if (v === "meat") t.kMeat++; else if (v === "veg") t.kVeg++; else if (v === "share") t.kShare++; else if (v === "absent") t.kOff++; else t.kUnset++;
+  }
+  return t;
+}
+const people = t => t.aMeat + t.aVeg + t.kMeat + t.kVeg + t.kShare;
+function tallyEvent(ev) {
+  const rows = S.families.map(f => ({ f, r: respFor(ev, f) })).map(x => ({ ...x, t: tallyFamily(x.f, x.r) }));
+  const sum = { families: rows.length, responded: 0, aMeat: 0, aVeg: 0, aOff: 0, kMeat: 0, kVeg: 0, kShare: 0, kOff: 0, people: 0 };
+  for (const { t } of rows) {
+    if (!t.responded) continue;
+    sum.responded++;
+    for (const k of ["aMeat", "aVeg", "aOff", "kMeat", "kVeg", "kShare", "kOff"]) sum[k] += t[k];
+    sum.people += people(t);
+  }
+  sum.meat = sum.aMeat + sum.kMeat; sum.veg = sum.aVeg + sum.kVeg;
+  sum.tables = Math.ceil(sum.people / (Number(ev.seats) || 10));
+  return { rows, sum };
+}
+
+// ---------- draft ----------
+function syncDraft(force) {
+  const ev = curEvent(), f = curFamily();
+  if (!ev || !f) { S.draft = null; return }
+  const key = respKey(ev.id, f.id);
+  if (!force && S.draft && S.draft.key === key && S.draft.dirty) return;
+  const r = S.responses.get(key);
+  const kidsMap = {};
+  for (const k of kids(f)) kidsMap[k.id] = r?.kids?.[k.id] || null;
+  const who = store.get("rsvp.who") || "", email = S.isOwner ? (r?.email || "") : (store.get("rsvp.email") || "");
+  S.draft = r
+    ? { key, adultsMeat: Math.min(r.adultsMeat || 0, adults(f).length), adultsVeg: Math.min(r.adultsVeg || 0, adults(f).length), kids: kidsMap, note: r.note || "", who, email, dirty: false }
+    : { key, adultsMeat: adults(f).length, adultsVeg: 0, kids: kidsMap, note: "", who, email, dirty: false };
+}
+
+// ---------- render ----------
+function render() {
+  const app = document.getElementById("app");
+  const act = document.activeElement, focusId = act && act.id, selS = act?.selectionStart, selE = act?.selectionEnd;
+  app.className = "wrap" + (S.view === "admin" ? " wide" : "");
+  app.innerHTML = renderHeader() + renderBody();
+  if (focusId) { const n = document.getElementById(focusId); if (n) { n.focus(); try { if (selS != null) n.setSelectionRange(selS, selE) } catch {} } }
+}
+
+function renderHeader() {
+  const tabs = S.isOwner ? `<div class="seg" role="group" aria-label="切換畫面">
+    <button data-act="view" data-v="fill" aria-pressed="${S.view === "fill"}">填寫</button>
+    <button data-act="view" data-v="admin" aria-pressed="${S.view === "admin"}">後台</button></div>` : "";
+  return `<header class="top"><div class="brand"><small>FAMILY GATHERING</small><h1>家族聚會報名</h1></div>
+    <div class="actions">${tabs}<button class="btn ghost" data-act="refresh" ${S.busy ? "disabled" : ""}>重新整理</button></div></header>`;
+}
+
+function renderBody() {
+  if (S.loadErr && !S.ready) return `<div class="card empty"><b>資料載入失敗</b><span>${esc(S.loadErr)}</span><span><button class="btn" data-act="refresh">再試一次</button></span></div>`;
+  if (!S.ready) return `<div class="empty"><b>正在載入資料…</b><span>載入家庭名單與活動中</span></div>`;
+  return fixedBanner() + (S.view === "admin" && S.isOwner ? renderAdmin() : renderFill());
+}
+
+function fixedBanner() {
+  return S.families.filter(f => f.fixed).map(f => {
+    const m = f.fixed.adultsMeat || 0, v = f.fixed.adultsVeg || 0;
+    return `<div class="pinned"><b>${esc(f.name)}已經幫大家加進去了</b><span>${adults(f).map(x => esc(x.name)).join("、")}，共 ${m + v} 人（${v} 素、${m} 葷）。這一家不用另外填寫，每次活動都會自動算進總數。</span></div>`;
+  }).join("");
+}
+
+function eventTabs() {
+  if (S.events.length < 2) return "";
+  return `<div class="events" role="group" aria-label="選擇活動">${S.events.map(e => `
+    <button class="ev-tab" data-act="event" data-id="${e.id}" aria-pressed="${e.id === S.eventId}">
+      <b>${esc(e.title)}</b><span>${KIND[e.kind] || ""} · ${fmtDate(e.date) || "日期未定"}${e.open ? "" : " · 已截止"}</span></button>`).join("")}</div>`;
+}
+
+function eventHead(ev) {
+  const late = ev.open && ev.deadline && ev.deadline < new Date().toISOString().slice(0, 10);
+  return `<div class="ev-head">
+    <div class="actions"><span class="pill ${ev.open ? "open" : "closed"}">${ev.open ? "開放填寫" : "已截止"}</span><span class="pill done">${KIND[ev.kind] || "活動"}</span></div>
+    <h2>${esc(ev.title)}</h2>
+    <div class="meta">${ev.date ? `<span>日期　${fmtDate(ev.date)}${ev.time ? " " + esc(ev.time) : ""}</span>` : ""}${ev.place ? `<span>地點　${esc(ev.place)}</span>` : ""}${ev.deadline ? `<span>填寫截止　${fmtDate(ev.deadline)}${late ? "（已過）" : ""}</span>` : ""}</div>
+    ${ev.desc ? `<p class="muted">${esc(ev.desc).replace(/\n/g, "<br>")}</p>` : ""}</div>`;
+}
+
+function renderFill() {
+  const ev = curEvent();
+  if (!ev) return `${eventTabs()}<div class="card empty"><b>目前還沒有活動</b><span>${S.isOwner ? "到「後台」新增第一個聚餐或旅遊活動。" : "活動建立後就能在這裡填寫。"}</span></div>`;
+  if (!openFams().length) return `${eventTabs()}<div class="card">${eventHead(ev)}</div><div class="card empty"><b>還沒有家庭名單</b><span>${S.isOwner ? "到「後台 → 家庭名單」新增各家庭與成員。" : "請等候管理員建立家庭名單。"}</span></div>`;
+  const f = curFamily();
+  const fams = openFams().map(fm => {
+    const r = respFor(ev, fm);
+    const t = tallyFamily(fm, r);
+    const status = r ? (people(t) ? `<span class="pill done">已填 ${people(t)} 人</span>` : `<span class="pill closed">不出席</span>`) : `<span class="pill todo">未填</span>`;
+    return `<button class="fam" data-act="family" data-id="${fm.id}" aria-pressed="${fm.id === S.familyId}">
+      <b>${esc(fm.name)}</b><span class="row"><span>大人 ${adults(fm).length}・小孩 ${kids(fm).length}</span>${status}</span></button>`;
+  }).join("");
+  return `${eventTabs()}
+  <div class="card">${eventHead(ev)}</div>
+  <section class="card"><div class="label">第一步　選擇你的家庭</div><div class="fams">${fams}</div></section>
+  ${f ? renderForm(ev, f) : `<div class="card empty"><b>請先點選上方你的家庭</b><span>選好後會出現家中成員，再選擇葷素份數。</span></div>`}`;
+}
+
+function renderForm(ev, f) {
+  const d = S.draft; if (!d) return "";
+  const A = adults(f), K = kids(f), r = S.responses.get(d.key);
+  const locked = !ev.open && !S.isOwner;
+  const off = A.length - d.adultsMeat - d.adultsVeg;
+  const unset = K.filter(k => !d.kids[k.id]).length;
+  const kc = { meat: 0, veg: 0, share: 0, absent: 0 }; K.forEach(k => d.kids[k.id] && kc[d.kids[k.id]]++);
+  const total = d.adultsMeat + d.adultsVeg + kc.meat + kc.veg + kc.share;
+  const stepper = (cls, label, val, key) => `<div class="stepper ${cls}"><span class="name">${label}</span><span class="ctl">
+    <button data-act="adult" data-k="${key}" data-d="-1" ${locked || val <= 0 ? "disabled" : ""} aria-label="${label}減一">−</button>
+    <span class="val num">${val}</span>
+    <button data-act="adult" data-k="${key}" data-d="1" ${locked || off <= 0 ? "disabled" : ""} aria-label="${label}加一">＋</button></span></div>`;
+  const kidRows = K.map(k => `<div class="kid-row"><span class="who">${esc(k.name)}</span><div class="opts" role="group" aria-label="${esc(k.name)}的餐點">
+    ${KID_OPTS.map(([v, l]) => `<button class="opt ${v}" data-act="kid" data-id="${k.id}" data-v="${v}" aria-pressed="${d.kids[k.id] === v}" ${locked ? "disabled" : ""}>${l}</button>`).join("")}</div></div>`).join("");
+  const log = (r?.log || []).slice(-5).reverse();
+  return `<section class="card" id="form">
+    <div class="block-head"><div><div class="label">第二步　${esc(f.name)}的人數與餐點</div></div>
+      ${r ? `<span class="small muted">上次更新 ${fmtTime(r.updatedAt)}${r.byAdmin ? "（管理員調整）" : ""}</span>` : `<span class="pill todo">尚未填寫</span>`}</div>
+    <div class="members">${A.map(m => `<span class="chip">${esc(m.name)}</span>`).join("")}${K.map(m => `<span class="chip kid">${esc(m.name)}・小孩</span>`).join("")}</div>
+    ${!ev.open && S.isOwner ? `<div class="banner info">活動已截止，你是管理員，仍可代為調整。</div>` : ""}
+    ${!ev.open && !S.isOwner ? `<div class="banner">此活動已截止，如需更改請直接聯絡管理員。</div>` : ""}
+    ${A.length ? `<div class="block"><div class="block-head"><h3>大人（${A.length} 位）</h3><span class="absent-note">${off > 0 ? `${off} 位不出席` : "全員出席"}</span></div>
+      <div class="steppers">${stepper("meat", "葷食", d.adultsMeat, "adultsMeat")}${stepper("veg", "素食", d.adultsVeg, "adultsVeg")}</div>
+      <p class="small muted">葷＋素的份數就是出席的大人人數；沒算進去的視為不出席。</p></div>` : ""}
+    ${K.length ? `<div class="block"><div class="block-head"><h3>小朋友（${K.length} 位）</h3>${unset ? `<span class="pill todo">還有 ${unset} 位未選</span>` : ""}</div>${kidRows}
+      <p class="small muted">「與家長共食」會算座位，但不另外點餐。</p></div>` : ""}
+    <div class="block">
+      <label class="field" for="note"><span>備註（過敏、晚到、需要兒童椅等）</span><textarea id="note" data-bind="note" ${locked ? "disabled" : ""}>${esc(d.note)}</textarea></label>
+      <label class="field" for="who"><span>填寫人（選填，方便大家知道是誰填的）</span><input id="who" type="text" data-bind="who" maxlength="30" value="${esc(d.who)}" ${locked ? "disabled" : ""}></label>
+      <label class="field" for="email"><span>Email（選填）：填了會把這個活動加到你的 Google 日曆，並寄一封邀請信給你${ev.date ? "" : "（活動日期確定後才會寄出）"}${r?.hasEmail && !S.isOwner ? "。這一家已經有人留過 Email" : ""}</span><input id="email" type="email" data-bind="email" maxlength="120" autocomplete="email" placeholder="例：name@gmail.com" value="${esc(d.email)}" ${locked ? "disabled" : ""}></label>
+    </div>
+    <div class="block">
+      <div class="tally num"><span>出席 <b>${total}</b> 人</span><span style="color:var(--meat)">葷食 <b>${d.adultsMeat + kc.meat}</b> 份</span><span style="color:var(--veg)">素食 <b>${d.adultsVeg + kc.veg}</b> 份</span>${kc.share ? `<span style="color:var(--share)">共食 <b>${kc.share}</b> 位</span>` : ""}</div>
+      <div class="actions">
+        <button class="btn primary" data-act="save" ${locked || unset || S.saving ? "disabled" : ""}>${S.saving ? "送出中…" : r ? "更新回覆" : "送出回覆"}</button>
+        <button class="btn" data-act="all-absent" ${locked ? "disabled" : ""}>全家不克出席</button>
+        ${d.dirty && r ? `<button class="btn ghost" data-act="revert">還原成已送出的內容</button>` : ""}
+        ${S.msg ? `<span class="${S.msg.err ? "err" : "saved"}">${esc(S.msg.text)}</span>` : ""}
+      </div></div>
+    ${log.length ? `<div class="block"><div class="label">修改紀錄</div><div class="log">${log.map(l => `<span>${fmtTime(l.at)}　${esc(l.who || (l.admin ? "管理員" : "家人"))}${l.admin ? "（管理員）" : ""}　${esc(l.text)}</span>`).join("")}</div></div>` : ""}
+  </section>`;
+}
+
+function renderAdmin() {
+  const ev = curEvent();
+  let out = `<section class="card"><div class="block-head"><h2>家人填寫網址</h2></div>
+    <p class="small muted">把這個網址傳到家族 LINE 群組，家人點開就能填寫，不用任何帳號。你自己的後台網址（目前網址列這個）請不要外流。</p>
+    <div class="actions"><input id="pub-url" type="text" readonly value="${esc(PUBLIC_URL)}" style="flex:1;min-width:0"><button class="btn" data-act="copy-url">複製</button></div></section>`;
+  out += eventTabs();
+  if (ev) {
+    const { rows, sum } = tallyEvent(ev);
+    const pending = rows.filter(x => !x.r).map(x => x.f.name);
+    out += `<div class="card">${eventHead(ev)}</div>
+    <section class="tiles num">
+      <div class="tile main"><div class="k">回覆家庭</div><div class="v">${sum.responded}<span class="s"> / ${sum.families}</span></div><div class="s">${pending.length ? `未填 ${pending.length} 家` : "全部到齊"}</div></div>
+      <div class="tile main"><div class="k">出席人數</div><div class="v">${sum.people}</div><div class="s">大人 ${sum.aMeat + sum.aVeg}・小孩 ${sum.kMeat + sum.kVeg + sum.kShare}</div></div>
+      <div class="tile meat"><div class="k">葷食份數</div><div class="v">${sum.meat}</div><div class="s">大人 ${sum.aMeat}・小孩 ${sum.kMeat}</div></div>
+      <div class="tile veg"><div class="k">素食份數</div><div class="v">${sum.veg}</div><div class="s">大人 ${sum.aVeg}・小孩 ${sum.kVeg}</div></div>
+      <div class="tile share"><div class="k">小孩共食</div><div class="v">${sum.kShare}</div><div class="s">有座位、不點餐</div></div>
+      ${ev.kind === "meal" ? `<div class="tile"><div class="k">估計桌數</div><div class="v">${sum.tables}</div><div class="s">每桌 ${Number(ev.seats) || 10} 位</div></div>` : ""}
+    </section>
+    ${pending.length ? `<div class="banner">尚未填寫：${pending.map(esc).join("、")}</div>` : ""}
+    <section class="card"><div class="block-head"><h2>各家庭明細</h2>
+      <div class="actions"><button class="btn primary" data-act="export" ${S.busy ? "disabled" : ""}>匯出到試算表</button><button class="btn" data-act="tsv">複製表格</button>
+        ${S.exportUrl ? `<a class="btn ghost" href="${esc(S.exportUrl)}" target="_blank" rel="noopener">打開「匯出」工作表</a>` : ""}
+        ${S.adminMsg ? `<span class="${S.adminMsg.err ? "err" : "saved"}">${esc(S.adminMsg.text)}</span>` : ""}</div></div>
+      <textarea id="tsv-box" readonly hidden></textarea>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th rowspan="2">家庭</th><th rowspan="2">狀態</th><th class="grp" colspan="3">大人</th><th class="grp" colspan="4">小孩</th><th class="grp n" rowspan="2">出席</th><th rowspan="2" class="bl">備註</th><th rowspan="2">最後更新</th><th rowspan="2"></th></tr>
+        <tr><th class="n bl">葷</th><th class="n">素</th><th class="n">缺席</th><th class="n bl">葷</th><th class="n">素</th><th class="n">共食</th><th class="n">缺席</th></tr></thead>
+        <tbody>${rows.map(({ f, r, t }) => `<tr class="${r ? "" : "pending"}">
+          <td><b>${esc(f.name)}</b><div class="small muted">大人 ${t.adults}・小孩 ${t.kidsTotal}</div></td>
+          <td>${r?.fixed ? `<span class="pill adm">固定名額</span>` : r ? (people(t) ? `<span class="pill done">已填</span>` : `<span class="pill closed">不出席</span>`) : `<span class="pill todo">未填</span>`}${r?.byAdmin ? ` <span class="pill adm">調整過</span>` : ""}${t.kUnset && r ? ` <span class="pill todo">小孩未選 ${t.kUnset}</span>` : ""}</td>
+          <td class="n bl">${r ? t.aMeat : "–"}</td><td class="n">${r ? t.aVeg : "–"}</td><td class="n">${r ? t.aOff : "–"}</td>
+          <td class="n bl">${r ? t.kMeat : "–"}</td><td class="n">${r ? t.kVeg : "–"}</td><td class="n">${r ? t.kShare : "–"}</td><td class="n">${r ? t.kOff : "–"}</td>
+          <td class="n bl"><b>${r ? people(t) : "–"}</b></td>
+          <td class="wrap-cell">${esc(r?.note || "")}${r?.email ? `<div class="small muted">${esc(r.email)}</div>` : ""}</td>
+          <td class="small muted">${r && !r.fixed ? esc(fmtTime(r.updatedAt)) + (r.who ? `<br>${esc(r.who)}` : "") : ""}</td>
+          <td>${f.fixed ? "" : `<button class="btn ghost" data-act="admin-edit" data-id="${f.id}">${r ? "調整" : "代填"}</button>`}</td></tr>`).join("")}
+          <tr class="total"><td>合計</td><td>${sum.responded}/${sum.families}</td><td class="n bl">${sum.aMeat}</td><td class="n">${sum.aVeg}</td><td class="n">${sum.aOff}</td><td class="n bl">${sum.kMeat}</td><td class="n">${sum.kVeg}</td><td class="n">${sum.kShare}</td><td class="n">${sum.kOff}</td><td class="n bl">${sum.people}</td><td></td><td></td><td></td></tr>
+        </tbody></table></div>
+      <p class="small muted">「調整」會帶你到填寫畫面修改該家庭的回覆，修改紀錄會標註為管理員調整。所有原始資料也都在試算表的「回覆」工作表。</p>
+    </section>`;
+  }
+  out += renderEventAdmin() + renderFamilyAdmin();
+  return out;
+}
+
+function renderEventAdmin() {
+  const ef = S.evForm;
+  const form = ef ? `<div class="editor">
+    <h3>${ef.id ? "編輯活動" : "新增活動"}</h3>
+    <div class="form-grid">
+      <label class="field" for="ev-title"><span>活動名稱</span><input id="ev-title" type="text" data-bind="evForm.title" value="${esc(ef.title)}" placeholder="例：2026 尾牙家族聚餐"></label>
+      <label class="field" for="ev-kind"><span>類型</span><select id="ev-kind" data-bind="evForm.kind"><option value="meal" ${ef.kind === "meal" ? "selected" : ""}>聚餐</option><option value="trip" ${ef.kind === "trip" ? "selected" : ""}>旅遊</option></select></label>
+      <label class="field" for="ev-date"><span>活動日期</span><input id="ev-date" type="date" data-bind="evForm.date" value="${esc(ef.date)}"></label>
+      <label class="field" for="ev-time"><span>開始時間（選填，加入日曆用）</span><input id="ev-time" type="time" data-bind="evForm.time" value="${esc(ef.time)}"></label>
+      <label class="field" for="ev-deadline"><span>填寫截止日</span><input id="ev-deadline" type="date" data-bind="evForm.deadline" value="${esc(ef.deadline)}"></label>
+      <label class="field" for="ev-place"><span>地點</span><input id="ev-place" type="text" data-bind="evForm.place" value="${esc(ef.place)}"></label>
+      <label class="field" for="ev-seats"><span>每桌座位（估算桌數用）</span><input id="ev-seats" type="number" min="1" data-bind="evForm.seats" value="${esc(ef.seats)}"></label>
+    </div>
+    <label class="field" for="ev-desc"><span>說明（顯示給家人看）</span><textarea id="ev-desc" data-bind="evForm.desc">${esc(ef.desc)}</textarea></label>
+    <div class="actions"><button class="btn primary" data-act="ev-save" ${ef.title.trim() && !S.busy ? "" : "disabled"}>儲存活動</button><button class="btn" data-act="ev-cancel">取消</button></div></div>` : "";
+  const list = S.events.map(e => {
+    const n = [...S.responses.values()].filter(r => r.eventId === e.id).length;
+    const confirming = S.confirm === "ev:" + e.id;
+    return `<div class="li"><div class="main"><b>${esc(e.title)}</b><span class="small muted">${KIND[e.kind]}・${fmtDate(e.date) || "日期未定"}・已回覆 ${n} 家</span></div>
+      <div class="actions">${confirming ? `<span class="err">刪除活動與全部 ${n} 筆回覆？</span><button class="btn danger" data-act="ev-del-yes" data-id="${e.id}">確定刪除</button><button class="btn" data-act="confirm-cancel">取消</button>` : `
+        <span class="pill ${e.open ? "open" : "closed"}">${e.open ? "開放中" : "已截止"}</span>
+        <button class="btn" data-act="ev-toggle" data-id="${e.id}" ${S.busy ? "disabled" : ""}>${e.open ? "截止填寫" : "重新開放"}</button>
+        <button class="btn" data-act="ev-edit" data-id="${e.id}">編輯</button>
+        <button class="btn ghost" data-act="ev-del" data-id="${e.id}">刪除</button>`}</div></div>`;
+  }).join("");
+  return `<section class="card"><div class="block-head"><h2>活動</h2>${ef ? "" : `<button class="btn primary" data-act="ev-new">新增活動</button>`}</div>
+    ${form}${S.events.length ? `<div class="list">${list}</div>` : (ef ? "" : `<p class="muted">還沒有活動。新增一個聚餐或旅遊，家人就能開始填寫。</p>`)}</section>`;
+}
+
+function renderFamilyAdmin() {
+  const ff = S.famForm;
+  const form = ff ? `<div class="editor">
+    <h3>${ff.id ? "編輯家庭" : "新增家庭"}</h3>
+    <label class="field" for="fam-name"><span>家庭名稱</span><input id="fam-name" type="text" data-bind="famForm.name" value="${esc(ff.name)}" placeholder="例：大伯家"></label>
+    <div class="form-grid">
+      <label class="field" for="fam-adults"><span>大人（每行一位，或用「、」分隔）</span><textarea id="fam-adults" data-bind="famForm.adults">${esc(ff.adults)}</textarea></label>
+      <label class="field" for="fam-kids"><span>小孩（每行一位，或用「、」分隔）</span><textarea id="fam-kids" data-bind="famForm.kids">${esc(ff.kids)}</textarea></label>
+    </div>
+    <p class="small muted">名字可以只寫代稱，例如「大人 1」「老大」。</p>
+    <div class="actions"><button class="btn primary" data-act="fam-save" ${ff.name.trim() && !S.busy ? "" : "disabled"}>儲存家庭</button><button class="btn" data-act="fam-cancel">取消</button></div></div>` : "";
+  const list = S.families.map((f, i) => {
+    const confirming = S.confirm === "fam:" + f.id;
+    return `<div class="li"><div class="main"><b>${esc(f.name)}</b><span class="small muted">大人：${adults(f).map(m => esc(m.name)).join("、") || "—"}${kids(f).length ? `　小孩：${kids(f).map(m => esc(m.name)).join("、")}` : ""}</span></div>
+      <div class="actions">${f.fixed ? `<span class="pill adm">固定名額</span>` : confirming ? `<span class="err">刪除「${esc(f.name)}」？</span><button class="btn danger" data-act="fam-del-yes" data-id="${f.id}">確定刪除</button><button class="btn" data-act="confirm-cancel">取消</button>` : `
+        <button class="btn ghost" data-act="fam-move" data-id="${f.id}" data-d="-1" ${i === 0 || S.busy ? "disabled" : ""} aria-label="上移">↑</button>
+        <button class="btn ghost" data-act="fam-move" data-id="${f.id}" data-d="1" ${i === S.families.length - 1 || S.busy ? "disabled" : ""} aria-label="下移">↓</button>
+        <button class="btn" data-act="fam-edit" data-id="${f.id}">編輯</button>
+        <button class="btn ghost" data-act="fam-del" data-id="${f.id}">刪除</button>`}</div></div>`;
+  }).join("");
+  const totals = S.families.reduce((a, f) => [a[0] + adults(f).length, a[1] + kids(f).length], [0, 0]);
+  return `<section class="card"><div class="block-head"><div><h2>家庭名單</h2><span class="small muted num">${S.families.length} 個家庭・大人 ${totals[0]}・小孩 ${totals[1]}・共 ${totals[0] + totals[1]} 人</span></div>${ff ? "" : `<button class="btn primary" data-act="fam-new">新增家庭</button>`}</div>
+    ${form}${S.families.length ? `<div class="list">${list}</div>` : ""}
+    <details ${S.families.length ? "" : "open"}><summary class="label" style="cursor:pointer">一次匯入多個家庭</summary>
+      <div class="block" style="border:0">
+        <p class="small muted">每行一個家庭，格式：<code>家庭名稱｜大人1、大人2｜小孩1、小孩2</code>。沒有小孩可以省略最後一段。</p>
+        <textarea id="bulk" data-bind="bulk" placeholder="大伯家｜陳大明、林美玲｜陳小寶、陳小貝&#10;二姑家｜王志強、陳淑芬">${esc(S.bulk)}</textarea>
+        <div class="actions"><button class="btn" data-act="bulk" ${S.bulk.trim() && !S.busy ? "" : "disabled"}>匯入</button></div>
+      </div></details></section>`;
+}
+
+// ---------- data ----------
+function apply(data) {
+  S.families = (data.families || []).sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name));
+  S.events = (data.events || []).sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || "").localeCompare(a.createdAt || ""));
+  S.responses = new Map(Object.entries(data.responses || {}));
+  S.isOwner = !!data.admin;
+  S.ready = true; S.loadErr = null;
+  if (!S.events.some(e => e.id === S.eventId)) S.eventId = (S.events.find(e => e.open) || S.events[0])?.id || null;
+  if (!openFams().some(f => f.id === S.familyId)) S.familyId = null;
+  syncDraft(false);
+  render();
+  return data;
+}
+async function refresh() {
+  try { apply(await api("getData", ADMIN_KEY)) } catch (e) { S.loadErr = errText(e); render() }
+}
+// 管理動作：送到伺服器，成功後用回傳的最新資料重畫
+async function adminCall(fn, ...args) {
+  S.busy = true; render();
+  try { const data = await api(fn, ADMIN_KEY, ...args); S.busy = false; apply(data); return data }
+  catch (e) { S.busy = false; flash("adminMsg", errText(e), true); return null }
+}
+
+// ---------- actions ----------
+function describe(f, d) {
+  const kc = { meat: 0, veg: 0, share: 0, absent: 0 }; Object.values(d.kids).forEach(v => v && kc[v]++);
+  const parts = [`大人 葷${d.adultsMeat} 素${d.adultsVeg}`];
+  if (kids(f).length) parts.push(`小孩 葷${kc.meat} 素${kc.veg} 共食${kc.share} 缺席${kc.absent}`);
+  return parts.join("；");
+}
+function flash(key, text, err) { S[key] = { text, err }; render(); if (!err) setTimeout(() => { if (S[key]?.text === text) { S[key] = null; render() } }, 3000) }
+
+const calMsg = (c, email) => c === "added" ? `已送出，謝謝！行事曆邀請已寄到 ${email}` : c === "nodate" ? "已送出，謝謝！活動日期確定後，會把行事曆邀請寄到你的信箱。" : c === "failed" ? "已送出，但加入行事曆沒有成功，請告訴管理員。" : "已送出，謝謝！";
+async function saveResponse() {
+  const ev = curEvent(), f = curFamily(), d = S.draft;
+  if (!ev || !f || !d) return;
+  S.saving = true; S.msg = null; render();
+  store.set("rsvp.who", d.who.trim());
+  if (!S.isOwner) store.set("rsvp.email", d.email.trim());
+  try {
+    const data = await api("saveResponse", { eventId: ev.id, familyId: f.id, adultsMeat: d.adultsMeat, adultsVeg: d.adultsVeg, kids: d.kids, note: d.note, who: d.who, email: d.email.trim() }, ADMIN_KEY);
+    S.saving = false; d.dirty = false; apply(data); syncDraft(true); flash("msg", calMsg(data.calendar, d.email.trim()), data.calendar === "failed");
+  } catch (e) { S.saving = false; flash("msg", errText(e), true) }
+}
+
+function tableRows(ev) {
+  const { rows, sum } = tallyEvent(ev);
+  const head = ["家庭", "狀態", "大人總數", "大人葷食", "大人素食", "大人不出席", "小孩總數", "小孩葷食餐", "小孩素食餐", "小孩共食", "小孩不參加", "出席人數", "葷食份數", "素食份數", "小孩明細", "備註", "最後更新", "填寫人", "管理員調整過", "Email"];
+  const out = [head];
+  for (const { f, r, t } of rows) {
+    const kidDetail = kids(f).map(k => `${k.name}:${(KID_OPTS.find(o => o[0] === r?.kids?.[k.id]) || [, "未選"])[1]}`).join(" / ");
+    out.push(r ? [f.name, r.fixed ? "固定名額" : people(t) ? "已填" : "不出席", t.adults, t.aMeat, t.aVeg, t.aOff, t.kidsTotal, t.kMeat, t.kVeg, t.kShare, t.kOff, people(t), t.aMeat + t.kMeat, t.aVeg + t.kVeg, kidDetail, r.note || "", r.fixed ? "" : r.updatedAt || "", r.who || "", r.byAdmin ? "是" : "", r.email || ""]
+      : [f.name, "未填", t.adults, "", "", "", t.kidsTotal, "", "", "", "", "", "", "", "", "", "", "", ""]);
+  }
+  out.push(["合計", `${sum.responded}/${sum.families}`, "", sum.aMeat, sum.aVeg, sum.aOff, "", sum.kMeat, sum.kVeg, sum.kShare, sum.kOff, sum.people, sum.meat, sum.veg, "", "", "", "", ""]);
+  out.forEach(row => { while (row.length < head.length) row.push("") });
+  return out;
+}
+
+async function copyText(text, box) {
+  try { await navigator.clipboard.writeText(text); return true }
+  catch { if (box) { box.hidden = false; box.value = text; box.focus(); box.select(); try { return document.execCommand("copy") } catch { return false } } return false }
+}
+
+async function act(a, ds) {
+  const ev = curEvent();
+  switch (a) {
+    case "refresh": return refresh();
+    case "view": S.view = ds.v; S.confirm = null; store.set("rsvp.view", ds.v); break;
+    case "event": S.eventId = ds.id; store.set("rsvp.event", ds.id); S.msg = null; S.exportUrl = null; syncDraft(true); break;
+    case "family": S.familyId = ds.id; store.set("rsvp.family", ds.id); S.msg = null; syncDraft(true); render(); document.getElementById("form")?.scrollIntoView({ behavior: "smooth", block: "start" }); return;
+    case "adult": { const d = S.draft, f = curFamily(); const v = d[ds.k] + Number(ds.d); const other = ds.k === "adultsMeat" ? d.adultsVeg : d.adultsMeat;
+      if (v >= 0 && v + other <= adults(f).length) { d[ds.k] = v; d.dirty = true; S.msg = null } break }
+    case "kid": S.draft.kids[ds.id] = ds.v; S.draft.dirty = true; S.msg = null; break;
+    case "all-absent": { const d = S.draft; d.adultsMeat = 0; d.adultsVeg = 0; Object.keys(d.kids).forEach(k => d.kids[k] = "absent"); d.dirty = true; S.msg = null; break }
+    case "revert": syncDraft(true); break;
+    case "save": return saveResponse();
+    case "admin-edit": S.view = "fill"; S.familyId = ds.id; store.set("rsvp.family", ds.id); S.msg = null; syncDraft(true); render(); document.getElementById("form")?.scrollIntoView({ block: "start" }); return;
+    case "copy-url": { const ok = await copyText(PUBLIC_URL, document.getElementById("pub-url")); if (!ok) document.getElementById("pub-url")?.select(); return }
+    case "tsv": {
+      const tsv = tableRows(ev).map(r => r.map(c => String(c ?? "").replace(/[\t\n]/g, " ")).join("\t")).join("\n");
+      const ok = await copyText(tsv, document.getElementById("tsv-box"));
+      flash("adminMsg", ok ? "已複製，可直接貼到 Excel 或 Google 試算表" : "請在下方文字框按 Ctrl+C／⌘C 複製", !ok);
+      if (!ok) { const box = document.getElementById("tsv-box"); box.hidden = false; box.value = tsv; box.select() }
+      return;
+    }
+    case "export": {
+      S.busy = true; render();
+      try { S.exportUrl = await api("adminExport", ADMIN_KEY, tableRows(ev)); S.busy = false; flash("adminMsg", "已寫入試算表的「匯出」工作表") }
+      catch (e) { S.busy = false; flash("adminMsg", errText(e), true) }
+      return;
+    }
+    case "ev-new": S.evForm = { id: null, title: "", kind: "meal", date: "", deadline: "", place: "", seats: "10", desc: "", time: "" }; break;
+    case "ev-edit": { const e = S.events.find(x => x.id === ds.id); S.evForm = { id: e.id, title: e.title || "", kind: e.kind || "meal", date: e.date || "", deadline: e.deadline || "", place: e.place || "", seats: String(e.seats || 10), desc: e.desc || "", time: e.time || "" }; break }
+    case "ev-cancel": S.evForm = null; break;
+    case "ev-save": {
+      const data = await adminCall("adminSaveEvent", S.evForm);
+      if (data) { if (!S.evForm.id) { S.eventId = data.savedId; store.set("rsvp.event", data.savedId) } S.evForm = null; syncDraft(true) }
+      break;
+    }
+    case "ev-toggle": return adminCall("adminToggleEvent", ds.id);
+    case "ev-del": case "fam-del": S.confirm = (a === "ev-del" ? "ev:" : "fam:") + ds.id; break;
+    case "confirm-cancel": S.confirm = null; break;
+    case "ev-del-yes": S.confirm = null; return adminCall("adminDeleteEvent", ds.id);
+    case "fam-new": S.famForm = { id: null, name: "", adults: "", kids: "" }; break;
+    case "fam-edit": { const f = S.families.find(x => x.id === ds.id); S.famForm = { id: f.id, name: f.name, adults: adults(f).map(m => m.name).join("\n"), kids: kids(f).map(m => m.name).join("\n") }; break }
+    case "fam-cancel": S.famForm = null; break;
+    case "fam-save": { const data = await adminCall("adminSaveFamily", S.famForm); if (data) S.famForm = null; break }
+    case "fam-del-yes": S.confirm = null; return adminCall("adminDeleteFamily", ds.id);
+    case "fam-move": return adminCall("adminMoveFamily", ds.id, Number(ds.d));
+    case "bulk": { const data = await adminCall("adminBulk", S.bulk); if (data) { S.bulk = ""; flash("adminMsg", `已匯入 ${data.imported} 個家庭`) } return }
+  }
+  render();
+}
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b || b.disabled) return;
+  act(b.dataset.act, b.dataset);
+});
+document.addEventListener("input", e => {
+  const k = e.target.dataset?.bind; if (!k) return;
+  if (k === "note" || k === "who" || k === "email") { S.draft[k] = e.target.value; S.draft.dirty = true; return }
+  if (k === "bulk") { S.bulk = e.target.value; const btn = document.querySelector('[data-act="bulk"]'); if (btn) btn.disabled = !S.bulk.trim(); return }
+  const [obj, field] = k.split(".");
+  if (S[obj]) { S[obj][field] = e.target.value; const save = document.querySelector(`[data-act="${obj === "evForm" ? "ev-save" : "fam-save"}"]`); if (save) save.disabled = !String(S[obj][obj === "evForm" ? "title" : "name"]).trim() }
+});
+document.addEventListener("change", e => { if (e.target.dataset?.bind === "evForm.kind") S.evForm.kind = e.target.value });
+
+// 每 30 秒自動更新一次，看得到其他家庭剛送出的狀態
+setInterval(() => { if (document.visibilityState === "visible" && !S.saving && !S.busy) refresh() }, 30000);
+refresh();
+})();
+</script>
+</body>
+</html>
