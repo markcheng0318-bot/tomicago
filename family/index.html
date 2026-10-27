@@ -68,6 +68,7 @@ header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: 
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 14px; min-width: 0 }
 .ev-head { display: grid; gap: 6px }
 .meta { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: .9rem }
+.addr { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: .9rem; overflow-wrap: anywhere }
 .pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 9px; border-radius: 999px; font-size: .78rem; font-weight: 700; letter-spacing: .03em; white-space: nowrap }
 .pill.open { background: var(--veg-soft); color: var(--veg) }
 .pill.closed { background: var(--off-soft); color: var(--off) }
@@ -189,6 +190,7 @@ const api = async (fn, ...args) => {
 const errText = e => (e && e.message ? String(e.message).replace(/^Error:\s*/, "").replace(/^Exception:\s*/, "") : "連線失敗，請稍後再試一次。");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmtTime = s => String(s || "").replace(/^\d{4}\//, "");
+const mapsUrl = a => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(a);
 const fmtDate = s => s ? s.replace(/^(\d{4})-0?(\d+)-0?(\d+)$/, "$1/$2/$3") : "";
 const adults = f => (f.members || []).filter(m => m.kind === "adult");
 const kids = f => (f.members || []).filter(m => m.kind === "child");
@@ -284,6 +286,7 @@ function eventHead(ev) {
     <div class="actions"><span class="pill ${ev.open ? "open" : "closed"}">${ev.open ? "開放填寫" : "已截止"}</span><span class="pill done">${KIND[ev.kind] || "活動"}</span></div>
     <h2>${esc(ev.title)}</h2>
     <div class="meta">${ev.date ? `<span>日期　${fmtDate(ev.date)}${ev.time ? " " + esc(ev.time) : ""}</span>` : ""}${ev.place ? `<span>地點　${esc(ev.place)}</span>` : ""}${ev.deadline ? `<span>填寫截止　${fmtDate(ev.deadline)}${late ? "（已過）" : ""}</span>` : ""}</div>
+    ${ev.address ? `<div class="addr"><span>地址　${esc(ev.address)}</span><a class="btn ghost" href="${esc(mapsUrl(ev.address))}" target="_blank" rel="noopener">在 Google 地圖開啟</a><button class="btn ghost" data-act="copy-addr">複製地址</button></div>` : ""}
     ${ev.desc ? `<p class="muted">${esc(ev.desc).replace(/\n/g, "<br>")}</p>` : ""}</div>`;
 }
 
@@ -403,7 +406,8 @@ function renderEventAdmin() {
       <label class="field" for="ev-date"><span>活動日期</span><input id="ev-date" type="date" data-bind="evForm.date" value="${esc(ef.date)}"></label>
       <label class="field" for="ev-time"><span>開始時間（選填，加入日曆用）</span><input id="ev-time" type="time" data-bind="evForm.time" value="${esc(ef.time)}"></label>
       <label class="field" for="ev-deadline"><span>填寫截止日</span><input id="ev-deadline" type="date" data-bind="evForm.deadline" value="${esc(ef.deadline)}"></label>
-      <label class="field" for="ev-place"><span>地點</span><input id="ev-place" type="text" data-bind="evForm.place" value="${esc(ef.place)}"></label>
+      <label class="field" for="ev-place"><span>地點名稱</span><input id="ev-place" type="text" data-bind="evForm.place" value="${esc(ef.place)}" placeholder="例：LOFT17森活休閒園區"></label>
+      <label class="field" for="ev-address"><span>地址（會連到 Google 地圖並加進日曆）</span><input id="ev-address" type="text" data-bind="evForm.address" value="${esc(ef.address)}" placeholder="例：新北市石碇區中民里番子坑路17號"></label>
       <label class="field" for="ev-seats"><span>每桌座位（估算桌數用）</span><input id="ev-seats" type="number" min="1" data-bind="evForm.seats" value="${esc(ef.seats)}"></label>
     </div>
     <label class="field" for="ev-desc"><span>說明（顯示給家人看）</span><textarea id="ev-desc" data-bind="evForm.desc">${esc(ef.desc)}</textarea></label>
@@ -532,6 +536,7 @@ async function act(a, ds) {
     case "save": return saveResponse();
     case "admin-edit": S.view = "fill"; S.familyId = ds.id; store.set("rsvp.family", ds.id); S.msg = null; syncDraft(true); render(); document.getElementById("form")?.scrollIntoView({ block: "start" }); return;
     case "copy-url": { const ok = await copyText(PUBLIC_URL, document.getElementById("pub-url")); if (!ok) document.getElementById("pub-url")?.select(); return }
+    case "copy-addr": { const ok = await copyText(ev.address); flash(S.view === "admin" ? "adminMsg" : "msg", ok ? "地址已複製" : "瀏覽器不允許複製，請長按地址手動複製", !ok); return }
     case "tsv": {
       const tsv = tableRows(ev).map(r => r.map(c => String(c ?? "").replace(/[\t\n]/g, " ")).join("\t")).join("\n");
       const ok = await copyText(tsv, document.getElementById("tsv-box"));
@@ -545,8 +550,8 @@ async function act(a, ds) {
       catch (e) { S.busy = false; flash("adminMsg", errText(e), true) }
       return;
     }
-    case "ev-new": S.evForm = { id: null, title: "", kind: "meal", date: "", deadline: "", place: "", seats: "10", desc: "", time: "" }; break;
-    case "ev-edit": { const e = S.events.find(x => x.id === ds.id); S.evForm = { id: e.id, title: e.title || "", kind: e.kind || "meal", date: e.date || "", deadline: e.deadline || "", place: e.place || "", seats: String(e.seats || 10), desc: e.desc || "", time: e.time || "" }; break }
+    case "ev-new": S.evForm = { id: null, title: "", kind: "meal", date: "", deadline: "", place: "", seats: "10", desc: "", time: "", address: "" }; break;
+    case "ev-edit": { const e = S.events.find(x => x.id === ds.id); S.evForm = { id: e.id, title: e.title || "", kind: e.kind || "meal", date: e.date || "", deadline: e.deadline || "", place: e.place || "", seats: String(e.seats || 10), desc: e.desc || "", time: e.time || "", address: e.address || "" }; break }
     case "ev-cancel": S.evForm = null; break;
     case "ev-save": {
       const data = await adminCall("adminSaveEvent", S.evForm);
