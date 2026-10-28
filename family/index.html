@@ -168,6 +168,8 @@ tr.pending td { color: var(--muted) }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px }
 .field { display: grid; gap: 6px; min-width: 0 }
 .field span { font-size: 1rem; font-weight: 700 }
+.places { display: grid; gap: 12px; padding: 14px; border: 2px dashed var(--blue); border-radius: var(--r); background: var(--surface) }
+.place-row { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--line) }
 .editor { border: 2px solid var(--blue); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; background: var(--blue-soft) }
 .log { display: grid; gap: 4px; font-size: .95rem; color: var(--muted) }
 .empty { text-align: center; padding: 28px 16px; color: var(--muted); display: grid; gap: 8px }
@@ -496,6 +498,27 @@ function adminMsgHtml() {
   return S.adminMsg ? `<span class="${S.adminMsg.err ? "err" : "saved"}">${esc(S.adminMsg.text)}</span>` : "";
 }
 
+// 活動的地點：可以一次填好幾個（例如兩間餐廳）。第一個是主要地點；兩個以上時，儲存後全部依序放進「行程安排」
+const blankPlace = ef => ({ title: "", address: "", kind: ef.kind === "trip" ? "plan" : "meal", date: ef.date || "", time: "" });
+function placesEditor(ef) {
+  if (!ef.places) return `<div class="banner info">這個活動已經有行程了。要再加地點（例如另一間餐廳、景點），請在下方「行程安排」按「＋ 新增地點／行程」，每個地點都可以填自己的地址。</div>`;
+  const many = ef.places.length > 1;
+  const rows = ef.places.map((p, i) => `<div class="place-row">
+    <div class="block-head"><h4>地點 ${i + 1}${i === 0 ? "（主要地點）" : ""}</h4>${many ? `<button class="btn ghost" data-act="place-del" data-i="${i}">移除這個地點</button>` : ""}</div>
+    <div class="form-grid">
+      <label class="field" for="pl-title-${i}"><span>地點名稱</span><input id="pl-title-${i}" type="text" data-bind="evForm.places.${i}.title" value="${esc(p.title)}" placeholder="${i === 0 ? "例：LOFT17森活休閒園區" : "例：晚餐・B 餐廳"}"></label>
+      <label class="field" for="pl-addr-${i}"><span>地址（會連到 Google 地圖）</span><input id="pl-addr-${i}" type="text" data-bind="evForm.places.${i}.address" value="${esc(p.address)}" placeholder="例：新北市石碇區中民里番子坑路17號"></label>
+      ${many ? `<label class="field" for="pl-kind-${i}"><span>類型</span><select id="pl-kind-${i}" data-bind="evForm.places.${i}.kind"><option value="meal" ${p.kind === "meal" ? "selected" : ""}>餐廳用餐（家人要回報這一餐人數）</option><option value="plan" ${p.kind === "plan" ? "selected" : ""}>一般地點（集合、景點、住宿）</option></select></label>
+      <label class="field" for="pl-date-${i}"><span>日期</span><input id="pl-date-${i}" type="date" data-bind="evForm.places.${i}.date" value="${esc(p.date)}"></label>
+      <label class="field" for="pl-time-${i}"><span>時間</span><input id="pl-time-${i}" type="time" data-bind="evForm.places.${i}.time" value="${esc(p.time)}"></label>` : ""}
+    </div></div>`).join("");
+  return `<div class="places">
+    <h4>地點</h4>
+    <p class="small muted">要去好幾個地方（例如午餐 A 餐廳、晚餐 B 餐廳）就按「再加一個地點」。有兩個以上地點時，儲存後會依順序放進「行程安排」，選「餐廳用餐」的地點，家人會分開回報每一餐。</p>
+    ${rows}
+    <button class="btn" data-act="place-add">＋ 再加一個地點</button></div>`;
+}
+
 function eventForm(ef) {
   return `<div class="editor">
     <h3>${ef.id ? "編輯活動" : "新增活動"}</h3>
@@ -506,10 +529,11 @@ function eventForm(ef) {
       <label class="field" for="ev-end"><span>結束日期（多天的旅遊才填）</span><input id="ev-end" type="date" data-bind="evForm.endDate" value="${esc(ef.endDate)}"></label>
       <label class="field" for="ev-time"><span>開始時間（選填，加入日曆用）</span><input id="ev-time" type="time" data-bind="evForm.time" value="${esc(ef.time)}"></label>
       <label class="field" for="ev-deadline"><span>填寫截止日</span><input id="ev-deadline" type="date" data-bind="evForm.deadline" value="${esc(ef.deadline)}"></label>
-      <label class="field" for="ev-place"><span>地點名稱</span><input id="ev-place" type="text" data-bind="evForm.place" value="${esc(ef.place)}" placeholder="例：LOFT17森活休閒園區"></label>
-      <label class="field" for="ev-address"><span>地址（會連到 Google 地圖並加進日曆）</span><input id="ev-address" type="text" data-bind="evForm.address" value="${esc(ef.address)}" placeholder="例：新北市石碇區中民里番子坑路17號"></label>
+      ${ef.places ? "" : `<label class="field" for="ev-place"><span>主要地點名稱</span><input id="ev-place" type="text" data-bind="evForm.place" value="${esc(ef.place)}" placeholder="例：LOFT17森活休閒園區"></label>
+      <label class="field" for="ev-address"><span>主要地點地址（會連到 Google 地圖並加進日曆）</span><input id="ev-address" type="text" data-bind="evForm.address" value="${esc(ef.address)}" placeholder="例：新北市石碇區中民里番子坑路17號"></label>`}
       <label class="field" for="ev-seats"><span>每桌座位（估算桌數用）</span><input id="ev-seats" type="number" min="1" data-bind="evForm.seats" value="${esc(ef.seats)}"></label>
     </div>
+    ${placesEditor(ef)}
     <label class="field" for="ev-desc"><span>說明（顯示給家人看）</span><textarea id="ev-desc" data-bind="evForm.desc">${esc(ef.desc)}</textarea></label>
     <div class="actions"><button class="btn primary" data-act="ev-save" ${ef.title.trim() && !S.busy ? "" : "disabled"}>${S.busy ? "儲存中…" : "儲存活動"}</button><button class="btn" data-act="ev-cancel">取消</button>${adminMsgHtml()}</div></div>`;
 }
@@ -582,7 +606,7 @@ function renderEventDetail(ev) {
        <button class="btn" data-act="ev-toggle" data-id="${ev.id}" ${S.busy ? "disabled" : ""}>${ev.open ? "截止填寫" : "重新開放填寫"}</button>
        <button class="btn ghost" data-act="ev-del" data-id="${ev.id}">刪除活動</button>${S.itForm || S.evForm ? "" : adminMsgHtml()}`;
   const newItem = S.itForm && !S.itForm.id;
-  const planSection = `<section class="card"><div class="block-head"><div><h2>行程安排</h2><span class="small muted">依順序排列；「用餐」行程會讓家人分開回報每一餐。${meals.length ? "" : "目前沒有用餐行程，整個活動就當成一餐統計。"}</span></div>${newItem ? "" : `<button class="btn primary" data-act="it-new">新增行程</button>`}</div>
+  const planSection = `<section class="card"><div class="block-head"><div><h2>行程安排</h2><span class="small muted">依順序排列；「用餐」行程會讓家人分開回報每一餐。${meals.length ? "" : "目前沒有用餐行程，整個活動就當成一餐統計。"}</span></div>${newItem ? "" : `<button class="btn primary" data-act="it-new">＋ 新增地點／行程</button>`}</div>
     ${planList(ev, true) || (newItem ? "" : `<p class="muted">還沒有行程。聚餐可以不加；旅遊可以依序加上集合、景點、每一餐的餐廳、住宿。</p>`)}
     ${newItem ? itemForm(S.itForm) : ""}</section>`;
   return `<div class="actions"><button class="btn ghost back" data-act="close-event">← 所有活動</button></div>
@@ -803,12 +827,31 @@ async function act(a, ds) {
       catch (e) { S.busy = false; flash("adminMsg", errText(e), true) }
       return;
     }
-    case "ev-new": S.evForm = { id: null, title: "", kind: "meal", date: "", endDate: "", deadline: "", place: "", seats: "10", desc: "", time: "", address: "" }; break;
-    case "ev-edit": { const e = S.events.find(x => x.id === ds.id); S.itForm = null; S.evForm = { id: e.id, title: e.title || "", kind: e.kind || "meal", date: e.date || "", endDate: e.endDate || "", deadline: e.deadline || "", place: e.place || "", seats: String(e.seats || 10), desc: e.desc || "", time: e.time || "", address: e.address || "" }; break }
+    case "ev-new": S.evForm = { id: null, title: "", kind: "meal", date: "", endDate: "", deadline: "", place: "", seats: "10", desc: "", time: "", address: "" }; S.evForm.places = [blankPlace(S.evForm)]; break;
+    case "ev-edit": { const e = S.events.find(x => x.id === ds.id); S.itForm = null; S.evForm = { id: e.id, title: e.title || "", kind: e.kind || "meal", date: e.date || "", endDate: e.endDate || "", deadline: e.deadline || "", place: e.place || "", seats: String(e.seats || 10), desc: e.desc || "", time: e.time || "", address: e.address || "" };
+      // 還沒有行程的活動可以直接在這裡多加地點；已經有行程的，地點改在「行程安排」管理
+      if (!itemsOf(e).length) S.evForm.places = [{ title: e.place || "", address: e.address || "", kind: e.kind === "trip" ? "plan" : "meal", date: e.date || "", time: e.time || "" }];
+      break }
+    case "place-add": S.evForm.places.push(blankPlace(S.evForm)); break;
+    case "place-del": if (S.evForm.places.length > 1) S.evForm.places.splice(Number(ds.i), 1); break;
     case "ev-cancel": S.evForm = null; break;
     case "ev-save": {
-      const data = await adminCall("adminSaveEvent", S.evForm);
-      if (data) { S.eventId = S.adminEvent = data.savedId; store.set("rsvp.event", data.savedId); S.evForm = null; syncDraft(true); flash("adminMsg", data.calendar === "failed" ? "活動已儲存，但更新日曆沒有成功" : "活動已儲存", data.calendar === "failed"); }
+      const ef = S.evForm, { places, ...payload } = ef;
+      const rows = (places || []).filter(p => p.title.trim() || p.address.trim());
+      if (places) { payload.place = rows[0]?.title.trim() || ""; payload.address = rows[0]?.address.trim() || ""; }
+      const data = await adminCall("adminSaveEvent", payload);
+      if (!data) return;
+      S.eventId = S.adminEvent = data.savedId; store.set("rsvp.event", data.savedId);
+      let failed = data.calendar === "failed";
+      // 兩個以上的地點：依序建立成行程
+      if (rows.length > 1) {
+        for (const p of rows) {
+          const r = await adminCall("adminSaveItem", { id: null, eventId: data.savedId, kind: p.kind, title: p.title.trim() || p.address.trim(), date: p.date || payload.date, time: p.time, place: "", address: p.address.trim(), desc: "", seats: payload.seats });
+          if (!r) { failed = true; break }
+        }
+      }
+      S.evForm = null; syncDraft(true);
+      flash("adminMsg", failed ? "活動已儲存，但有部分地點或日曆沒有更新成功，請檢查行程安排" : rows.length > 1 ? `活動已儲存，${rows.length} 個地點已放進行程安排` : "活動已儲存", failed);
       return;
     }
     case "ev-toggle": return adminCall("adminToggleEvent", ds.id);
@@ -842,9 +885,11 @@ function onField(e) {
   const k = e.target.dataset?.bind; if (!k) return;
   if (k === "note" || k === "who" || k === "email") { S.draft[k] = e.target.value; S.draft.dirty = true; return }
   if (k === "bulk") { S.bulk = e.target.value; const btn = document.querySelector('[data-act="bulk"]'); if (btn) btn.disabled = !S.bulk.trim(); return }
-  const [obj, field] = k.split(".");
+  const path = k.split("."), obj = path[0];
   if (!S[obj]) return;
-  S[obj][field] = e.target.value;
+  let t = S[obj];
+  for (const p of path.slice(1, -1)) t = t[p];
+  t[path[path.length - 1]] = e.target.value;
   const [act, req] = FORM_SAVE[obj] || [];
   const save = act && document.querySelector(`[data-act="${act}"]`);
   if (save) save.disabled = !String(S[obj][req]).trim();
