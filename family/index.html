@@ -174,6 +174,9 @@ tr.pending td { color: var(--muted) }
 .geo-item b { font-size: 1.05rem }
 .geo-item span { font-size: .9rem; color: var(--muted) }
 .geo-by { padding: 6px 14px; font-size: .8rem; color: var(--muted); text-align: right; background: var(--off-soft) }
+.fx { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 1.05rem }
+.fx-btn { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--ink); background: var(--surface); font-size: 1.2rem; font-weight: 700; line-height: 1 }
+.fx-btn:disabled { opacity: .3; cursor: default }
 .places { display: grid; gap: 12px; padding: 14px; border: 2px dashed var(--blue); border-radius: var(--r); background: var(--surface) }
 .place-row { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--line) }
 .editor { border: 2px solid var(--blue); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; background: var(--blue-soft) }
@@ -680,6 +683,16 @@ function renderMealStats(ev, meals) {
   </section>`;
 }
 
+// 固定名額的家庭（阿嬤家）：直接用 ＋／－ 調整葷素份數，按了就存
+function fixedCtl(f) {
+  const m = f.fixed.adultsMeat || 0, v = f.fixed.adultsVeg || 0, A = adults(f).length;
+  const st = (k, label, val, cls) => `<span class="fx ${cls}"><span>${label}</span>
+    <button class="fx-btn" data-act="fixed-adj" data-id="${f.id}" data-k="${k}" data-d="-1" ${val <= 0 || S.busy ? "disabled" : ""} aria-label="${label}減一">−</button>
+    <b class="num">${val}</b>
+    <button class="fx-btn" data-act="fixed-adj" data-id="${f.id}" data-k="${k}" data-d="1" ${m + v >= A || S.busy ? "disabled" : ""} aria-label="${label}加一">＋</button></span>`;
+  return `<span class="pill adm">固定名額</span>${st("meat", "葷", m, "c-meat")}${st("veg", "素", v, "c-veg")}`;
+}
+
 function renderFamilyAdmin() {
   const ff = S.famForm;
   const form = ff ? `<div class="editor">
@@ -694,7 +707,7 @@ function renderFamilyAdmin() {
   const list = S.families.map((f, i) => {
     const confirming = S.confirm === "fam:" + f.id;
     return `<div class="li"><div class="main"><b>${esc(f.name)}</b><span class="small muted">大人：${adults(f).map(m => esc(m.name)).join("、") || "—"}${kids(f).length ? `　小孩：${kids(f).map(m => esc(m.name)).join("、")}` : ""}</span></div>
-      <div class="actions">${f.fixed ? `<span class="pill adm">固定名額</span>` : confirming ? `<span class="err">刪除「${esc(f.name)}」？</span><button class="btn danger" data-act="fam-del-yes" data-id="${f.id}">確定刪除</button><button class="btn" data-act="confirm-cancel">取消</button>` : `
+      <div class="actions">${f.fixed ? fixedCtl(f) : confirming ? `<span class="err">刪除「${esc(f.name)}」？</span><button class="btn danger" data-act="fam-del-yes" data-id="${f.id}">確定刪除</button><button class="btn" data-act="confirm-cancel">取消</button>` : `
         <button class="btn ghost" data-act="fam-move" data-id="${f.id}" data-d="-1" ${i === 0 || S.busy ? "disabled" : ""} aria-label="上移">↑</button>
         <button class="btn ghost" data-act="fam-move" data-id="${f.id}" data-d="1" ${i === S.families.length - 1 || S.busy ? "disabled" : ""} aria-label="下移">↓</button>
         <button class="btn" data-act="fam-edit" data-id="${f.id}">編輯</button>
@@ -873,6 +886,13 @@ async function act(a, ds) {
     case "it-save": { const data = await adminCall("adminSaveItem", S.itForm); if (data) { S.itForm = null; flash("adminMsg", data.calendar === "failed" ? "行程已儲存，但更新日曆沒有成功" : "行程已儲存", data.calendar === "failed") } return }
     case "it-del-yes": { S.confirm = null; const data = await adminCall("adminDeleteItem", ds.id); if (data) flash("adminMsg", "行程已刪除"); return }
     case "it-move": return adminCall("adminMoveItem", ds.id, Number(ds.d));
+    case "fixed-adj": {
+      const f = S.families.find(x => x.id === ds.id);
+      let m = f.fixed.adultsMeat || 0, v = f.fixed.adultsVeg || 0;
+      if (ds.k === "meat") m += Number(ds.d); else v += Number(ds.d);
+      if (m < 0 || v < 0 || m + v > adults(f).length) break;
+      return adminCall("adminSaveFixed", f.id, m, v);
+    }
     case "fam-new": S.famForm = { id: null, name: "", adults: "", kids: "" }; break;
     case "fam-edit": { const f = S.families.find(x => x.id === ds.id); S.famForm = { id: f.id, name: f.name, adults: adults(f).map(m => m.name).join("\n"), kids: kids(f).map(m => m.name).join("\n") }; break }
     case "fam-cancel": S.famForm = null; break;
