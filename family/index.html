@@ -183,7 +183,7 @@ const S = {
   families: [], events: [], responses: new Map(),
   view: "fill", eventId: null, familyId: null,
   draft: null, saving: false, busy: false, msg: null,
-  famForm: null, evForm: null, adminEvent: null, bulk: "", confirm: null, adminMsg: null, exportUrl: null,
+  famForm: null, evForm: null, adminEvent: null, fillEvent: null, bulk: "", confirm: null, adminMsg: null, exportUrl: null,
 };
 const store = { get(k) { try { return localStorage.getItem(k) } catch { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch {} } };
 S.eventId = store.get("rsvp.event"); S.familyId = store.get("rsvp.family");
@@ -281,13 +281,6 @@ function fixedBanner() {
   }).join("");
 }
 
-function eventTabs() {
-  if (S.events.length < 2) return "";
-  return `<div class="events" role="group" aria-label="選擇活動">${S.events.map(e => `
-    <button class="ev-tab" data-act="event" data-id="${e.id}" aria-pressed="${e.id === S.eventId}">
-      <b>${esc(e.title)}</b><span>${KIND[e.kind] || ""} · ${fmtDate(e.date) || "日期未定"}${e.open ? "" : " · 已截止"}</span></button>`).join("")}</div>`;
-}
-
 function eventHead(ev) {
   const late = ev.open && ev.deadline && ev.deadline < new Date().toISOString().slice(0, 10);
   return `<div class="ev-head">
@@ -298,11 +291,30 @@ function eventHead(ev) {
     ${ev.desc ? `<p class="muted">${esc(ev.desc).replace(/\n/g, "<br>")}</p>` : ""}</div>`;
 }
 
+// 前台分兩步：先看活動清單，點進某個活動才看到活動資訊，再往下選家庭、填人數餐點
 function renderFill() {
-  const ev = curEvent();
-  if (!ev) return `${eventTabs()}<div class="card empty"><b>目前還沒有活動</b><span>${S.isOwner ? "到「後台」新增第一個聚餐或旅遊活動。" : "活動建立後就能在這裡填寫。"}</span></div>`;
-  if (!openFams().length) return `${eventTabs()}<div class="card">${eventHead(ev)}</div><div class="card empty"><b>還沒有家庭名單</b><span>${S.isOwner ? "到「後台 → 家庭名單」新增各家庭與成員。" : "請等候管理員建立家庭名單。"}</span></div>`;
+  const ev = S.fillEvent ? S.events.find(e => e.id === S.fillEvent) : null;
+  return ev ? renderFillEvent(ev) : renderFillList();
+}
+
+function renderFillList() {
+  if (!S.events.length) return `<div class="card empty"><b>目前還沒有活動</b><span>${S.isOwner ? "到「後台」新增第一個聚餐或旅遊活動。" : "活動建立後就能在這裡報名。"}</span></div>`;
+  const cards = S.events.map(e => {
+    const mine = S.familyId ? S.responses.get(respKey(e.id, S.familyId)) : null;
+    return `<button class="ev-card" data-act="pick-event" data-id="${e.id}">
+      <span class="actions"><span class="pill ${e.open ? "open" : "closed"}">${e.open ? "開放報名" : "已截止"}</span><span class="pill done">${KIND[e.kind] || "活動"}</span>${mine ? `<span class="pill adm">你家已填</span>` : ""}</span>
+      <b>${esc(e.title)}</b>
+      <span class="small muted">${fmtDate(e.date) || "日期未定"}${e.time ? " " + esc(e.time) : ""}${e.place ? "・" + esc(e.place) : ""}</span>
+      ${e.deadline ? `<span class="small muted">報名截止 ${fmtDate(e.deadline)}</span>` : ""}
+      <span class="ev-card-go">${e.open ? "查看活動並報名 →" : "查看活動 →"}</span></button>`;
+  }).join("");
+  return `<section class="card"><div><h2>選擇活動</h2><p class="small muted">點選要報名的活動，會先看到活動資訊，再往下填寫。</p></div><div class="ev-cards">${cards}</div></section>`;
+}
+
+function renderFillEvent(ev) {
   const f = curFamily();
+  const back = `<div class="actions"><button class="btn ghost back" data-act="back-list">← 所有活動</button></div>`;
+  if (!openFams().length) return `${back}<div class="card">${eventHead(ev)}</div><div class="card empty"><b>還沒有家庭名單</b><span>${S.isOwner ? "到「後台 → 家庭名單」新增各家庭與成員。" : "請等候管理員建立家庭名單。"}</span></div>`;
   const fams = openFams().map(fm => {
     const r = respFor(ev, fm);
     const t = tallyFamily(fm, r);
@@ -310,8 +322,8 @@ function renderFill() {
     return `<button class="fam" data-act="family" data-id="${fm.id}" aria-pressed="${fm.id === S.familyId}">
       <b>${esc(fm.name)}</b><span class="row"><span>大人 ${adults(fm).length}・小孩 ${kids(fm).length}</span>${status}</span></button>`;
   }).join("");
-  return `${eventTabs()}
-  <div class="card">${eventHead(ev)}</div>
+  return `${back}
+  <div class="card"><div class="label">活動資訊</div>${eventHead(ev)}</div>
   <section class="card"><div class="label">第一步　選擇你的家庭</div><div class="fams">${fams}</div></section>
   ${f ? renderForm(ev, f) : `<div class="card empty"><b>請先點選上方你的家庭</b><span>選好後會出現家中成員，再選擇葷素份數。</span></div>`}`;
 }
@@ -489,6 +501,7 @@ function apply(data) {
   S.responses = new Map(Object.entries(data.responses || {}));
   S.isOwner = !!data.admin;
   if (S.adminEvent && !(data.events || []).some(e => e.id === S.adminEvent)) S.adminEvent = null;
+  if (S.fillEvent && !(data.events || []).some(e => e.id === S.fillEvent)) S.fillEvent = null;
   S.ready = true; S.loadErr = null;
   if (!S.events.some(e => e.id === S.eventId)) S.eventId = (S.events.find(e => e.open) || S.events[0])?.id || null;
   if (!openFams().some(f => f.id === S.familyId)) S.familyId = null;
@@ -552,6 +565,8 @@ async function act(a, ds) {
   switch (a) {
     case "refresh": return refresh();
     case "view": S.view = ds.v; S.confirm = null; store.set("rsvp.view", ds.v); break;
+    case "pick-event": S.fillEvent = S.eventId = ds.id; store.set("rsvp.event", ds.id); S.msg = null; syncDraft(true); render(); window.scrollTo(0, 0); return;
+    case "back-list": S.fillEvent = null; S.msg = null; render(); window.scrollTo(0, 0); return;
     case "open-event": S.adminEvent = ds.id; S.eventId = ds.id; store.set("rsvp.event", ds.id); S.evForm = null; S.confirm = null; S.exportUrl = null; S.adminMsg = null; syncDraft(true); render(); window.scrollTo(0, 0); return;
     case "close-event": S.adminEvent = null; S.evForm = null; S.confirm = null; S.adminMsg = null; render(); window.scrollTo(0, 0); return;
     case "event": S.eventId = ds.id; store.set("rsvp.event", ds.id); S.msg = null; S.exportUrl = null; syncDraft(true); break;
@@ -562,7 +577,7 @@ async function act(a, ds) {
     case "all-absent": { const d = S.draft; d.adultsMeat = 0; d.adultsVeg = 0; Object.keys(d.kids).forEach(k => d.kids[k] = "absent"); d.dirty = true; S.msg = null; break }
     case "revert": syncDraft(true); break;
     case "save": return saveResponse();
-    case "admin-edit": S.view = "fill"; S.familyId = ds.id; store.set("rsvp.family", ds.id); S.msg = null; syncDraft(true); render(); document.getElementById("form")?.scrollIntoView({ block: "start" }); return;
+    case "admin-edit": S.view = "fill"; S.fillEvent = S.eventId; S.familyId = ds.id; store.set("rsvp.family", ds.id); S.msg = null; syncDraft(true); render(); document.getElementById("form")?.scrollIntoView({ block: "start" }); return;
     case "copy-url": { const ok = await copyText(PUBLIC_URL, document.getElementById("pub-url")); if (!ok) document.getElementById("pub-url")?.select(); return }
     case "copy-addr": { const ok = await copyText(ev.address); flash(S.view === "admin" ? "adminMsg" : "msg", ok ? "地址已複製" : "瀏覽器不允許複製，請長按地址手動複製", !ok); return }
     case "tsv": {
