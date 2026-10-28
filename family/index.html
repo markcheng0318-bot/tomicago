@@ -177,6 +177,20 @@ tr.pending td { color: var(--muted) }
 .fx { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 1.05rem }
 .fx-btn { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--ink); background: var(--surface); font-size: 1.2rem; font-weight: 700; line-height: 1 }
 .fx-btn:disabled { opacity: .3; cursor: default }
+.ev-card.past { opacity: .6; background: var(--off-soft); border-style: dashed }
+.ev-card.past .ev-card-go { background: var(--off) }
+.poll-res { display: grid }
+.poll-opt { display: grid; gap: 6px; padding: 12px 0; border-top: 1px solid var(--line) }
+.poll-opt:first-child { border-top: 0; padding-top: 0 }
+.poll-opt.top > .block-head b:first-child { color: var(--blue) }
+.bar { height: 12px; background: var(--off-soft); border-radius: 999px; overflow: hidden; border: 1px solid var(--line) }
+.bar > i { display: block; height: 100%; background: var(--blue) }
+.vote-opts { display: grid; gap: 10px }
+.opt.vote { display: grid; gap: 2px; text-align: left; padding: 12px 16px; font-size: 1.1rem; min-height: 56px }
+.opt.vote small { font-size: .9rem; font-weight: 400 }
+.opt.vote[aria-pressed="true"] { background: var(--blue); border-color: var(--blue) }
+.opt.vote[aria-pressed="true"]::before { content: none }
+.opt.vote[aria-pressed="true"] > span::before { content: "✓ " }
 .places { display: grid; gap: 12px; padding: 14px; border: 2px dashed var(--blue); border-radius: var(--r); background: var(--surface) }
 .place-row { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--line) }
 .editor { border: 2px solid var(--blue); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; background: var(--blue-soft) }
@@ -241,7 +255,8 @@ const S = {
   families: [], events: [], items: [], responses: new Map(),
   view: "fill", eventId: null, familyId: null,
   draft: null, saving: false, busy: false, msg: null,
-  famForm: null, evForm: null, itForm: null, adminEvent: null, fillEvent: null, bulk: "", confirm: null, adminMsg: null, exportUrl: null,
+  famForm: null, evForm: null, itForm: null, pollForm: null, adminEvent: null, fillEvent: null, adminPoll: null, fillPoll: null, voteDraft: null,
+  polls: [], votes: new Map(), bulk: "", confirm: null, adminMsg: null, exportUrl: null,
 };
 const store = { get(k) { try { return localStorage.getItem(k) } catch { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch {} } };
 S.eventId = store.get("rsvp.event"); S.familyId = store.get("rsvp.family");
@@ -265,6 +280,34 @@ const respKey = (eid, fid) => `${eid}__${fid}`;
 const curEvent = () => S.events.find(e => e.id === S.eventId) || null;
 const curFamily = () => S.families.find(f => f.id === S.familyId) || null;
 const openFams = () => S.families.filter(f => !f.fixed);
+// 以台灣時間判斷「今天」；活動最後一天過了就算結束
+const todayTW = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+const endOf = e => (e.endDate && e.endDate > e.date ? e.endDate : e.date) || "";
+const isPast = e => !!e.date && endOf(e) < todayTW();
+// 活動排序：還沒結束的依日期由近到遠（日期未定排後面），已結束的放最後、最近結束的在前
+function sortEvents(list) {
+  const up = list.filter(e => !isPast(e)), past = list.filter(isPast);
+  up.sort((a, b) => (a.date || "9999").localeCompare(b.date || "9999") || (a.time || "").localeCompare(b.time || ""));
+  past.sort((a, b) => endOf(b).localeCompare(endOf(a)));
+  return [...up, ...past];
+}
+const pollKey = (pid, fid) => `${pid}__${fid}`;
+const pollEnded = p => !p.open || (!!p.deadline && p.deadline < todayTW());
+const POLL_KIND = { date: "選日期", place: "選餐廳", other: "投票" };
+const weekday = d => "日一二三四五六"[new Date(d + "T00:00:00").getDay()];
+// 每個選項有哪些家庭投了
+function pollTally(p) {
+  const by = Object.fromEntries(p.options.map(o => [o.id, []]));
+  let voters = 0;
+  for (const f of S.families) {
+    const v = S.votes.get(pollKey(p.id, f.id));
+    if (!v) continue;
+    voters++;
+    v.choices.forEach(c => by[c] && by[c].push(f));
+  }
+  const max = Math.max(0, ...Object.values(by).map(x => x.length));
+  return { by, voters, max };
+}
 // 行程依「排序」排好；「餐廳」類型的行程要家人回報那一餐的人數
 const itemsOf = ev => S.items.filter(i => i.eventId === ev.id).sort((a, b) => a.order - b.order);
 const mealsOf = ev => itemsOf(ev).filter(i => i.kind === "meal");
@@ -403,14 +446,29 @@ function planList(ev, admin) {
 
 // ---------- 前台 ----------
 // 前台分兩步：先看活動清單，點進某個活動才看到活動資訊與行程，再往下選家庭、填人數餐點
+// 前台分兩步：先看活動／投票清單，點進去才看到資訊，再往下選家庭、填寫
 function renderFill() {
+  const poll = S.fillPoll ? S.polls.find(p => p.id === S.fillPoll) : null;
+  if (poll) return renderFillPoll(poll);
   const ev = S.fillEvent ? S.events.find(e => e.id === S.fillEvent) : null;
   return ev ? renderFillEvent(ev) : renderFillList();
 }
 
 function renderFillList() {
-  if (!S.events.length) return `<div class="card empty"><b>目前還沒有活動</b><span>${S.isOwner ? "到「後台」新增第一個聚餐或旅遊活動。" : "活動建立後就能在這裡報名。"}</span></div>`;
-  const cards = S.events.map(e => {
+  const evs = S.events.filter(e => !isPast(e));
+  const polls = S.polls.filter(p => !pollEnded(p)).sort((a, b) => (a.deadline || "9999").localeCompare(b.deadline || "9999"));
+  if (!evs.length && !polls.length) return `<div class="card empty"><b>目前還沒有活動</b><span>${S.isOwner ? "到「後台」新增聚餐、旅遊或投票。" : "活動建立後就能在這裡報名。"}</span></div>`;
+  const pollCards = polls.map(p => {
+    const mine = S.familyId ? S.votes.get(pollKey(p.id, S.familyId)) : null;
+    const { voters } = pollTally(p);
+    return `<button class="ev-card poll-card" data-act="pick-poll" data-id="${p.id}">
+      <span class="actions"><span class="pill meal">投票中</span><span class="pill done">${POLL_KIND[p.kind]}</span>${mine ? `<span class="pill adm">你家已投</span>` : ""}</span>
+      <b>${esc(p.title)}</b>
+      <span class="small muted">${p.options.length} 個選項・${p.multi ? "可以選多個" : "只能選一個"}・已有 ${voters} 家投票</span>
+      ${p.deadline ? `<span class="small muted">投票截止 ${fmtDate(p.deadline)}</span>` : ""}
+      <span class="ev-card-go">去投票 →</span></button>`;
+  }).join("");
+  const cards = evs.map(e => {
     const mine = S.familyId ? S.responses.get(respKey(e.id, S.familyId)) : null;
     const meals = mealsOf(e).length, plans = itemsOf(e).length;
     return `<button class="ev-card" data-act="pick-event" data-id="${e.id}">
@@ -421,7 +479,8 @@ function renderFillList() {
       ${e.deadline ? `<span class="small muted">報名截止 ${fmtDate(e.deadline)}</span>` : ""}
       <span class="ev-card-go">${e.open ? "查看活動並報名 →" : "查看活動 →"}</span></button>`;
   }).join("");
-  return `<section class="card"><div><h2>選擇活動</h2><p class="small muted">點選要報名的活動，會先看到活動資訊與行程，再往下填寫。</p></div><div class="ev-cards">${cards}</div></section>`;
+  return `${polls.length ? `<section class="card"><div><h2>投票</h2><p class="small muted">幫忙選日期或餐廳，點進去選好按送出就可以。</p></div><div class="ev-cards">${pollCards}</div></section>` : ""}
+  ${evs.length ? `<section class="card"><div><h2>選擇活動</h2><p class="small muted">依日期排列，最近的活動在最上面。點進去會先看到活動資訊與行程，再往下填寫。</p></div><div class="ev-cards">${cards}</div></section>` : ""}`;
 }
 
 function renderFillEvent(ev) {
@@ -502,6 +561,8 @@ function renderForm(ev, f) {
 // ---------- 後台 ----------
 // 後台分兩層：首頁是活動清單（每個活動一張卡片），點進去才看該活動自己的行程、統計與明細
 function renderAdmin() {
+  const poll = S.adminPoll ? S.polls.find(p => p.id === S.adminPoll) : null;
+  if (poll) return renderPollDetail(poll);
   const ev = S.adminEvent ? S.events.find(e => e.id === S.adminEvent) : null;
   return ev ? renderEventDetail(ev) : renderAdminHome();
 }
@@ -574,8 +635,9 @@ function renderAdminHome() {
     let stats;
     if (meals.length) stats = `<span>回覆 <b>${n}</b> / ${S.families.length} 家</span><span>${itemsOf(e).length} 個行程・${meals.length} 餐</span>`;
     else { const sum = tallyUnit(e, null).sum; stats = `<span>回覆 <b>${n}</b> / ${S.families.length} 家</span><span>出席 <b>${sum.people}</b> 人</span><span class="c-meat">葷 <b>${sum.meat}</b></span><span class="c-veg">素 <b>${sum.veg}</b></span>`; }
-    return `<button class="ev-card" data-act="open-event" data-id="${e.id}">
-      <span class="actions"><span class="pill ${e.open ? "open" : "closed"}">${e.open ? "開放填寫" : "已截止"}</span><span class="pill done">${KIND[e.kind] || "活動"}</span></span>
+    const past = isPast(e);
+    return `<button class="ev-card${past ? " past" : ""}" data-act="open-event" data-id="${e.id}">
+      <span class="actions">${past ? `<span class="pill closed">已結束・前台已隱藏</span>` : `<span class="pill ${e.open ? "open" : "closed"}">${e.open ? "開放填寫" : "已截止"}</span>`}<span class="pill done">${KIND[e.kind] || "活動"}</span></span>
       <b>${esc(e.title)}</b>
       <span class="small muted">${dateRange(e) || "日期未定"}${e.time ? " " + esc(e.time) : ""}${e.place ? "・" + esc(e.place) : ""}</span>
       <span class="ev-card-stats num">${stats}</span>
@@ -588,6 +650,9 @@ function renderAdminHome() {
     ${ef ? eventForm(ef) : ""}
     ${S.events.length ? `<div class="ev-cards">${cards}</div>` : (ef ? "" : `<p class="muted">還沒有活動。新增一個聚餐或旅遊，家人就能開始填寫。</p>`)}
     ${ef ? "" : adminMsgHtml()}</section>
+  <section class="card"><div class="block-head"><div><h2>投票</h2><span class="small muted">讓家人票選日期或餐廳；結束的投票前台會自動隱藏。</span></div>${S.pollForm && !S.pollForm.id ? "" : `<button class="btn primary" data-act="poll-new">新增投票</button>`}</div>
+    ${S.pollForm && !S.pollForm.id ? pollForm(S.pollForm) : ""}
+    ${S.polls.length ? `<div class="ev-cards">${adminPollCards()}</div>` : (S.pollForm ? "" : `<p class="muted">還沒有投票。</p>`)}</section>
   ${renderFamilyAdmin()}`;
 }
 
@@ -724,21 +789,165 @@ function renderFamilyAdmin() {
       </div></details></section>`;
 }
 
+// ---------- 投票（前台） ----------
+function pollResults(p, admin) {
+  const { by, voters, max } = pollTally(p);
+  return `<div class="poll-res">${p.options.map(o => {
+    const fams = by[o.id] || [], n = fams.length, top = n > 0 && n === max;
+    return `<div class="poll-opt${top ? " top" : ""}">
+      <div class="block-head"><b>${esc(o.label)}${top ? "　★ 目前最多" : ""}</b><span class="num"><b>${n}</b> 家</span></div>
+      <div class="bar"><i style="width:${voters ? Math.round(n / voters * 100) : 0}%"></i></div>
+      ${o.address ? `<span class="small muted">${esc(o.address)}　<a href="${esc(mapsUrl(o.address))}" target="_blank" rel="noopener">在 Google 地圖開啟</a></span>` : ""}
+      ${n ? `<span class="small muted">${fams.map(f => esc(f.name)).join("、")}</span>` : ""}
+    </div>`;
+  }).join("")}</div>`;
+}
+
+function syncVoteDraft(force) {
+  const p = S.polls.find(x => x.id === S.fillPoll), f = curFamily();
+  if (!p || !f) { S.voteDraft = null; return }
+  const key = pollKey(p.id, f.id);
+  if (!force && S.voteDraft && S.voteDraft.key === key && S.voteDraft.dirty) return;
+  const v = S.votes.get(key), ids = p.options.map(o => o.id);
+  S.voteDraft = { key, choices: (v?.choices || []).filter(c => ids.includes(c)), who: store.get("rsvp.who") || "", dirty: false };
+}
+
+function renderFillPoll(p) {
+  const f = curFamily(), ended = pollEnded(p), locked = ended && !S.isOwner;
+  const back = `<div class="actions"><button class="btn ghost back" data-act="back-list">← 所有活動</button></div>`;
+  const head = `<div class="card"><div class="label">投票</div><div class="ev-head">
+    <div class="actions"><span class="pill ${ended ? "closed" : "meal"}">${ended ? "已結束" : "投票中"}</span><span class="pill done">${POLL_KIND[p.kind]}</span></div>
+    <h2>${esc(p.title)}</h2>
+    <div class="meta"><span>${p.multi ? "可以選多個（每一個可以的都選）" : "只能選一個"}</span>${p.deadline ? `<span>投票截止　${fmtDate(p.deadline)}</span>` : ""}</div>
+    ${p.desc ? `<p class="muted">${esc(p.desc).replace(/\n/g, "<br>")}</p>` : ""}</div></div>
+    <section class="card"><h2 class="sec">目前結果</h2>${pollResults(p)}</section>`;
+  const fams = openFams().map(fm => {
+    const v = S.votes.get(pollKey(p.id, fm.id));
+    return `<button class="fam" data-act="family" data-id="${fm.id}" aria-pressed="${fm.id === S.familyId}">
+      <b>${esc(fm.name)}</b><span class="row"><span>大人 ${adults(fm).length}・小孩 ${kids(fm).length}</span>${v ? `<span class="pill done">已投</span>` : `<span class="pill todo">未投</span>`}</span></button>`;
+  }).join("");
+  let form = `<div class="card empty"><b>請先點選上方你的家庭</b><span>選好後就可以投票。</span></div>`;
+  const d = S.voteDraft;
+  if (f && d) {
+    const v = S.votes.get(d.key);
+    form = `<section class="card" id="form">
+      <div class="block-head"><h2 class="step"><span class="step-no">2</span>${esc(f.name)}的選擇</h2>${v ? `<span class="small muted">上次更新 ${fmtTime(v.updatedAt)}</span>` : `<span class="pill todo">尚未投票</span>`}</div>
+      ${ended && S.isOwner ? `<div class="banner info">投票已結束，你是管理員，仍可代為調整。</div>` : ""}
+      ${locked ? `<div class="banner">這個投票已經結束了。</div>` : ""}
+      <p class="small muted">${p.multi ? "可以點好幾個，再點一次就取消。" : "點一個你要的選項。"}</p>
+      <div class="vote-opts">${p.options.map(o => `<button class="opt vote" data-act="vote-pick" data-id="${o.id}" aria-pressed="${d.choices.includes(o.id)}" ${locked ? "disabled" : ""}>
+        <span>${esc(o.label)}</span>${o.address ? `<small>${esc(o.address)}</small>` : ""}</button>`).join("")}</div>
+      <label class="field" for="vwho"><span>填寫人（選填）</span><input id="vwho" type="text" data-bind="vwho" maxlength="30" value="${esc(d.who)}" ${locked ? "disabled" : ""}></label>
+      <div class="submit-bar">
+        ${S.msg ? `<div class="notice ${S.msg.err ? "bad" : "ok"}" role="status">${esc(S.msg.text)}</div>` : !d.choices.length ? `<div class="notice warn">請至少選一個</div>` : ""}
+        <button class="btn primary big" data-act="vote-save" ${locked || !d.choices.length || S.saving ? "disabled" : ""}>${S.saving ? "送出中…" : v ? "更新投票" : "送出投票"}</button>
+      </div></section>`;
+  }
+  return `${back}${head}
+  <section class="card"><h2 class="step"><span class="step-no">1</span>選擇你的家庭</h2><div class="fams">${fams}</div></section>
+  ${form}`;
+}
+
+async function saveVote() {
+  const p = S.polls.find(x => x.id === S.fillPoll), f = curFamily(), d = S.voteDraft;
+  if (!p || !f || !d) return;
+  S.saving = true; S.msg = null; render();
+  store.set("rsvp.who", d.who.trim());
+  try {
+    const data = await api("savePollVote", { pollId: p.id, familyId: f.id, choices: d.choices, who: d.who }, ADMIN_KEY);
+    S.saving = false; apply(data); syncVoteDraft(true); flash("msg", "已送出投票，謝謝！");
+  } catch (e) { S.saving = false; flash("msg", errText(e), true) }
+}
+
+// ---------- 投票（後台） ----------
+const blankOpt = () => ({ id: "", name: "", date: "", time: "", address: "", text: "" });
+function optLabel(kind, o) {
+  if (kind === "date") return o.date ? `${fmtDate(o.date)}（${weekday(o.date)}）${o.time ? " " + o.time : ""}` : "";
+  return (kind === "place" ? o.name : o.text).trim();
+}
+function pollToForm(p) {
+  return { id: p.id, title: p.title, kind: p.kind, multi: p.multi ? "true" : "false", deadline: p.deadline || "", desc: p.desc || "",
+    options: p.options.map(o => ({ id: o.id, name: o.label, text: o.label, date: o.date || "", time: o.time || "", address: o.address || "" })) };
+}
+function pollForm(pf) {
+  const rows = pf.options.map((o, i) => {
+    let fields;
+    if (pf.kind === "date") fields = `<label class="field" for="po-date-${i}"><span>日期</span><input id="po-date-${i}" type="date" data-bind="pollForm.options.${i}.date" value="${esc(o.date)}"></label>
+      <label class="field" for="po-time-${i}"><span>時間（選填）</span><input id="po-time-${i}" type="time" data-bind="pollForm.options.${i}.time" value="${esc(o.time)}"></label>`;
+    else if (pf.kind === "place") fields = `<label class="field" for="po-name-${i}"><span>餐廳名稱</span><input id="po-name-${i}" type="text" autocomplete="off" data-geo="name" data-pair="pollForm.options.${i}.address" data-bind="pollForm.options.${i}.name" value="${esc(o.name)}" placeholder="打店名會跳出 Google 地圖建議"></label>
+      <label class="field" for="po-addr-${i}"><span>地址</span><input id="po-addr-${i}" type="text" autocomplete="off" data-geo="addr" data-pair="pollForm.options.${i}.name" data-bind="pollForm.options.${i}.address" value="${esc(o.address)}"></label>`;
+    else fields = `<label class="field" for="po-text-${i}"><span>選項內容</span><input id="po-text-${i}" type="text" data-bind="pollForm.options.${i}.text" value="${esc(o.text)}"></label>`;
+    return `<div class="place-row"><div class="block-head"><h4>選項 ${i + 1}</h4>${pf.options.length > 2 ? `<button class="btn ghost" data-act="opt-del" data-i="${i}">移除</button>` : ""}</div><div class="form-grid">${fields}</div></div>`;
+  }).join("");
+  return `<div class="editor">
+    <h3>${pf.id ? "編輯投票" : "新增投票"}</h3>
+    <div class="form-grid">
+      <label class="field" for="poll-title"><span>投票名稱</span><input id="poll-title" type="text" data-bind="pollForm.title" value="${esc(pf.title)}" placeholder="例：尾牙要哪一天？"></label>
+      <label class="field" for="poll-kind"><span>要選什麼</span><select id="poll-kind" data-bind="pollForm.kind"><option value="date" ${pf.kind === "date" ? "selected" : ""}>選日期</option><option value="place" ${pf.kind === "place" ? "selected" : ""}>選餐廳（可搜尋 Google 地圖）</option><option value="other" ${pf.kind === "other" ? "selected" : ""}>其他（自己打選項）</option></select></label>
+      <label class="field" for="poll-multi"><span>每一家可以選幾個</span><select id="poll-multi" data-bind="pollForm.multi"><option value="true" ${pf.multi === "true" ? "selected" : ""}>可以選多個（例如哪幾天都可以）</option><option value="false" ${pf.multi === "false" ? "selected" : ""}>只能選一個</option></select></label>
+      <label class="field" for="poll-deadline"><span>投票截止日（選填）</span><input id="poll-deadline" type="date" data-bind="pollForm.deadline" value="${esc(pf.deadline)}"></label>
+    </div>
+    <label class="field" for="poll-desc"><span>說明（選填）</span><textarea id="poll-desc" data-bind="pollForm.desc">${esc(pf.desc)}</textarea></label>
+    <div class="places"><h4>選項（至少兩個）</h4>${rows}<button class="btn" data-act="opt-add">＋ 再加一個選項</button></div>
+    <div class="actions"><button class="btn primary" data-act="poll-save" ${pf.title.trim() && !S.busy ? "" : "disabled"}>${S.busy ? "儲存中…" : "儲存投票"}</button><button class="btn" data-act="poll-cancel">取消</button>${adminMsgHtml()}</div></div>`;
+}
+
+function adminPollCards() {
+  const list = [...S.polls].sort((a, b) => Number(pollEnded(a)) - Number(pollEnded(b)) || (a.deadline || "9999").localeCompare(b.deadline || "9999"));
+  return list.map(p => {
+    const ended = pollEnded(p), { voters, by, max } = pollTally(p);
+    const lead = max ? p.options.filter(o => (by[o.id] || []).length === max).map(o => o.label).join("、") : "";
+    return `<button class="ev-card${ended ? " past" : ""}" data-act="open-poll" data-id="${p.id}">
+      <span class="actions"><span class="pill ${ended ? "closed" : "meal"}">${ended ? "已結束" : "投票中"}</span><span class="pill done">${POLL_KIND[p.kind]}</span></span>
+      <b>${esc(p.title)}</b>
+      <span class="ev-card-stats num"><span>已投 <b>${voters}</b> / ${openFams().length} 家</span>${lead ? `<span>目前最多：${esc(lead)}</span>` : ""}</span>
+      <span class="ev-card-go">查看投票結果 →</span></button>`;
+  }).join("");
+}
+
+function renderPollDetail(p) {
+  const ended = pollEnded(p), editing = S.pollForm && S.pollForm.id === p.id, confirming = S.confirm === "poll:" + p.id;
+  const notVoted = openFams().filter(f => !S.votes.get(pollKey(p.id, f.id))).map(f => f.name);
+  const controls = confirming
+    ? `<span class="err">刪除這個投票和所有人的選擇？</span><button class="btn danger" data-act="poll-del-yes" data-id="${p.id}">確定刪除</button><button class="btn" data-act="confirm-cancel">取消</button>`
+    : `<button class="btn primary" data-act="poll-edit" data-id="${p.id}">編輯投票</button>
+       <button class="btn" data-act="poll-toggle" data-id="${p.id}" ${S.busy ? "disabled" : ""}>${p.open ? "結束投票" : "重新開放投票"}</button>
+       <button class="btn ghost" data-act="poll-del" data-id="${p.id}">刪除投票</button>${adminMsgHtml()}`;
+  const head = `<div class="ev-head"><div class="actions"><span class="pill ${ended ? "closed" : "meal"}">${ended ? "已結束" : "投票中"}</span><span class="pill done">${POLL_KIND[p.kind]}</span></div>
+    <h2>${esc(p.title)}</h2><div class="meta"><span>${p.multi ? "每家可以選多個" : "每家只能選一個"}</span>${p.deadline ? `<span>投票截止　${fmtDate(p.deadline)}</span>` : ""}</div>
+    ${p.desc ? `<p class="muted">${esc(p.desc).replace(/\n/g, "<br>")}</p>` : ""}</div>`;
+  return `<div class="actions"><button class="btn ghost back" data-act="close-event">← 後台首頁</button></div>
+  <div class="card">${editing ? pollForm(S.pollForm) : head + `<div class="actions">${controls}</div>`}</div>
+  <section class="card"><div class="block-head"><h2>結果</h2><span class="small muted num">已投 ${openFams().length - notVoted.length} / ${openFams().length} 家</span></div>${pollResults(p, true)}</section>
+  ${notVoted.length ? `<div class="banner">尚未投票：${notVoted.map(esc).join("、")}</div>` : ""}
+  <section class="card"><h2>各家庭的選擇</h2>
+    <div class="tbl-wrap"><table><thead><tr><th>家庭</th><th>選擇</th><th>填寫人</th><th>最後更新</th><th></th></tr></thead><tbody>
+    ${openFams().map(f => { const v = S.votes.get(pollKey(p.id, f.id)); const labels = v ? p.options.filter(o => v.choices.includes(o.id)).map(o => o.label).join("、") : "";
+      return `<tr class="${v ? "" : "pending"}"><td><b>${esc(f.name)}</b></td><td class="wrap-cell">${v ? esc(labels) || "（選的項目已被移除）" : "未投"}</td><td>${esc(v?.who || "")}</td><td class="small muted">${v ? esc(fmtTime(v.updatedAt)) : ""}</td>
+        <td><button class="btn ghost" data-act="admin-vote" data-id="${f.id}">${v ? "調整" : "代投"}</button></td></tr>`; }).join("")}
+    </tbody></table></div></section>`;
+}
+
 // ---------- data ----------
 function apply(data) {
   S.families = (data.families || []).sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name));
-  S.events = (data.events || []).sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || "").localeCompare(a.createdAt || ""));
+  S.events = sortEvents(data.events || []);
+  S.polls = data.polls || [];
+  S.votes = new Map(Object.entries(data.votes || {}));
+  if (S.adminPoll && !S.polls.some(p => p.id === S.adminPoll)) S.adminPoll = null;
+  if (S.fillPoll && !S.polls.some(p => p.id === S.fillPoll)) S.fillPoll = null;
   S.items = data.items || [];
   S.responses = new Map(Object.entries(data.responses || {}));
   S.isOwner = !!data.admin;
   if (S.adminEvent && !S.events.some(e => e.id === S.adminEvent)) S.adminEvent = null;
   if (S.fillEvent && !S.events.some(e => e.id === S.fillEvent)) S.fillEvent = null;
   S.ready = true; S.loadErr = null;
-  if (!S.events.some(e => e.id === S.eventId)) S.eventId = (S.events.find(e => e.open) || S.events[0])?.id || null;
+  if (!S.events.some(e => e.id === S.eventId)) S.eventId = (S.events.find(e => e.open && !isPast(e)) || S.events[0])?.id || null;
   if (!openFams().some(f => f.id === S.familyId)) S.familyId = null;
   // 行程的餐數變了（例如管理員剛加了一間餐廳）就重建草稿
   const ev = curEvent();
   if (S.draft && ev && Object.keys(S.draft.units).join() !== unitIds(ev).join()) syncDraft(true); else syncDraft(false);
+  syncVoteDraft(false);
   render();
   return data;
 }
@@ -817,10 +1026,32 @@ async function act(a, ds) {
     case "refresh": return refresh();
     case "view": S.view = ds.v; S.confirm = null; store.set("rsvp.view", ds.v); break;
     case "pick-event": S.fillEvent = S.eventId = ds.id; store.set("rsvp.event", ds.id); S.msg = null; syncDraft(true); render(); window.scrollTo(0, 0); return;
-    case "back-list": S.fillEvent = null; S.msg = null; render(); window.scrollTo(0, 0); return;
+    case "back-list": S.fillEvent = null; S.fillPoll = null; S.msg = null; render(); window.scrollTo(0, 0); return;
+    case "pick-poll": S.fillPoll = ds.id; S.fillEvent = null; S.msg = null; syncVoteDraft(true); render(); window.scrollTo(0, 0); return;
+    case "vote-pick": { const p = S.polls.find(x => x.id === S.fillPoll), d = S.voteDraft; if (!p || !d) break;
+      d.choices = p.multi ? (d.choices.includes(ds.id) ? d.choices.filter(c => c !== ds.id) : [...d.choices, ds.id]) : [ds.id];
+      d.dirty = true; S.msg = null; break }
+    case "vote-save": return saveVote();
+    case "open-poll": S.adminPoll = ds.id; S.adminEvent = null; S.pollForm = null; S.confirm = null; S.adminMsg = null; render(); window.scrollTo(0, 0); return;
+    case "admin-vote": S.view = "fill"; S.fillPoll = S.adminPoll; S.fillEvent = null; S.familyId = ds.id; store.set("rsvp.family", ds.id); S.msg = null; syncVoteDraft(true); render(); document.getElementById("form")?.scrollIntoView({ block: "start" }); return;
+    case "poll-new": S.pollForm = { id: null, title: "", kind: "date", multi: "true", deadline: "", desc: "", options: [blankOpt(), blankOpt()] }; break;
+    case "poll-edit": S.pollForm = pollToForm(S.polls.find(x => x.id === ds.id)); break;
+    case "poll-cancel": S.pollForm = null; break;
+    case "opt-add": S.pollForm.options.push(blankOpt()); break;
+    case "opt-del": if (S.pollForm.options.length > 2) S.pollForm.options.splice(Number(ds.i), 1); break;
+    case "poll-save": {
+      const pf = S.pollForm;
+      const payload = { id: pf.id, title: pf.title, kind: pf.kind, multi: pf.multi, deadline: pf.deadline, desc: pf.desc,
+        options: pf.options.map(o => ({ id: o.id, label: optLabel(pf.kind, o), date: pf.kind === "date" ? o.date : "", time: pf.kind === "date" ? o.time : "", address: pf.kind === "place" ? o.address.trim() : "" })) };
+      const data = await adminCall("adminSavePoll", payload);
+      if (data) { S.pollForm = null; S.adminPoll = data.savedPollId; S.adminEvent = null; flash("adminMsg", "投票已儲存"); }
+      return;
+    }
+    case "poll-toggle": return adminCall("adminTogglePoll", ds.id);
+    case "poll-del-yes": { S.confirm = null; const data = await adminCall("adminDeletePoll", ds.id); if (data) { S.adminPoll = null; flash("adminMsg", "投票已刪除") } return }
     case "open-event": S.adminEvent = ds.id; S.eventId = ds.id; store.set("rsvp.event", ds.id); S.evForm = null; S.itForm = null; S.confirm = null; S.exportUrl = null; S.adminMsg = null; syncDraft(true); render(); window.scrollTo(0, 0); return;
-    case "close-event": S.adminEvent = null; S.evForm = null; S.itForm = null; S.confirm = null; S.adminMsg = null; render(); window.scrollTo(0, 0); return;
-    case "family": S.familyId = ds.id; store.set("rsvp.family", ds.id); S.msg = null; syncDraft(true); render(); document.getElementById("form")?.scrollIntoView({ behavior: "smooth", block: "start" }); return;
+    case "close-event": S.adminEvent = null; S.adminPoll = null; S.pollForm = null; S.evForm = null; S.itForm = null; S.confirm = null; S.adminMsg = null; render(); window.scrollTo(0, 0); return;
+    case "family": S.familyId = ds.id; store.set("rsvp.family", ds.id); S.msg = null; syncDraft(true); syncVoteDraft(true); render(); document.getElementById("form")?.scrollIntoView({ behavior: "smooth", block: "start" }); return;
     case "adult": { const f = curFamily(), u = S.draft.units[ds.u]; const v = u[ds.k] + Number(ds.d); const other = ds.k === "adultsMeat" ? u.adultsVeg : u.adultsMeat;
       if (v >= 0 && v + other <= adults(f).length) { u[ds.k] = v; S.draft.dirty = true; S.msg = null } break }
     case "kid": S.draft.units[ds.u].kids[ds.id] = ds.v; S.draft.dirty = true; S.msg = null; break;
@@ -877,7 +1108,7 @@ async function act(a, ds) {
       return;
     }
     case "ev-toggle": return adminCall("adminToggleEvent", ds.id);
-    case "ev-del": case "fam-del": case "it-del": S.confirm = a.split("-")[0] + ":" + ds.id; break;
+    case "ev-del": case "fam-del": case "it-del": case "poll-del": S.confirm = a.split("-")[0] + ":" + ds.id; break;
     case "confirm-cancel": S.confirm = null; break;
     case "ev-del-yes": { S.confirm = null; const data = await adminCall("adminDeleteEvent", ds.id); if (data) { S.adminEvent = null; flash("adminMsg", "活動已刪除") } return }
     case "it-new": S.evForm = null; S.itForm = blankItem(ev); break;
@@ -905,7 +1136,7 @@ async function act(a, ds) {
 }
 
 // 表單欄位：每個表單的「儲存」按鈕在必填欄位有值時才能按
-const FORM_SAVE = { evForm: ["ev-save", "title"], famForm: ["fam-save", "name"], itForm: ["it-save", "title"] };
+const FORM_SAVE = { evForm: ["ev-save", "title"], famForm: ["fam-save", "name"], itForm: ["it-save", "title"], pollForm: ["poll-save", "title"] };
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b || b.disabled) return;
   act(b.dataset.act, b.dataset);
@@ -913,6 +1144,9 @@ document.addEventListener("click", e => {
 function onField(e) {
   const k = e.target.dataset?.bind; if (!k) return;
   if (k === "note" || k === "who" || k === "email") { S.draft[k] = e.target.value; S.draft.dirty = true; return }
+  if (k === "vwho") { if (S.voteDraft) { S.voteDraft.who = e.target.value; S.voteDraft.dirty = true } return }
+  // 換投票類型時，選項欄位要換成日期／餐廳／文字
+  if (k === "pollForm.kind" && e.type === "change") { S.pollForm.kind = e.target.value; render(); return }
   if (k === "bulk") { S.bulk = e.target.value; const btn = document.querySelector('[data-act="bulk"]'); if (btn) btn.disabled = !S.bulk.trim(); return }
   const path = k.split("."), obj = path[0];
   if (!S[obj]) return;
