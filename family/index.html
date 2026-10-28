@@ -76,6 +76,23 @@ header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: 
 .ev-card-go { color: var(--blue); font-size: .85rem; font-weight: 700 }
 .c-meat { color: var(--meat) } .c-veg { color: var(--veg) }
 .btn.back { padding-inline: 0; font-weight: 700 }
+.plan { list-style: none; margin: 0; padding: 0; display: grid }
+.plan-item { display: grid; grid-template-columns: 96px 1fr; gap: 12px; padding: 12px 0; border-top: 1px dashed var(--line) }
+.plan-item:first-child { border-top: 0; padding-top: 4px }
+.plan-item.editing { grid-template-columns: 1fr }
+.plan-when { font-variant-numeric: tabular-nums; color: var(--blue); font-weight: 700; font-size: .9rem }
+.plan-body { display: grid; gap: 4px; min-width: 0 }
+.plan-body b { font-size: 1rem; overflow-wrap: anywhere }
+.pill.meal { background: var(--meat-soft); color: var(--meat) }
+.unit { border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 10px; background: var(--paper) }
+.unit-head { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 6px }
+.unit-head h3 { font-size: 1.1rem }
+h4 { margin: 0; font-size: .95rem }
+.c-share { color: var(--share) }
+.tiles.compact .tile { padding: 8px 12px }
+.tiles.compact .tile .v { font-size: 1.35rem }
+td.meal-cell { white-space: normal; min-width: 96px }
+@media (max-width: 520px) { .plan-item { grid-template-columns: 1fr; gap: 2px } }
 .addr { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: .9rem; overflow-wrap: anywhere }
 .pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 9px; border-radius: 999px; font-size: .78rem; font-weight: 700; letter-spacing: .03em; white-space: nowrap }
 .pill.open { background: var(--veg-soft); color: var(--veg) }
@@ -180,10 +197,10 @@ const KID_OPTS = [["meat", "葷食餐"], ["veg", "素食餐"], ["share", "與家
 const KIND = { meal: "聚餐", trip: "旅遊" };
 const S = {
   ready: false, loadErr: null, isOwner: !!ADMIN_KEY,
-  families: [], events: [], responses: new Map(),
+  families: [], events: [], items: [], responses: new Map(),
   view: "fill", eventId: null, familyId: null,
   draft: null, saving: false, busy: false, msg: null,
-  famForm: null, evForm: null, adminEvent: null, fillEvent: null, bulk: "", confirm: null, adminMsg: null, exportUrl: null,
+  famForm: null, evForm: null, itForm: null, adminEvent: null, fillEvent: null, bulk: "", confirm: null, adminMsg: null, exportUrl: null,
 };
 const store = { get(k) { try { return localStorage.getItem(k) } catch { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch {} } };
 S.eventId = store.get("rsvp.event"); S.familyId = store.get("rsvp.family");
@@ -200,30 +217,43 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const fmtTime = s => String(s || "").replace(/^\d{4}\//, "");
 const mapsUrl = a => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(a);
 const fmtDate = s => s ? s.replace(/^(\d{4})-0?(\d+)-0?(\d+)$/, "$1/$2/$3") : "";
+const fmtDay = s => s ? s.replace(/^\d{4}-0?(\d+)-0?(\d+)$/, "$1/$2") : "";
 const adults = f => (f.members || []).filter(m => m.kind === "adult");
 const kids = f => (f.members || []).filter(m => m.kind === "child");
 const respKey = (eid, fid) => `${eid}__${fid}`;
 const curEvent = () => S.events.find(e => e.id === S.eventId) || null;
 const curFamily = () => S.families.find(f => f.id === S.familyId) || null;
-// 固定名額的家庭（例如阿嬤家）每個活動都自動算進去，不需要填寫
-const respFor = (ev, f) => f.fixed ? { adultsMeat: f.fixed.adultsMeat || 0, adultsVeg: f.fixed.adultsVeg || 0, kids: {}, note: f.fixed.note || "", fixed: true } : (S.responses.get(respKey(ev.id, f.id)) || null);
 const openFams = () => S.families.filter(f => !f.fixed);
+// 行程依「排序」排好；「餐廳」類型的行程要家人回報那一餐的人數
+const itemsOf = ev => S.items.filter(i => i.eventId === ev.id).sort((a, b) => a.order - b.order);
+const mealsOf = ev => itemsOf(ev).filter(i => i.kind === "meal");
+const unitIds = ev => { const m = mealsOf(ev); return m.length ? m.map(x => x.id) : ["_"]; };
+const whenText = (date, time) => [fmtDay(date), time].filter(Boolean).join(" ");
+const dateRange = ev => fmtDate(ev.date) + (ev.endDate && ev.endDate > ev.date ? " – " + fmtDay(ev.endDate) : "");
+
+// 某家庭在某一餐（meal 為 null 表示整個活動就是一餐）的選擇；固定名額的家庭每一餐都自動算進去
+function choiceFor(ev, f, meal) {
+  if (f.fixed) return { adultsMeat: f.fixed.adultsMeat || 0, adultsVeg: f.fixed.adultsVeg || 0, kids: {}, fixed: true };
+  const r = S.responses.get(respKey(ev.id, f.id));
+  if (!r) return null;
+  return meal ? (r.meals?.[meal.id] || null) : r;
+}
 
 // ---------- tallies ----------
-function tallyFamily(f, r) {
+function tallyFamily(f, c) {
   const A = adults(f).length, K = kids(f);
-  const t = { adults: A, kidsTotal: K.length, aMeat: 0, aVeg: 0, aOff: A, kMeat: 0, kVeg: 0, kShare: 0, kOff: 0, kUnset: 0, responded: !!r };
-  if (!r) return t;
-  t.aMeat = Math.min(r.adultsMeat || 0, A); t.aVeg = Math.min(r.adultsVeg || 0, A - t.aMeat); t.aOff = A - t.aMeat - t.aVeg;
+  const t = { adults: A, kidsTotal: K.length, aMeat: 0, aVeg: 0, aOff: A, kMeat: 0, kVeg: 0, kShare: 0, kOff: 0, kUnset: 0, responded: !!c };
+  if (!c) return t;
+  t.aMeat = Math.min(c.adultsMeat || 0, A); t.aVeg = Math.min(c.adultsVeg || 0, A - t.aMeat); t.aOff = A - t.aMeat - t.aVeg;
   for (const k of K) {
-    const v = r.kids?.[k.id];
+    const v = c.kids?.[k.id];
     if (v === "meat") t.kMeat++; else if (v === "veg") t.kVeg++; else if (v === "share") t.kShare++; else if (v === "absent") t.kOff++; else t.kUnset++;
   }
   return t;
 }
 const people = t => t.aMeat + t.aVeg + t.kMeat + t.kVeg + t.kShare;
-function tallyEvent(ev) {
-  const rows = S.families.map(f => ({ f, r: respFor(ev, f) })).map(x => ({ ...x, t: tallyFamily(x.f, x.r) }));
+function tallyUnit(ev, meal) {
+  const rows = S.families.map(f => ({ f, c: choiceFor(ev, f, meal) })).map(x => ({ ...x, t: tallyFamily(x.f, x.c) }));
   const sum = { families: rows.length, responded: 0, aMeat: 0, aVeg: 0, aOff: 0, kMeat: 0, kVeg: 0, kShare: 0, kOff: 0, people: 0 };
   for (const { t } of rows) {
     if (!t.responded) continue;
@@ -232,23 +262,34 @@ function tallyEvent(ev) {
     sum.people += people(t);
   }
   sum.meat = sum.aMeat + sum.kMeat; sum.veg = sum.aVeg + sum.kVeg;
-  sum.tables = Math.ceil(sum.people / (Number(ev.seats) || 10));
+  sum.tables = Math.ceil(sum.people / (Number(meal ? meal.seats : ev.seats) || 10));
   return { rows, sum };
 }
+// 有沒有回覆以「整個活動」為單位：送出過一次就算已填
+const respondedOf = (ev, f) => !!(f.fixed || S.responses.get(respKey(ev.id, f.id)));
+const respondedCount = ev => S.families.filter(f => respondedOf(ev, f)).length;
 
 // ---------- draft ----------
+const blankUnit = f => ({ adultsMeat: adults(f).length, adultsVeg: 0, kids: Object.fromEntries(kids(f).map(k => [k.id, null])) });
 function syncDraft(force) {
   const ev = curEvent(), f = curFamily();
   if (!ev || !f) { S.draft = null; return }
   const key = respKey(ev.id, f.id);
   if (!force && S.draft && S.draft.key === key && S.draft.dirty) return;
   const r = S.responses.get(key);
-  const kidsMap = {};
-  for (const k of kids(f)) kidsMap[k.id] = r?.kids?.[k.id] || null;
+  const units = {};
+  for (const id of unitIds(ev)) {
+    const src = r ? (id === "_" ? r : r.meals?.[id]) : null;
+    const u = blankUnit(f);
+    if (src) {
+      u.adultsMeat = Math.min(src.adultsMeat || 0, adults(f).length);
+      u.adultsVeg = Math.min(src.adultsVeg || 0, adults(f).length - u.adultsMeat);
+      for (const k of kids(f)) u.kids[k.id] = src.kids?.[k.id] || null;
+    }
+    units[id] = u;
+  }
   const who = store.get("rsvp.who") || "", email = S.isOwner ? (r?.email || "") : (store.get("rsvp.email") || "");
-  S.draft = r
-    ? { key, adultsMeat: Math.min(r.adultsMeat || 0, adults(f).length), adultsVeg: Math.min(r.adultsVeg || 0, adults(f).length), kids: kidsMap, note: r.note || "", who, email, dirty: false }
-    : { key, adultsMeat: adults(f).length, adultsVeg: 0, kids: kidsMap, note: "", who, email, dirty: false };
+  S.draft = { key, units, note: r?.note || "", who, email, dirty: false };
 }
 
 // ---------- render ----------
@@ -277,7 +318,7 @@ function renderBody() {
 function fixedBanner() {
   return S.families.filter(f => f.fixed).map(f => {
     const m = f.fixed.adultsMeat || 0, v = f.fixed.adultsVeg || 0;
-    return `<div class="pinned"><b>${esc(f.name)}已經幫大家加進去了</b><span>${adults(f).map(x => esc(x.name)).join("、")}，共 ${m + v} 人（${v} 素、${m} 葷）。這一家不用另外填寫，每次活動都會自動算進總數。</span></div>`;
+    return `<div class="pinned"><b>${esc(f.name)}已經幫大家加進去了</b><span>${adults(f).map(x => esc(x.name)).join("、")}，共 ${m + v} 人（${v} 素、${m} 葷）。這一家不用另外填寫，每次活動（每一餐）都會自動算進總數。</span></div>`;
   }).join("");
 }
 
@@ -286,12 +327,40 @@ function eventHead(ev) {
   return `<div class="ev-head">
     <div class="actions"><span class="pill ${ev.open ? "open" : "closed"}">${ev.open ? "開放填寫" : "已截止"}</span><span class="pill done">${KIND[ev.kind] || "活動"}</span></div>
     <h2>${esc(ev.title)}</h2>
-    <div class="meta">${ev.date ? `<span>日期　${fmtDate(ev.date)}${ev.time ? " " + esc(ev.time) : ""}</span>` : ""}${ev.place ? `<span>地點　${esc(ev.place)}</span>` : ""}${ev.deadline ? `<span>填寫截止　${fmtDate(ev.deadline)}${late ? "（已過）" : ""}</span>` : ""}</div>
-    ${ev.address ? `<div class="addr"><span>地址　${esc(ev.address)}</span><a class="btn ghost" href="${esc(mapsUrl(ev.address))}" target="_blank" rel="noopener">在 Google 地圖開啟</a><button class="btn ghost" data-act="copy-addr">複製地址</button></div>` : ""}
+    <div class="meta">${ev.date ? `<span>日期　${dateRange(ev)}${ev.time ? " " + esc(ev.time) : ""}</span>` : ""}${ev.place ? `<span>地點　${esc(ev.place)}</span>` : ""}${ev.deadline ? `<span>填寫截止　${fmtDate(ev.deadline)}${late ? "（已過）" : ""}</span>` : ""}</div>
+    ${ev.address ? addrLine(ev.address, "copy-addr", ev.id) : ""}
     ${ev.desc ? `<p class="muted">${esc(ev.desc).replace(/\n/g, "<br>")}</p>` : ""}</div>`;
 }
+const addrLine = (address, act, id) => `<div class="addr"><span>地址　${esc(address)}</span><a class="btn ghost" href="${esc(mapsUrl(address))}" target="_blank" rel="noopener">在 Google 地圖開啟</a><button class="btn ghost" data-act="${act}" data-id="${id}">複製地址</button></div>`;
 
-// 前台分兩步：先看活動清單，點進某個活動才看到活動資訊，再往下選家庭、填人數餐點
+// 行程時間軸：家人看的版本（admin 為 true 時加上排序與編輯按鈕）
+function planList(ev, admin) {
+  const list = itemsOf(ev);
+  if (!list.length) return "";
+  return `<ol class="plan">${list.map((it, i) => {
+    const confirming = S.confirm === "it:" + it.id;
+    const ctl = !admin ? "" : confirming
+      ? `<div class="actions"><span class="err">刪除「${esc(it.title)}」？${it.kind === "meal" ? "這一餐的回覆也會一起失效。" : ""}</span><button class="btn danger" data-act="it-del-yes" data-id="${it.id}">確定刪除</button><button class="btn" data-act="confirm-cancel">取消</button></div>`
+      : `<div class="actions">
+          <button class="btn ghost" data-act="it-move" data-id="${it.id}" data-d="-1" ${i === 0 || S.busy ? "disabled" : ""} aria-label="上移">↑</button>
+          <button class="btn ghost" data-act="it-move" data-id="${it.id}" data-d="1" ${i === list.length - 1 || S.busy ? "disabled" : ""} aria-label="下移">↓</button>
+          <button class="btn" data-act="it-edit" data-id="${it.id}">編輯</button>
+          <button class="btn ghost" data-act="it-del" data-id="${it.id}">刪除</button></div>`;
+    if (admin && S.itForm && S.itForm.id === it.id) return `<li class="plan-item editing">${itemForm(S.itForm)}</li>`;
+    return `<li class="plan-item">
+      <span class="plan-when">${esc(whenText(it.date, it.time)) || `第 ${i + 1} 站`}</span>
+      <div class="plan-body">
+        <div class="actions"><b>${esc(it.title)}</b><span class="pill ${it.kind === "meal" ? "meal" : "done"}">${it.kind === "meal" ? "用餐" : "行程"}</span></div>
+        ${it.place ? `<span class="small muted">${esc(it.place)}</span>` : ""}
+        ${it.address ? addrLine(it.address, "copy-it-addr", it.id) : ""}
+        ${it.desc ? `<span class="small muted">${esc(it.desc).replace(/\n/g, "<br>")}</span>` : ""}
+        ${ctl}
+      </div></li>`;
+  }).join("")}</ol>`;
+}
+
+// ---------- 前台 ----------
+// 前台分兩步：先看活動清單，點進某個活動才看到活動資訊與行程，再往下選家庭、填人數餐點
 function renderFill() {
   const ev = S.fillEvent ? S.events.find(e => e.id === S.fillEvent) : null;
   return ev ? renderFillEvent(ev) : renderFillList();
@@ -301,77 +370,95 @@ function renderFillList() {
   if (!S.events.length) return `<div class="card empty"><b>目前還沒有活動</b><span>${S.isOwner ? "到「後台」新增第一個聚餐或旅遊活動。" : "活動建立後就能在這裡報名。"}</span></div>`;
   const cards = S.events.map(e => {
     const mine = S.familyId ? S.responses.get(respKey(e.id, S.familyId)) : null;
+    const meals = mealsOf(e).length, plans = itemsOf(e).length;
     return `<button class="ev-card" data-act="pick-event" data-id="${e.id}">
       <span class="actions"><span class="pill ${e.open ? "open" : "closed"}">${e.open ? "開放報名" : "已截止"}</span><span class="pill done">${KIND[e.kind] || "活動"}</span>${mine ? `<span class="pill adm">你家已填</span>` : ""}</span>
       <b>${esc(e.title)}</b>
-      <span class="small muted">${fmtDate(e.date) || "日期未定"}${e.time ? " " + esc(e.time) : ""}${e.place ? "・" + esc(e.place) : ""}</span>
+      <span class="small muted">${dateRange(e) || "日期未定"}${e.time ? " " + esc(e.time) : ""}${e.place ? "・" + esc(e.place) : ""}</span>
+      ${plans ? `<span class="small muted">${plans} 個行程${meals ? `，其中 ${meals} 餐要回報人數` : ""}</span>` : ""}
       ${e.deadline ? `<span class="small muted">報名截止 ${fmtDate(e.deadline)}</span>` : ""}
       <span class="ev-card-go">${e.open ? "查看活動並報名 →" : "查看活動 →"}</span></button>`;
   }).join("");
-  return `<section class="card"><div><h2>選擇活動</h2><p class="small muted">點選要報名的活動，會先看到活動資訊，再往下填寫。</p></div><div class="ev-cards">${cards}</div></section>`;
+  return `<section class="card"><div><h2>選擇活動</h2><p class="small muted">點選要報名的活動，會先看到活動資訊與行程，再往下填寫。</p></div><div class="ev-cards">${cards}</div></section>`;
 }
 
 function renderFillEvent(ev) {
   const f = curFamily();
   const back = `<div class="actions"><button class="btn ghost back" data-act="back-list">← 所有活動</button></div>`;
-  if (!openFams().length) return `${back}<div class="card">${eventHead(ev)}</div><div class="card empty"><b>還沒有家庭名單</b><span>${S.isOwner ? "到「後台 → 家庭名單」新增各家庭與成員。" : "請等候管理員建立家庭名單。"}</span></div>`;
+  const plan = planList(ev, false);
+  const head = `<div class="card"><div class="label">活動資訊</div>${eventHead(ev)}</div>${plan ? `<section class="card"><div class="label">行程</div>${plan}</section>` : ""}`;
+  if (!openFams().length) return `${back}${head}<div class="card empty"><b>還沒有家庭名單</b><span>${S.isOwner ? "到「後台 → 家庭名單」新增各家庭與成員。" : "請等候管理員建立家庭名單。"}</span></div>`;
   const fams = openFams().map(fm => {
-    const r = respFor(ev, fm);
-    const t = tallyFamily(fm, r);
-    const status = r ? (people(t) ? `<span class="pill done">已填 ${people(t)} 人</span>` : `<span class="pill closed">不出席</span>`) : `<span class="pill todo">未填</span>`;
+    const r = S.responses.get(respKey(ev.id, fm.id));
     return `<button class="fam" data-act="family" data-id="${fm.id}" aria-pressed="${fm.id === S.familyId}">
-      <b>${esc(fm.name)}</b><span class="row"><span>大人 ${adults(fm).length}・小孩 ${kids(fm).length}</span>${status}</span></button>`;
+      <b>${esc(fm.name)}</b><span class="row"><span>大人 ${adults(fm).length}・小孩 ${kids(fm).length}</span>${r ? `<span class="pill done">已填</span>` : `<span class="pill todo">未填</span>`}</span></button>`;
   }).join("");
-  return `${back}
-  <div class="card"><div class="label">活動資訊</div>${eventHead(ev)}</div>
+  return `${back}${head}
   <section class="card"><div class="label">第一步　選擇你的家庭</div><div class="fams">${fams}</div></section>
   ${f ? renderForm(ev, f) : `<div class="card empty"><b>請先點選上方你的家庭</b><span>選好後會出現家中成員，再選擇葷素份數。</span></div>`}`;
 }
 
+// 一餐的填寫區塊：大人葷素份數、每位小朋友的選擇
+function unitBlock(f, u, uid, meal, prevId, locked) {
+  const A = adults(f), K = kids(f);
+  const off = A.length - u.adultsMeat - u.adultsVeg;
+  const unset = K.filter(k => !u.kids[k.id]).length;
+  const kc = { meat: 0, veg: 0, share: 0, absent: 0 }; K.forEach(k => u.kids[k.id] && kc[u.kids[k.id]]++);
+  const total = u.adultsMeat + u.adultsVeg + kc.meat + kc.veg + kc.share;
+  const stepper = (cls, label, val, key) => `<div class="stepper ${cls}"><span class="name">${label}</span><span class="ctl">
+    <button data-act="adult" data-u="${uid}" data-k="${key}" data-d="-1" ${locked || val <= 0 ? "disabled" : ""} aria-label="${label}減一">−</button>
+    <span class="val num">${val}</span>
+    <button data-act="adult" data-u="${uid}" data-k="${key}" data-d="1" ${locked || off <= 0 ? "disabled" : ""} aria-label="${label}加一">＋</button></span></div>`;
+  const kidRows = K.map(k => `<div class="kid-row"><span class="who">${esc(k.name)}</span><div class="opts" role="group" aria-label="${esc(k.name)}的餐點">
+    ${KID_OPTS.map(([v, l]) => `<button class="opt ${v}" data-act="kid" data-u="${uid}" data-id="${k.id}" data-v="${v}" aria-pressed="${u.kids[k.id] === v}" ${locked ? "disabled" : ""}>${l}</button>`).join("")}</div></div>`).join("");
+  const body = `
+    ${A.length ? `<div class="block-head"><h4>大人（${A.length} 位）</h4><span class="absent-note">${off > 0 ? `${off} 位不出席` : "全員出席"}</span></div>
+      <div class="steppers">${stepper("meat", "葷食", u.adultsMeat, "adultsMeat")}${stepper("veg", "素食", u.adultsVeg, "adultsVeg")}</div>` : ""}
+    ${K.length ? `<div class="block-head"><h4>小朋友（${K.length} 位）</h4>${unset ? `<span class="pill todo">還有 ${unset} 位未選</span>` : ""}</div>${kidRows}` : ""}
+    <div class="tally num"><span>這一餐 <b>${total}</b> 人</span><span class="c-meat">葷食 <b>${u.adultsMeat + kc.meat}</b> 份</span><span class="c-veg">素食 <b>${u.adultsVeg + kc.veg}</b> 份</span>${kc.share ? `<span class="c-share">共食 <b>${kc.share}</b> 位</span>` : ""}</div>`;
+  if (!meal) return `<div class="block">${body}
+      <p class="small muted">葷＋素的份數就是出席的大人人數；沒算進去的視為不出席。「與家長共食」會算座位，但不另外點餐。</p></div>`;
+  return `<div class="unit">
+    <div class="unit-head"><div><h3>${esc(meal.title)}</h3><span class="small muted">${[whenText(meal.date, meal.time), meal.place].filter(Boolean).map(esc).join("・")}</span></div>
+      <div class="actions">${prevId ? `<button class="btn ghost" data-act="unit-copy" data-u="${uid}" data-from="${prevId}" ${locked ? "disabled" : ""}>跟上一餐一樣</button>` : ""}<button class="btn ghost" data-act="unit-absent" data-u="${uid}" ${locked ? "disabled" : ""}>這一餐不參加</button></div></div>
+    ${body}</div>`;
+}
+
 function renderForm(ev, f) {
   const d = S.draft; if (!d) return "";
-  const A = adults(f), K = kids(f), r = S.responses.get(d.key);
+  const r = S.responses.get(d.key);
   const locked = !ev.open && !S.isOwner;
-  const off = A.length - d.adultsMeat - d.adultsVeg;
-  const unset = K.filter(k => !d.kids[k.id]).length;
-  const kc = { meat: 0, veg: 0, share: 0, absent: 0 }; K.forEach(k => d.kids[k.id] && kc[d.kids[k.id]]++);
-  const total = d.adultsMeat + d.adultsVeg + kc.meat + kc.veg + kc.share;
-  const stepper = (cls, label, val, key) => `<div class="stepper ${cls}"><span class="name">${label}</span><span class="ctl">
-    <button data-act="adult" data-k="${key}" data-d="-1" ${locked || val <= 0 ? "disabled" : ""} aria-label="${label}減一">−</button>
-    <span class="val num">${val}</span>
-    <button data-act="adult" data-k="${key}" data-d="1" ${locked || off <= 0 ? "disabled" : ""} aria-label="${label}加一">＋</button></span></div>`;
-  const kidRows = K.map(k => `<div class="kid-row"><span class="who">${esc(k.name)}</span><div class="opts" role="group" aria-label="${esc(k.name)}的餐點">
-    ${KID_OPTS.map(([v, l]) => `<button class="opt ${v}" data-act="kid" data-id="${k.id}" data-v="${v}" aria-pressed="${d.kids[k.id] === v}" ${locked ? "disabled" : ""}>${l}</button>`).join("")}</div></div>`).join("");
+  const meals = mealsOf(ev);
+  const units = meals.length ? meals.map((m, i) => unitBlock(f, d.units[m.id], m.id, m, i ? meals[i - 1].id : "", locked)).join("") : unitBlock(f, d.units._, "_", null, "", locked);
+  const unset = Object.values(d.units).reduce((n, u) => n + Object.values(u.kids).filter(v => !v).length, 0);
   const log = (r?.log || []).slice(-5).reverse();
   return `<section class="card" id="form">
-    <div class="block-head"><div><div class="label">第二步　${esc(f.name)}的人數與餐點</div></div>
+    <div class="block-head"><div class="label">第二步　${esc(f.name)}${meals.length ? `每一餐的人數與餐點（共 ${meals.length} 餐）` : "的人數與餐點"}</div>
       ${r ? `<span class="small muted">上次更新 ${fmtTime(r.updatedAt)}${r.byAdmin ? "（管理員調整）" : ""}</span>` : `<span class="pill todo">尚未填寫</span>`}</div>
-    <div class="members">${A.map(m => `<span class="chip">${esc(m.name)}</span>`).join("")}${K.map(m => `<span class="chip kid">${esc(m.name)}・小孩</span>`).join("")}</div>
+    <div class="members">${adults(f).map(m => `<span class="chip">${esc(m.name)}</span>`).join("")}${kids(f).map(m => `<span class="chip kid">${esc(m.name)}・小孩</span>`).join("")}</div>
     ${!ev.open && S.isOwner ? `<div class="banner info">活動已截止，你是管理員，仍可代為調整。</div>` : ""}
     ${!ev.open && !S.isOwner ? `<div class="banner">此活動已截止，如需更改請直接聯絡管理員。</div>` : ""}
-    ${A.length ? `<div class="block"><div class="block-head"><h3>大人（${A.length} 位）</h3><span class="absent-note">${off > 0 ? `${off} 位不出席` : "全員出席"}</span></div>
-      <div class="steppers">${stepper("meat", "葷食", d.adultsMeat, "adultsMeat")}${stepper("veg", "素食", d.adultsVeg, "adultsVeg")}</div>
-      <p class="small muted">葷＋素的份數就是出席的大人人數；沒算進去的視為不出席。</p></div>` : ""}
-    ${K.length ? `<div class="block"><div class="block-head"><h3>小朋友（${K.length} 位）</h3>${unset ? `<span class="pill todo">還有 ${unset} 位未選</span>` : ""}</div>${kidRows}
-      <p class="small muted">「與家長共食」會算座位，但不另外點餐。</p></div>` : ""}
+    ${meals.length ? `<p class="small muted">每一餐分開填：不參加的那一餐按「這一餐不參加」；每一餐人數一樣的話，可以按「跟上一餐一樣」。</p>` : ""}
+    ${units}
     <div class="block">
       <label class="field" for="note"><span>備註（過敏、晚到、需要兒童椅等）</span><textarea id="note" data-bind="note" ${locked ? "disabled" : ""}>${esc(d.note)}</textarea></label>
       <label class="field" for="who"><span>填寫人（選填，方便大家知道是誰填的）</span><input id="who" type="text" data-bind="who" maxlength="30" value="${esc(d.who)}" ${locked ? "disabled" : ""}></label>
       <label class="field" for="email"><span>Email（選填）：填了會把這個活動加到你的 Google 日曆，並寄一封邀請信給你${ev.date ? "" : "（活動日期確定後才會寄出）"}${r?.hasEmail && !S.isOwner ? "。這一家已經有人留過 Email" : ""}</span><input id="email" type="email" data-bind="email" maxlength="120" autocomplete="email" placeholder="例：name@gmail.com" value="${esc(d.email)}" ${locked ? "disabled" : ""}></label>
     </div>
     <div class="block">
-      <div class="tally num"><span>出席 <b>${total}</b> 人</span><span style="color:var(--meat)">葷食 <b>${d.adultsMeat + kc.meat}</b> 份</span><span style="color:var(--veg)">素食 <b>${d.adultsVeg + kc.veg}</b> 份</span>${kc.share ? `<span style="color:var(--share)">共食 <b>${kc.share}</b> 位</span>` : ""}</div>
       <div class="actions">
         <button class="btn primary" data-act="save" ${locked || unset || S.saving ? "disabled" : ""}>${S.saving ? "送出中…" : r ? "更新回覆" : "送出回覆"}</button>
-        <button class="btn" data-act="all-absent" ${locked ? "disabled" : ""}>全家不克出席</button>
+        <button class="btn" data-act="all-absent" ${locked ? "disabled" : ""}>${meals.length ? "全部都不參加" : "全家不克出席"}</button>
         ${d.dirty && r ? `<button class="btn ghost" data-act="revert">還原成已送出的內容</button>` : ""}
+        ${unset ? `<span class="small muted">還有 ${unset} 個小朋友的選擇沒填</span>` : ""}
         ${S.msg ? `<span class="${S.msg.err ? "err" : "saved"}">${esc(S.msg.text)}</span>` : ""}
       </div></div>
     ${log.length ? `<div class="block"><div class="label">修改紀錄</div><div class="log">${log.map(l => `<span>${fmtTime(l.at)}　${esc(l.who || (l.admin ? "管理員" : "家人"))}${l.admin ? "（管理員）" : ""}　${esc(l.text)}</span>`).join("")}</div></div>` : ""}
   </section>`;
 }
 
-// 後台分兩層：首頁是活動清單（每個活動一張卡片），點進去才看該活動自己的統計與明細
+// ---------- 後台 ----------
+// 後台分兩層：首頁是活動清單（每個活動一張卡片），點進去才看該活動自己的行程、統計與明細
 function renderAdmin() {
   const ev = S.adminEvent ? S.events.find(e => e.id === S.adminEvent) : null;
   return ev ? renderEventDetail(ev) : renderAdminHome();
@@ -385,9 +472,10 @@ function eventForm(ef) {
   return `<div class="editor">
     <h3>${ef.id ? "編輯活動" : "新增活動"}</h3>
     <div class="form-grid">
-      <label class="field" for="ev-title"><span>活動名稱</span><input id="ev-title" type="text" data-bind="evForm.title" value="${esc(ef.title)}" placeholder="例：2026 尾牙家族聚餐"></label>
+      <label class="field" for="ev-title"><span>活動名稱</span><input id="ev-title" type="text" data-bind="evForm.title" value="${esc(ef.title)}" placeholder="例：2027 家族花蓮兩天一夜"></label>
       <label class="field" for="ev-kind"><span>類型</span><select id="ev-kind" data-bind="evForm.kind"><option value="meal" ${ef.kind === "meal" ? "selected" : ""}>聚餐</option><option value="trip" ${ef.kind === "trip" ? "selected" : ""}>旅遊</option></select></label>
-      <label class="field" for="ev-date"><span>活動日期</span><input id="ev-date" type="date" data-bind="evForm.date" value="${esc(ef.date)}"></label>
+      <label class="field" for="ev-date"><span>活動日期（旅遊填第一天）</span><input id="ev-date" type="date" data-bind="evForm.date" value="${esc(ef.date)}"></label>
+      <label class="field" for="ev-end"><span>結束日期（多天的旅遊才填）</span><input id="ev-end" type="date" data-bind="evForm.endDate" value="${esc(ef.endDate)}"></label>
       <label class="field" for="ev-time"><span>開始時間（選填，加入日曆用）</span><input id="ev-time" type="time" data-bind="evForm.time" value="${esc(ef.time)}"></label>
       <label class="field" for="ev-deadline"><span>填寫截止日</span><input id="ev-deadline" type="date" data-bind="evForm.deadline" value="${esc(ef.deadline)}"></label>
       <label class="field" for="ev-place"><span>地點名稱</span><input id="ev-place" type="text" data-bind="evForm.place" value="${esc(ef.place)}" placeholder="例：LOFT17森活休閒園區"></label>
@@ -398,16 +486,36 @@ function eventForm(ef) {
     <div class="actions"><button class="btn primary" data-act="ev-save" ${ef.title.trim() && !S.busy ? "" : "disabled"}>${S.busy ? "儲存中…" : "儲存活動"}</button><button class="btn" data-act="ev-cancel">取消</button>${adminMsgHtml()}</div></div>`;
 }
 
+function itemForm(it) {
+  return `<div class="editor">
+    <h3>${it.id ? "編輯行程" : "新增行程"}</h3>
+    <div class="form-grid">
+      <label class="field" for="it-kind"><span>類型</span><select id="it-kind" data-bind="itForm.kind"><option value="meal" ${it.kind === "meal" ? "selected" : ""}>餐廳用餐（家人要回報這一餐的葷素人數）</option><option value="plan" ${it.kind === "plan" ? "selected" : ""}>一般行程（集合、景點、住宿…只顯示資訊）</option></select></label>
+      <label class="field" for="it-title"><span>名稱</span><input id="it-title" type="text" data-bind="itForm.title" value="${esc(it.title)}" placeholder="例：午餐・A 餐廳"></label>
+      <label class="field" for="it-date"><span>日期</span><input id="it-date" type="date" data-bind="itForm.date" value="${esc(it.date)}"></label>
+      <label class="field" for="it-time"><span>時間</span><input id="it-time" type="time" data-bind="itForm.time" value="${esc(it.time)}"></label>
+      <label class="field" for="it-place"><span>地點名稱</span><input id="it-place" type="text" data-bind="itForm.place" value="${esc(it.place)}"></label>
+      <label class="field" for="it-address"><span>地址（會連到 Google 地圖）</span><input id="it-address" type="text" data-bind="itForm.address" value="${esc(it.address)}"></label>
+      <label class="field" for="it-seats"><span>每桌座位（用餐才需要，估算桌數）</span><input id="it-seats" type="number" min="1" data-bind="itForm.seats" value="${esc(it.seats)}"></label>
+    </div>
+    <label class="field" for="it-desc"><span>說明（選填）</span><textarea id="it-desc" data-bind="itForm.desc">${esc(it.desc)}</textarea></label>
+    <div class="actions"><button class="btn primary" data-act="it-save" ${it.title.trim() && !S.busy ? "" : "disabled"}>${S.busy ? "儲存中…" : "儲存行程"}</button><button class="btn" data-act="it-cancel">取消</button>${adminMsgHtml()}</div></div>`;
+}
+
 function renderAdminHome() {
   const ef = S.evForm && !S.evForm.id ? S.evForm : null;
   const cards = S.events.map(e => {
-    const sum = tallyEvent(e).sum;
+    const meals = mealsOf(e);
+    const n = respondedCount(e);
+    let stats;
+    if (meals.length) stats = `<span>回覆 <b>${n}</b> / ${S.families.length} 家</span><span>${itemsOf(e).length} 個行程・${meals.length} 餐</span>`;
+    else { const sum = tallyUnit(e, null).sum; stats = `<span>回覆 <b>${n}</b> / ${S.families.length} 家</span><span>出席 <b>${sum.people}</b> 人</span><span class="c-meat">葷 <b>${sum.meat}</b></span><span class="c-veg">素 <b>${sum.veg}</b></span>`; }
     return `<button class="ev-card" data-act="open-event" data-id="${e.id}">
       <span class="actions"><span class="pill ${e.open ? "open" : "closed"}">${e.open ? "開放填寫" : "已截止"}</span><span class="pill done">${KIND[e.kind] || "活動"}</span></span>
       <b>${esc(e.title)}</b>
-      <span class="small muted">${fmtDate(e.date) || "日期未定"}${e.time ? " " + esc(e.time) : ""}${e.place ? "・" + esc(e.place) : ""}</span>
-      <span class="ev-card-stats num"><span>回覆 <b>${sum.responded}</b> / ${sum.families} 家</span><span>出席 <b>${sum.people}</b> 人</span><span class="c-meat">葷 <b>${sum.meat}</b></span><span class="c-veg">素 <b>${sum.veg}</b></span></span>
-      <span class="ev-card-go">查看統計與明細 →</span></button>`;
+      <span class="small muted">${dateRange(e) || "日期未定"}${e.time ? " " + esc(e.time) : ""}${e.place ? "・" + esc(e.place) : ""}</span>
+      <span class="ev-card-stats num">${stats}</span>
+      <span class="ev-card-go">查看行程、統計與明細 →</span></button>`;
   }).join("");
   return `<section class="card"><div class="block-head"><h2>家人填寫網址</h2></div>
     <p class="small muted">把這個網址傳到家族 LINE 群組，家人點開就能填寫，不用任何帳號。你自己的後台網址（目前網址列這個）請不要外流。</p>
@@ -419,47 +527,95 @@ function renderAdminHome() {
   ${renderFamilyAdmin()}`;
 }
 
-function renderEventDetail(ev) {
-  const { rows, sum } = tallyEvent(ev);
-  const pending = rows.filter(x => !x.r).map(x => x.f.name);
-  const editing = S.evForm && S.evForm.id === ev.id;
-  const confirming = S.confirm === "ev:" + ev.id;
-  const n = [...S.responses.values()].filter(r => r.eventId === ev.id).length;
-  const controls = confirming
-    ? `<span class="err">刪除這個活動和全部 ${n} 筆回覆？</span><button class="btn danger" data-act="ev-del-yes" data-id="${ev.id}">確定刪除</button><button class="btn" data-act="confirm-cancel">取消</button>`
-    : `<button class="btn primary" data-act="ev-edit" data-id="${ev.id}">編輯活動</button>
-       <button class="btn" data-act="ev-toggle" data-id="${ev.id}" ${S.busy ? "disabled" : ""}>${ev.open ? "截止填寫" : "重新開放填寫"}</button>
-       <button class="btn ghost" data-act="ev-del" data-id="${ev.id}">刪除活動</button>${adminMsgHtml()}`;
-  return `<div class="actions"><button class="btn ghost back" data-act="close-event">← 所有活動</button></div>
-  <div class="card">${editing ? eventForm(S.evForm) : eventHead(ev) + `<div class="actions">${controls}</div>`}</div>
-  <section class="tiles num">
-    <div class="tile main"><div class="k">回覆家庭</div><div class="v">${sum.responded}<span class="s"> / ${sum.families}</span></div><div class="s">${pending.length ? `未填 ${pending.length} 家` : "全部到齊"}</div></div>
-    <div class="tile main"><div class="k">出席人數</div><div class="v">${sum.people}</div><div class="s">大人 ${sum.aMeat + sum.aVeg}・小孩 ${sum.kMeat + sum.kVeg + sum.kShare}</div></div>
+function statTiles(ev, meal, sum, compact) {
+  return `<div class="tiles num${compact ? " compact" : ""}">
+    <div class="tile main"><div class="k">${meal ? "這一餐人數" : "出席人數"}</div><div class="v">${sum.people}</div><div class="s">大人 ${sum.aMeat + sum.aVeg}・小孩 ${sum.kMeat + sum.kVeg + sum.kShare}</div></div>
     <div class="tile meat"><div class="k">葷食份數</div><div class="v">${sum.meat}</div><div class="s">大人 ${sum.aMeat}・小孩 ${sum.kMeat}</div></div>
     <div class="tile veg"><div class="k">素食份數</div><div class="v">${sum.veg}</div><div class="s">大人 ${sum.aVeg}・小孩 ${sum.kVeg}</div></div>
     <div class="tile share"><div class="k">小孩共食</div><div class="v">${sum.kShare}</div><div class="s">有座位、不點餐</div></div>
-    ${ev.kind === "meal" ? `<div class="tile"><div class="k">估計桌數</div><div class="v">${sum.tables}</div><div class="s">每桌 ${Number(ev.seats) || 10} 位</div></div>` : ""}
-  </section>
+    ${meal || ev.kind === "meal" ? `<div class="tile"><div class="k">估計桌數</div><div class="v">${sum.tables}</div><div class="s">每桌 ${Number(meal ? meal.seats : ev.seats) || 10} 位</div></div>` : ""}
+  </div>`;
+}
+
+const statusPills = (f, r, t) => (f.fixed ? `<span class="pill adm">固定名額</span>` : r ? (t && !people(t) ? `<span class="pill closed">不出席</span>` : `<span class="pill done">已填</span>`) : `<span class="pill todo">未填</span>`) + (r?.byAdmin ? ` <span class="pill adm">調整過</span>` : "");
+const updatedCell = r => r ? esc(fmtTime(r.updatedAt)) + (r.who ? `<br>${esc(r.who)}` : "") : "";
+const noteCell = r => `${esc(r?.note || "")}${r?.email ? `<div class="small muted">${esc(r.email)}</div>` : ""}`;
+const editBtn = (f, r) => f.fixed ? "" : `<button class="btn ghost" data-act="admin-edit" data-id="${f.id}">${r ? "調整" : "代填"}</button>`;
+
+function renderEventDetail(ev) {
+  const meals = mealsOf(ev);
+  const editing = S.evForm && S.evForm.id === ev.id;
+  const confirming = S.confirm === "ev:" + ev.id;
+  const n = [...S.responses.values()].filter(r => r.eventId === ev.id).length;
+  const pending = S.families.filter(f => !respondedOf(ev, f)).map(f => f.name);
+  const controls = confirming
+    ? `<span class="err">刪除這個活動、所有行程和全部 ${n} 筆回覆？</span><button class="btn danger" data-act="ev-del-yes" data-id="${ev.id}">確定刪除</button><button class="btn" data-act="confirm-cancel">取消</button>`
+    : `<button class="btn primary" data-act="ev-edit" data-id="${ev.id}">編輯活動</button>
+       <button class="btn" data-act="ev-toggle" data-id="${ev.id}" ${S.busy ? "disabled" : ""}>${ev.open ? "截止填寫" : "重新開放填寫"}</button>
+       <button class="btn ghost" data-act="ev-del" data-id="${ev.id}">刪除活動</button>${S.itForm || S.evForm ? "" : adminMsgHtml()}`;
+  const newItem = S.itForm && !S.itForm.id;
+  const planSection = `<section class="card"><div class="block-head"><div><h2>行程安排</h2><span class="small muted">依順序排列；「用餐」行程會讓家人分開回報每一餐。${meals.length ? "" : "目前沒有用餐行程，整個活動就當成一餐統計。"}</span></div>${newItem ? "" : `<button class="btn primary" data-act="it-new">新增行程</button>`}</div>
+    ${planList(ev, true) || (newItem ? "" : `<p class="muted">還沒有行程。聚餐可以不加；旅遊可以依序加上集合、景點、每一餐的餐廳、住宿。</p>`)}
+    ${newItem ? itemForm(S.itForm) : ""}</section>`;
+  return `<div class="actions"><button class="btn ghost back" data-act="close-event">← 所有活動</button></div>
+  <div class="card">${editing ? eventForm(S.evForm) : eventHead(ev) + `<div class="actions">${controls}</div>`}</div>
+  ${planSection}
+  <div class="tiles num"><div class="tile main"><div class="k">回覆家庭</div><div class="v">${S.families.length - pending.length}<span class="s"> / ${S.families.length}</span></div><div class="s">${pending.length ? `未填 ${pending.length} 家` : "全部到齊"}</div></div></div>
   ${pending.length ? `<div class="banner">尚未填寫：${pending.map(esc).join("、")}</div>` : ""}
-  <section class="card"><div class="block-head"><h2>各家庭明細</h2>
-    <div class="actions"><button class="btn primary" data-act="export" ${S.busy ? "disabled" : ""}>匯出到試算表</button><button class="btn" data-act="tsv">複製表格</button>
-      ${S.exportUrl ? `<a class="btn ghost" href="${esc(S.exportUrl)}" target="_blank" rel="noopener">打開「匯出」工作表</a>` : ""}</div></div>
+  ${meals.length ? renderMealStats(ev, meals) : renderSingleStats(ev)}`;
+}
+
+function exportBar() {
+  return `<div class="actions"><button class="btn primary" data-act="export" ${S.busy ? "disabled" : ""}>匯出到試算表</button><button class="btn" data-act="tsv">複製表格</button>
+    ${S.exportUrl ? `<a class="btn ghost" href="${esc(S.exportUrl)}" target="_blank" rel="noopener">打開「匯出」工作表</a>` : ""}</div>`;
+}
+
+function renderSingleStats(ev) {
+  const { rows, sum } = tallyUnit(ev, null);
+  return `${statTiles(ev, null, sum)}
+  <section class="card"><div class="block-head"><h2>各家庭明細</h2>${exportBar()}</div>
     <textarea id="tsv-box" readonly hidden></textarea>
     <div class="tbl-wrap"><table>
       <thead><tr><th rowspan="2">家庭</th><th rowspan="2">狀態</th><th class="grp" colspan="3">大人</th><th class="grp" colspan="4">小孩</th><th class="grp n" rowspan="2">出席</th><th rowspan="2" class="bl">備註</th><th rowspan="2">最後更新</th><th rowspan="2"></th></tr>
       <tr><th class="n bl">葷</th><th class="n">素</th><th class="n">缺席</th><th class="n bl">葷</th><th class="n">素</th><th class="n">共食</th><th class="n">缺席</th></tr></thead>
-      <tbody>${rows.map(({ f, r, t }) => `<tr class="${r ? "" : "pending"}">
+      <tbody>${rows.map(({ f, c, t }) => { const r = f.fixed ? null : S.responses.get(respKey(ev.id, f.id)); return `<tr class="${c ? "" : "pending"}">
         <td><b>${esc(f.name)}</b><div class="small muted">大人 ${t.adults}・小孩 ${t.kidsTotal}</div></td>
-        <td>${r?.fixed ? `<span class="pill adm">固定名額</span>` : r ? (people(t) ? `<span class="pill done">已填</span>` : `<span class="pill closed">不出席</span>`) : `<span class="pill todo">未填</span>`}${r?.byAdmin ? ` <span class="pill adm">調整過</span>` : ""}${t.kUnset && r ? ` <span class="pill todo">小孩未選 ${t.kUnset}</span>` : ""}</td>
-        <td class="n bl">${r ? t.aMeat : "–"}</td><td class="n">${r ? t.aVeg : "–"}</td><td class="n">${r ? t.aOff : "–"}</td>
-        <td class="n bl">${r ? t.kMeat : "–"}</td><td class="n">${r ? t.kVeg : "–"}</td><td class="n">${r ? t.kShare : "–"}</td><td class="n">${r ? t.kOff : "–"}</td>
-        <td class="n bl"><b>${r ? people(t) : "–"}</b></td>
-        <td class="wrap-cell">${esc(r?.note || "")}${r?.email ? `<div class="small muted">${esc(r.email)}</div>` : ""}</td>
-        <td class="small muted">${r && !r.fixed ? esc(fmtTime(r.updatedAt)) + (r.who ? `<br>${esc(r.who)}` : "") : ""}</td>
-        <td>${f.fixed ? "" : `<button class="btn ghost" data-act="admin-edit" data-id="${f.id}">${r ? "調整" : "代填"}</button>`}</td></tr>`).join("")}
+        <td>${statusPills(f, c && (r || f.fixed), t)}${t.kUnset && c ? ` <span class="pill todo">小孩未選 ${t.kUnset}</span>` : ""}</td>
+        <td class="n bl">${c ? t.aMeat : "–"}</td><td class="n">${c ? t.aVeg : "–"}</td><td class="n">${c ? t.aOff : "–"}</td>
+        <td class="n bl">${c ? t.kMeat : "–"}</td><td class="n">${c ? t.kVeg : "–"}</td><td class="n">${c ? t.kShare : "–"}</td><td class="n">${c ? t.kOff : "–"}</td>
+        <td class="n bl"><b>${c ? people(t) : "–"}</b></td>
+        <td class="wrap-cell">${f.fixed ? "固定名額" : noteCell(r)}</td>
+        <td class="small muted">${updatedCell(r)}</td>
+        <td>${editBtn(f, r)}</td></tr>`; }).join("")}
         <tr class="total"><td>合計</td><td>${sum.responded}/${sum.families}</td><td class="n bl">${sum.aMeat}</td><td class="n">${sum.aVeg}</td><td class="n">${sum.aOff}</td><td class="n bl">${sum.kMeat}</td><td class="n">${sum.kVeg}</td><td class="n">${sum.kShare}</td><td class="n">${sum.kOff}</td><td class="n bl">${sum.people}</td><td></td><td></td><td></td></tr>
       </tbody></table></div>
-    <p class="small muted">這裡只有「${esc(ev.title)}」的回覆。「調整」會帶你到填寫畫面修改該家庭在這個活動的回覆，修改紀錄會標註為管理員調整。</p>
+    <p class="small muted">這裡只有「${esc(ev.title)}」的回覆。「調整」會帶你到填寫畫面修改該家庭的回覆，修改紀錄會標註為管理員調整。</p>
+  </section>`;
+}
+
+// 多餐的活動：每一餐各自一組統計，最後一張表把每家每一餐並排
+function renderMealStats(ev, meals) {
+  const per = meals.map(m => ({ m, ...tallyUnit(ev, m) }));
+  const blocks = per.map(({ m, sum }) => `<section class="card meal-stat">
+      <div class="block-head"><div><h3>${esc(m.title)}</h3><span class="small muted">${[whenText(m.date, m.time), m.place].filter(Boolean).map(esc).join("・")}</span></div>
+        <span class="small muted num">已回覆這一餐 ${sum.responded} / ${sum.families} 家</span></div>
+      ${statTiles(ev, m, sum, true)}</section>`).join("");
+  const cell = (c, t) => !c ? "–" : people(t) ? `<b>${people(t)}</b> 人<div class="small muted">葷${t.aMeat + t.kMeat} 素${t.aVeg + t.kVeg}${t.kShare ? ` 共食${t.kShare}` : ""}</div>` : `<span class="muted">不參加</span>`;
+  return `${blocks}
+  <section class="card"><div class="block-head"><h2>各家庭明細</h2>${exportBar()}</div>
+    <textarea id="tsv-box" readonly hidden></textarea>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>家庭</th><th>狀態</th>${meals.map(m => `<th class="bl">${esc(m.title)}<div class="small muted">${esc(whenText(m.date, m.time))}</div></th>`).join("")}<th class="bl">備註</th><th>最後更新</th><th></th></tr></thead>
+      <tbody>${S.families.map(f => { const r = f.fixed ? null : S.responses.get(respKey(ev.id, f.id)); return `<tr class="${respondedOf(ev, f) ? "" : "pending"}">
+        <td><b>${esc(f.name)}</b><div class="small muted">大人 ${adults(f).length}・小孩 ${kids(f).length}</div></td>
+        <td>${statusPills(f, r || f.fixed, null)}</td>
+        ${per.map(({ rows }) => { const x = rows.find(y => y.f.id === f.id); return `<td class="meal-cell bl">${cell(x.c, x.t)}</td>`; }).join("")}
+        <td class="wrap-cell bl">${f.fixed ? "固定名額" : noteCell(r)}</td>
+        <td class="small muted">${updatedCell(r)}</td>
+        <td>${editBtn(f, r)}</td></tr>`; }).join("")}
+        <tr class="total"><td>合計</td><td>${respondedCount(ev)}/${S.families.length}</td>${per.map(({ sum }) => `<td class="meal-cell bl">${sum.people} 人<div class="small muted">葷${sum.meat} 素${sum.veg}${sum.kShare ? ` 共食${sum.kShare}` : ""}</div></td>`).join("")}<td class="bl"></td><td></td><td></td></tr>
+      </tbody></table></div>
+    <p class="small muted">「–」表示這一家還沒回覆這一餐（例如餐廳是後來才加的）。「調整」會帶你到填寫畫面修改該家庭的回覆。</p>
   </section>`;
 }
 
@@ -498,14 +654,17 @@ function renderFamilyAdmin() {
 function apply(data) {
   S.families = (data.families || []).sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name));
   S.events = (data.events || []).sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || "").localeCompare(a.createdAt || ""));
+  S.items = data.items || [];
   S.responses = new Map(Object.entries(data.responses || {}));
   S.isOwner = !!data.admin;
-  if (S.adminEvent && !(data.events || []).some(e => e.id === S.adminEvent)) S.adminEvent = null;
-  if (S.fillEvent && !(data.events || []).some(e => e.id === S.fillEvent)) S.fillEvent = null;
+  if (S.adminEvent && !S.events.some(e => e.id === S.adminEvent)) S.adminEvent = null;
+  if (S.fillEvent && !S.events.some(e => e.id === S.fillEvent)) S.fillEvent = null;
   S.ready = true; S.loadErr = null;
   if (!S.events.some(e => e.id === S.eventId)) S.eventId = (S.events.find(e => e.open) || S.events[0])?.id || null;
   if (!openFams().some(f => f.id === S.familyId)) S.familyId = null;
-  syncDraft(false);
+  // 行程的餐數變了（例如管理員剛加了一間餐廳）就重建草稿
+  const ev = curEvent();
+  if (S.draft && ev && Object.keys(S.draft.units).join() !== unitIds(ev).join()) syncDraft(true); else syncDraft(false);
   render();
   return data;
 }
@@ -520,12 +679,6 @@ async function adminCall(fn, ...args) {
 }
 
 // ---------- actions ----------
-function describe(f, d) {
-  const kc = { meat: 0, veg: 0, share: 0, absent: 0 }; Object.values(d.kids).forEach(v => v && kc[v]++);
-  const parts = [`大人 葷${d.adultsMeat} 素${d.adultsVeg}`];
-  if (kids(f).length) parts.push(`小孩 葷${kc.meat} 素${kc.veg} 共食${kc.share} 缺席${kc.absent}`);
-  return parts.join("；");
-}
 function flash(key, text, err) { S[key] = { text, err }; render(); if (!err) setTimeout(() => { if (S[key]?.text === text) { S[key] = null; render() } }, 3000) }
 
 const calMsg = (c, email) => c === "added" ? `已送出，謝謝！行事曆邀請已寄到 ${email}` : c === "nodate" ? "已送出，謝謝！活動日期確定後，會把行事曆邀請寄到你的信箱。" : c === "failed" ? "已送出，但加入行事曆沒有成功，請告訴管理員。" : "已送出，謝謝！";
@@ -536,21 +689,41 @@ async function saveResponse() {
   store.set("rsvp.who", d.who.trim());
   if (!S.isOwner) store.set("rsvp.email", d.email.trim());
   try {
-    const data = await api("saveResponse", { eventId: ev.id, familyId: f.id, adultsMeat: d.adultsMeat, adultsVeg: d.adultsVeg, kids: d.kids, note: d.note, who: d.who, email: d.email.trim() }, ADMIN_KEY);
+    const data = await api("saveResponse", { eventId: ev.id, familyId: f.id, units: d.units, note: d.note, who: d.who, email: d.email.trim() }, ADMIN_KEY);
     S.saving = false; d.dirty = false; apply(data); syncDraft(true); flash("msg", calMsg(data.calendar, d.email.trim()), data.calendar === "failed");
   } catch (e) { S.saving = false; flash("msg", errText(e), true) }
 }
 
+const kidLabel = v => (KID_OPTS.find(o => o[0] === v) || [, "未選"])[1];
 function tableRows(ev) {
-  const { rows, sum } = tallyEvent(ev);
-  const head = ["家庭", "狀態", "大人總數", "大人葷食", "大人素食", "大人不出席", "小孩總數", "小孩葷食餐", "小孩素食餐", "小孩共食", "小孩不參加", "出席人數", "葷食份數", "素食份數", "小孩明細", "備註", "最後更新", "填寫人", "管理員調整過", "Email"];
-  const out = [head];
-  for (const { f, r, t } of rows) {
-    const kidDetail = kids(f).map(k => `${k.name}:${(KID_OPTS.find(o => o[0] === r?.kids?.[k.id]) || [, "未選"])[1]}`).join(" / ");
-    out.push(r ? [f.name, r.fixed ? "固定名額" : people(t) ? "已填" : "不出席", t.adults, t.aMeat, t.aVeg, t.aOff, t.kidsTotal, t.kMeat, t.kVeg, t.kShare, t.kOff, people(t), t.aMeat + t.kMeat, t.aVeg + t.kVeg, kidDetail, r.note || "", r.fixed ? "" : r.updatedAt || "", r.who || "", r.byAdmin ? "是" : "", r.email || ""]
-      : [f.name, "未填", t.adults, "", "", "", t.kidsTotal, "", "", "", "", "", "", "", "", "", "", "", ""]);
+  const meals = mealsOf(ev);
+  const tail = ["備註", "最後更新", "填寫人", "管理員調整過", "Email"];
+  const info = f => { const r = f.fixed ? null : S.responses.get(respKey(ev.id, f.id)); return f.fixed ? ["固定名額", "", "", "", ""] : [r?.note || "", r?.updatedAt || "", r?.who || "", r?.byAdmin ? "是" : "", r?.email || ""]; };
+  const status = f => f.fixed ? "固定名額" : respondedOf(ev, f) ? "已填" : "未填";
+  let out;
+  if (!meals.length) {
+    const { rows, sum } = tallyUnit(ev, null);
+    out = [["家庭", "狀態", "大人總數", "大人葷食", "大人素食", "大人不出席", "小孩總數", "小孩葷食餐", "小孩素食餐", "小孩共食", "小孩不參加", "出席人數", "葷食份數", "素食份數", "小孩明細", ...tail]];
+    for (const { f, c, t } of rows) {
+      const kidDetail = kids(f).map(k => `${k.name}:${kidLabel(c?.kids?.[k.id])}`).join(" / ");
+      out.push(c ? [f.name, f.fixed ? "固定名額" : people(t) ? "已填" : "不出席", t.adults, t.aMeat, t.aVeg, t.aOff, t.kidsTotal, t.kMeat, t.kVeg, t.kShare, t.kOff, people(t), t.aMeat + t.kMeat, t.aVeg + t.kVeg, kidDetail, ...info(f)]
+        : [f.name, "未填", t.adults, "", "", "", t.kidsTotal, "", "", "", "", "", "", "", "", ...info(f)]);
+    }
+    out.push(["合計", `${sum.responded}/${sum.families}`, "", sum.aMeat, sum.aVeg, sum.aOff, "", sum.kMeat, sum.kVeg, sum.kShare, sum.kOff, sum.people, sum.meat, sum.veg]);
+  } else {
+    const per = meals.map(m => ({ m, ...tallyUnit(ev, m) }));
+    out = [["家庭", "狀態", "大人總數", "小孩總數", ...per.flatMap(({ m }) => [`${m.title}・人數`, `${m.title}・葷`, `${m.title}・素`, `${m.title}・共食`, `${m.title}・小孩明細`]), ...tail]];
+    for (const f of S.families) {
+      const cols = per.flatMap(({ rows }) => {
+        const { c, t } = rows.find(y => y.f.id === f.id);
+        if (!c) return ["", "", "", "", ""];
+        return [people(t), t.aMeat + t.kMeat, t.aVeg + t.kVeg, t.kShare, kids(f).map(k => `${k.name}:${kidLabel(c.kids?.[k.id])}`).join(" / ")];
+      });
+      out.push([f.name, status(f), adults(f).length, kids(f).length, ...cols, ...info(f)]);
+    }
+    out.push(["合計", `${respondedCount(ev)}/${S.families.length}`, "", "", ...per.flatMap(({ sum }) => [sum.people, sum.meat, sum.veg, sum.kShare, ""])]);
   }
-  out.push(["合計", `${sum.responded}/${sum.families}`, "", sum.aMeat, sum.aVeg, sum.aOff, "", sum.kMeat, sum.kVeg, sum.kShare, sum.kOff, sum.people, sum.meat, sum.veg, "", "", "", "", ""]);
+  const head = out[0];
   out.forEach(row => { while (row.length < head.length) row.push("") });
   return out;
 }
@@ -560,26 +733,35 @@ async function copyText(text, box) {
   catch { if (box) { box.hidden = false; box.value = text; box.focus(); box.select(); try { return document.execCommand("copy") } catch { return false } } return false }
 }
 
+const unitAbsent = (f, u) => { u.adultsMeat = 0; u.adultsVeg = 0; for (const k of kids(f)) u.kids[k.id] = "absent"; };
+const blankItem = ev => ({ id: null, eventId: ev.id, kind: "meal", title: "", date: ev.date || "", time: "", place: "", address: "", desc: "", seats: String(ev.seats || 10) });
+
 async function act(a, ds) {
   const ev = curEvent();
+  const msgKey = S.view === "admin" ? "adminMsg" : "msg";
   switch (a) {
     case "refresh": return refresh();
     case "view": S.view = ds.v; S.confirm = null; store.set("rsvp.view", ds.v); break;
     case "pick-event": S.fillEvent = S.eventId = ds.id; store.set("rsvp.event", ds.id); S.msg = null; syncDraft(true); render(); window.scrollTo(0, 0); return;
     case "back-list": S.fillEvent = null; S.msg = null; render(); window.scrollTo(0, 0); return;
-    case "open-event": S.adminEvent = ds.id; S.eventId = ds.id; store.set("rsvp.event", ds.id); S.evForm = null; S.confirm = null; S.exportUrl = null; S.adminMsg = null; syncDraft(true); render(); window.scrollTo(0, 0); return;
-    case "close-event": S.adminEvent = null; S.evForm = null; S.confirm = null; S.adminMsg = null; render(); window.scrollTo(0, 0); return;
-    case "event": S.eventId = ds.id; store.set("rsvp.event", ds.id); S.msg = null; S.exportUrl = null; syncDraft(true); break;
+    case "open-event": S.adminEvent = ds.id; S.eventId = ds.id; store.set("rsvp.event", ds.id); S.evForm = null; S.itForm = null; S.confirm = null; S.exportUrl = null; S.adminMsg = null; syncDraft(true); render(); window.scrollTo(0, 0); return;
+    case "close-event": S.adminEvent = null; S.evForm = null; S.itForm = null; S.confirm = null; S.adminMsg = null; render(); window.scrollTo(0, 0); return;
     case "family": S.familyId = ds.id; store.set("rsvp.family", ds.id); S.msg = null; syncDraft(true); render(); document.getElementById("form")?.scrollIntoView({ behavior: "smooth", block: "start" }); return;
-    case "adult": { const d = S.draft, f = curFamily(); const v = d[ds.k] + Number(ds.d); const other = ds.k === "adultsMeat" ? d.adultsVeg : d.adultsMeat;
-      if (v >= 0 && v + other <= adults(f).length) { d[ds.k] = v; d.dirty = true; S.msg = null } break }
-    case "kid": S.draft.kids[ds.id] = ds.v; S.draft.dirty = true; S.msg = null; break;
-    case "all-absent": { const d = S.draft; d.adultsMeat = 0; d.adultsVeg = 0; Object.keys(d.kids).forEach(k => d.kids[k] = "absent"); d.dirty = true; S.msg = null; break }
+    case "adult": { const f = curFamily(), u = S.draft.units[ds.u]; const v = u[ds.k] + Number(ds.d); const other = ds.k === "adultsMeat" ? u.adultsVeg : u.adultsMeat;
+      if (v >= 0 && v + other <= adults(f).length) { u[ds.k] = v; S.draft.dirty = true; S.msg = null } break }
+    case "kid": S.draft.units[ds.u].kids[ds.id] = ds.v; S.draft.dirty = true; S.msg = null; break;
+    case "unit-absent": unitAbsent(curFamily(), S.draft.units[ds.u]); S.draft.dirty = true; S.msg = null; break;
+    case "unit-copy": S.draft.units[ds.u] = JSON.parse(JSON.stringify(S.draft.units[ds.from])); S.draft.dirty = true; S.msg = null; break;
+    case "all-absent": { const f = curFamily(); Object.values(S.draft.units).forEach(u => unitAbsent(f, u)); S.draft.dirty = true; S.msg = null; break }
     case "revert": syncDraft(true); break;
     case "save": return saveResponse();
     case "admin-edit": S.view = "fill"; S.fillEvent = S.eventId; S.familyId = ds.id; store.set("rsvp.family", ds.id); S.msg = null; syncDraft(true); render(); document.getElementById("form")?.scrollIntoView({ block: "start" }); return;
     case "copy-url": { const ok = await copyText(PUBLIC_URL, document.getElementById("pub-url")); if (!ok) document.getElementById("pub-url")?.select(); return }
-    case "copy-addr": { const ok = await copyText(ev.address); flash(S.view === "admin" ? "adminMsg" : "msg", ok ? "地址已複製" : "瀏覽器不允許複製，請長按地址手動複製", !ok); return }
+    case "copy-addr": case "copy-it-addr": {
+      const src = a === "copy-addr" ? S.events.find(e => e.id === ds.id) : S.items.find(i => i.id === ds.id);
+      const ok = await copyText(src?.address || "");
+      flash(msgKey, ok ? "地址已複製" : "瀏覽器不允許複製，請長按地址手動複製", !ok); return;
+    }
     case "tsv": {
       const tsv = tableRows(ev).map(r => r.map(c => String(c ?? "").replace(/[\t\n]/g, " ")).join("\t")).join("\n");
       const ok = await copyText(tsv, document.getElementById("tsv-box"));
@@ -593,18 +775,24 @@ async function act(a, ds) {
       catch (e) { S.busy = false; flash("adminMsg", errText(e), true) }
       return;
     }
-    case "ev-new": S.evForm = { id: null, title: "", kind: "meal", date: "", deadline: "", place: "", seats: "10", desc: "", time: "", address: "" }; break;
-    case "ev-edit": { const e = S.events.find(x => x.id === ds.id); S.evForm = { id: e.id, title: e.title || "", kind: e.kind || "meal", date: e.date || "", deadline: e.deadline || "", place: e.place || "", seats: String(e.seats || 10), desc: e.desc || "", time: e.time || "", address: e.address || "" }; break }
+    case "ev-new": S.evForm = { id: null, title: "", kind: "meal", date: "", endDate: "", deadline: "", place: "", seats: "10", desc: "", time: "", address: "" }; break;
+    case "ev-edit": { const e = S.events.find(x => x.id === ds.id); S.itForm = null; S.evForm = { id: e.id, title: e.title || "", kind: e.kind || "meal", date: e.date || "", endDate: e.endDate || "", deadline: e.deadline || "", place: e.place || "", seats: String(e.seats || 10), desc: e.desc || "", time: e.time || "", address: e.address || "" }; break }
     case "ev-cancel": S.evForm = null; break;
     case "ev-save": {
       const data = await adminCall("adminSaveEvent", S.evForm);
-      if (data) { S.eventId = S.adminEvent = data.savedId; store.set("rsvp.event", data.savedId); S.evForm = null; syncDraft(true); flash("adminMsg", data.calendar === "failed" ? "活動已儲存，但更新日曆沒有成功" : "活動已儲存", data.calendar === "failed"); return }
-      break;
+      if (data) { S.eventId = S.adminEvent = data.savedId; store.set("rsvp.event", data.savedId); S.evForm = null; syncDraft(true); flash("adminMsg", data.calendar === "failed" ? "活動已儲存，但更新日曆沒有成功" : "活動已儲存", data.calendar === "failed"); }
+      return;
     }
     case "ev-toggle": return adminCall("adminToggleEvent", ds.id);
-    case "ev-del": case "fam-del": S.confirm = (a === "ev-del" ? "ev:" : "fam:") + ds.id; break;
+    case "ev-del": case "fam-del": case "it-del": S.confirm = a.split("-")[0] + ":" + ds.id; break;
     case "confirm-cancel": S.confirm = null; break;
     case "ev-del-yes": { S.confirm = null; const data = await adminCall("adminDeleteEvent", ds.id); if (data) { S.adminEvent = null; flash("adminMsg", "活動已刪除") } return }
+    case "it-new": S.evForm = null; S.itForm = blankItem(ev); break;
+    case "it-edit": { const it = S.items.find(x => x.id === ds.id); S.evForm = null; S.itForm = { ...it, time: it.time || "", seats: String(it.seats || 10) }; break }
+    case "it-cancel": S.itForm = null; break;
+    case "it-save": { const data = await adminCall("adminSaveItem", S.itForm); if (data) { S.itForm = null; flash("adminMsg", data.calendar === "failed" ? "行程已儲存，但更新日曆沒有成功" : "行程已儲存", data.calendar === "failed") } return }
+    case "it-del-yes": { S.confirm = null; const data = await adminCall("adminDeleteItem", ds.id); if (data) flash("adminMsg", "行程已刪除"); return }
+    case "it-move": return adminCall("adminMoveItem", ds.id, Number(ds.d));
     case "fam-new": S.famForm = { id: null, name: "", adults: "", kids: "" }; break;
     case "fam-edit": { const f = S.families.find(x => x.id === ds.id); S.famForm = { id: f.id, name: f.name, adults: adults(f).map(m => m.name).join("\n"), kids: kids(f).map(m => m.name).join("\n") }; break }
     case "fam-cancel": S.famForm = null; break;
@@ -616,18 +804,25 @@ async function act(a, ds) {
   render();
 }
 
+// 表單欄位：每個表單的「儲存」按鈕在必填欄位有值時才能按
+const FORM_SAVE = { evForm: ["ev-save", "title"], famForm: ["fam-save", "name"], itForm: ["it-save", "title"] };
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b || b.disabled) return;
   act(b.dataset.act, b.dataset);
 });
-document.addEventListener("input", e => {
+function onField(e) {
   const k = e.target.dataset?.bind; if (!k) return;
   if (k === "note" || k === "who" || k === "email") { S.draft[k] = e.target.value; S.draft.dirty = true; return }
   if (k === "bulk") { S.bulk = e.target.value; const btn = document.querySelector('[data-act="bulk"]'); if (btn) btn.disabled = !S.bulk.trim(); return }
   const [obj, field] = k.split(".");
-  if (S[obj]) { S[obj][field] = e.target.value; const save = document.querySelector(`[data-act="${obj === "evForm" ? "ev-save" : "fam-save"}"]`); if (save) save.disabled = !String(S[obj][obj === "evForm" ? "title" : "name"]).trim() }
-});
-document.addEventListener("change", e => { if (e.target.dataset?.bind === "evForm.kind") S.evForm.kind = e.target.value });
+  if (!S[obj]) return;
+  S[obj][field] = e.target.value;
+  const [act, req] = FORM_SAVE[obj] || [];
+  const save = act && document.querySelector(`[data-act="${act}"]`);
+  if (save) save.disabled = !String(S[obj][req]).trim();
+}
+document.addEventListener("input", onField);
+document.addEventListener("change", onField);
 
 // 每 30 秒自動更新一次，看得到其他家庭剛送出的狀態
 setInterval(() => { if (document.visibilityState === "visible" && !S.saving && !S.busy) refresh() }, 30000);
